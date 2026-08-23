@@ -213,7 +213,7 @@
       <div class="control-row" id="cardboxSearchRow">
         <div class="field" style="flex:1;min-width:220px">
           <label for="cardboxSearch" data-i18n="cardbox.searchLabel">🔍 ค้นหาคำใน Cardbox</label>
-          <input type="text" id="cardboxSearch" maxlength="15" placeholder="พิมพ์คำที่ต้องการค้นหา">
+          <input type="text" id="cardboxSearch" maxlength="15" placeholder="พิมพ์คำที่ต้องการค้นหา หรือใส่ Rack เช่น TISANE? (ใช้ ? แทน Blank)">
         </div>
         <div class="field" style="min-width:200px">
           <label for="cardboxSortSelect" data-i18n="cardbox.sortLabel">เรียงลำดับ</label>
@@ -830,6 +830,35 @@
     <div class="wd-actions">
       <button type="button" class="btn btn-outline" id="wdFullPageBtn">📖 เปิดหน้าคำเต็ม</button>
       <button type="button" class="btn btn-outline" id="wdUnfamBtn">✍ มาร์กว่าไม่คุ้น</button>
+    </div>
+  </div>
+</div>
+
+<div id="wordFullPageOverlay" class="wd-overlay wfp-overlay" style="display:none">
+  <div class="wd-card wfp-card">
+    <div class="wd-head">
+      <button type="button" class="btn btn-outline" id="wfpBackBtn">← กลับ</button>
+      <span id="wfpWord" class="wd-word"></span>
+      <button type="button" class="btn btn-outline" id="wfpCloseBtn">✕ ปิด</button>
+    </div>
+    <div class="wfp-tree-section">
+      <div class="wd-history-title">🌳 โครงสร้างคำขยาย (Word Growth Tree)</div>
+      <p class="wfp-tree-hint">เติมตัวหน้า/ท้ายไปเรื่อยๆ จนสุดที่ 8 ตัว · สีเดียวกัน = anagram ของกันและกัน · กดที่คำเพื่อย้ายรากไปที่คำนั้น</p>
+      <div class="wfp-tree-toolbar">
+        <button type="button" class="wfp-tool-btn" id="wfpZoomInBtn">🔍 +</button>
+        <button type="button" class="wfp-tool-btn" id="wfpZoomOutBtn">🔍 −</button>
+        <span class="wfp-zoom-pct" id="wfpZoomPct">100%</span>
+        <button type="button" class="wfp-tool-btn" id="wfpResetViewBtn">Reset View</button>
+        <button type="button" class="wfp-tool-btn" id="wfpExpandAllBtn">🌿 กางทุกกิ่ง</button>
+      </div>
+      <div class="wfp-tree-viewport" id="wfpTreeViewport">
+        <div class="wfp-tree-canvas" id="wfpTree"></div>
+      </div>
+    </div>
+    <div class="wd-history">
+      <div class="wd-history-title">ประวัติของคำนี้</div>
+      <div id="wfpHistorySummary" class="wd-history-summary"></div>
+      <div id="wfpHistoryList" class="wd-history-list"></div>
     </div>
   </div>
 </div>
