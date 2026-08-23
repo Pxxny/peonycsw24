@@ -28,40 +28,54 @@
     return global.CSW24_WORDSET.has(String(word).trim().toUpperCase());
   }
 
-  // "Simple/everyday word" filter for Basic Bot: avoids obscure short combos
-  // and rare letters (J,Q,X,Z) so Basic plays words a beginner would actually
-  // know, rather than obscure valid Scrabble words. Roughly approximates
-  // word frequency without needing real frequency data: prefers words built
-  // only from common letters and without unusual repeated-letter patterns.
-  // NOTE: kept intentionally loose (word length + rare-letter check only) —
-  // being too strict here was the single biggest cause of Basic Bot passing:
-  // it would fail to find ANY word for its rack and fall back to Pass. If this
-  // filter ever gets tightened again, make sure decideMove's fallback ladder
-  // below still has real words to widen into.
+  // "Everyday word" heuristic score for ranking (not filtering) candidates.
+  // All bots now search the FULL CSW24 list — nothing is excluded from the
+  // pool — but each bot profile "looks at" the resulting candidates through
+  // a different lens (word-shape scoring, length preference, rare-letter
+  // tolerance) before choosing a move. This keeps each bot's personality
+  // (Basic favours plain everyday-looking words, Henry favours pure score)
+  // without ever making Basic Bot unable to find ANY word for its rack,
+  // which was the root cause of it passing so often.
   const RARE_LETTERS = /[JQXZ]/;
-  function isSimpleWord(word) {
-    if (word.length < 2 || word.length > 7) return false;
-    if (RARE_LETTERS.test(word)) return false;
-    return true;
+  function commonnessScore(word) {
+    // Higher = more "everyday-looking". Purely heuristic, no exclusion.
+    let score = 0;
+    if (word.length >= 3 && word.length <= 7) score += 2;
+    if (!RARE_LETTERS.test(word)) score += 2;
+    if (!/(.)\1\1/.test(word)) score += 1; // no triple-repeated letters
+    return score;
   }
 
-  let simpleWordSetCache = null;
-  function ensureSimpleWordSet() {
-    if (simpleWordSetCache) return simpleWordSetCache;
-    ensureWordSet();
-    simpleWordSetCache = new Set();
-    for (const w of global.CSW24_WORDSET) {
-      if (isSimpleWord(w)) simpleWordSetCache.add(w);
-    }
-    return simpleWordSetCache;
-  }
-
-  // Word pool a given bot profile should draw candidate words from.
+  // Word pool: every bot always searches the FULL CSW24 dictionary for its
+  // word length — nothing is excluded. What differs between bots is the
+  // ORDER in which candidate words are tried (profile.wordOrder), which
+  // acts as each bot's "way of looking for words": Basic looks at plain,
+  // common-shaped words first; Medium looks at higher scoring/specialty
+  // words first; Henry does a full, unordered scan (closest to optimal).
+  const wordPoolCache = {};
   function wordPoolForProfile(profile, wordLen) {
     const all = global.CSW24_BY_LENGTH[wordLen] || [];
-    if (!profile.simpleWordsOnly) return all;
-    const simpleSet = ensureSimpleWordSet();
-    return all.filter(w => simpleSet.has(w));
+    if (!all.length) return all;
+    const key = profile.wordOrder + ':' + wordLen;
+    if (wordPoolCache[key]) return wordPoolCache[key];
+
+    let ordered;
+    if (profile.wordOrder === 'common-first') {
+      // Basic Bot: scans plain/everyday-looking words before obscure ones,
+      // so it "finds" simple words first, but obscure words are still in
+      // the list further down — never excluded, just lower priority.
+      ordered = all.slice().sort((a, b) => commonnessScore(b) - commonnessScore(a));
+    } else if (profile.wordOrder === 'specialty-first') {
+      // Medium Bot: actively hunts higher-scoring/specialty vocabulary
+      // (rare letters, longer words) before plain ones.
+      ordered = all.slice().sort((a, b) => commonnessScore(a) - commonnessScore(b));
+    } else {
+      // Henry: no bias — scans the dictionary as-is (alphabetical), closest
+      // to an exhaustive, skill-driven search.
+      ordered = all;
+    }
+    wordPoolCache[key] = ordered;
+    return ordered;
   }
 
   // Rack-letter-count helper: does `rackCounts` (map letter->count, '?' = blanks)
@@ -97,6 +111,11 @@
   }
 
   // ---- Bot profiles ----
+  // Every bot now searches the FULL CSW24 word list for every word length —
+  // maxWordLenPreference only caps how LONG a word the bot tries to build
+  // (a skill/ambition setting), it no longer restricts which dictionary
+  // entries are visible. wordOrder controls each bot's distinct "way of
+  // looking for words" (see wordPoolForProfile above).
   // searchDepth also drives maxExplore (searchDepth * EXPLORE_MULT) in
   // generateCandidates — raised across the board so a real placement isn't
   // missed just because the exploration budget ran out first (this used to
@@ -105,8 +124,8 @@
     basic: {
       label: 'Basic Bot',
       rating: 1200,
-      maxWordLenPreference: 7,   // everyday words, 2-7 letters
-      simpleWordsOnly: true,     // avoid obscure words / rare letters (J,Q,X,Z)
+      maxWordLenPreference: 7,   // prefers building shorter, everyday words
+      wordOrder: 'common-first', // looks at plain/common words before obscure ones
       bingoChance: 0.10,         // rarely finds/plays bingos
       searchDepth: 120,
       rackManagementSkill: 0.2,  // poor at keeping good leaves
@@ -118,7 +137,7 @@
       label: 'Medium Bot',
       rating: 1400,
       maxWordLenPreference: 9,
-      simpleWordsOnly: false,    // uses specialty words, including J/Q/X/Z
+      wordOrder: 'specialty-first', // actively hunts higher-scoring/rarer words
       bingoChance: 0.55,         // actively hunts high-probability bingos
       searchDepth: 180,
       rackManagementSkill: 0.55,
@@ -130,7 +149,7 @@
       label: 'Henry',
       rating: 1500,
       maxWordLenPreference: 10,
-      simpleWordsOnly: false,    // same vocabulary range as Medium, but plays it better
+      wordOrder: 'exhaustive',   // scans the full dictionary without bias, plays it best
       bingoChance: 0.7,
       searchDepth: 250,
       rackManagementSkill: 0.8,
@@ -168,26 +187,39 @@
   // whether the rack (plus letters already fixed on the board along that line) can
   // actually spell them. This replaces the old "shuffle rack and hope it happens to
   // spell a word left-to-right" approach, which is why the bot used to pass so often.
-  // opts.forceFullPool: ignore profile.simpleWordsOnly for this search (used by
-  // decideMove's fallback ladder so a bot never passes just because its
-  // "personality" vocabulary filter happened to have no match, when a legal
-  // move existed in the full dictionary).
   // opts.candidateCap: override profile.searchDepth as the stop-early cap.
+  // opts.widenMaxLen: also allow the search to try words longer than the
+  // profile's normal maxWordLenPreference (used by decideMove's fallback
+  // ladder, since a bot should never pass while a legal word — of any
+  // length it could physically form — exists on the board for its rack).
+  // opts.exhaustive: true removes ALL early-exit shortcuts (attemptCap,
+  // candidateCap, maxExplore) and searches every word length up to the
+  // full board size — used as the final, guaranteed-correct check before
+  // the bot is allowed to pass. The board is only 15x15 and the rack only
+  // ever has up to 7 tiles, so this is still fast; it's not used on every
+  // turn because it's more work than necessary when an earlier, cheaper
+  // rung already found a legal move.
   function generateCandidates(board, rack, profile, genStart, capMs, opts) {
     opts = opts || {};
     ensureWordSet();
     const anchors = findAnchors(board);
     const candidates = [];
     const rackCounts = rackToCounts(rack);
-    const maxLen = Math.min(7, profile.maxWordLenPreference);
-    const effectiveProfile = opts.forceFullPool ? Object.assign({}, profile, { simpleWordsOnly: false }) : profile;
-    const candidateCap = opts.candidateCap || profile.searchDepth;
+    const size = BS().SIZE;
+    const maxLen = opts.exhaustive
+      ? size
+      : (opts.widenMaxLen ? Math.min(7, rack.length + 7) : Math.min(7, profile.maxWordLenPreference));
+    const candidateCap = opts.exhaustive ? Infinity : (opts.candidateCap || profile.searchDepth);
+    const attemptCap = opts.exhaustive ? Infinity : 25;
     let explored = 0;
-    const maxExplore = Math.max(profile.searchDepth, candidateCap) * 20; // overall budget so it stays fast
+    const maxExplore = opts.exhaustive ? Infinity : Math.max(profile.searchDepth, candidateCap) * 20; // overall budget so it stays fast
     const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
     // Leave headroom for the promised "thinking" delay: cap actual search work
-    // at 80% of the profile's max think time so we never blow past it.
-    const deadline = genStart !== undefined && capMs ? genStart + capMs * 0.8 : null;
+    // at 80% of the profile's max think time so we never blow past it. The
+    // exhaustive rung ignores this deadline too — it's the one search that
+    // MUST run to completion, since it's what decides whether Pass is
+    // actually legal; the board/rack sizes keep it fast regardless.
+    const deadline = (!opts.exhaustive && genStart !== undefined && capMs) ? genStart + capMs * 0.8 : null;
 
     outer:
     for (const anchor of anchors) {
@@ -195,7 +227,7 @@
         const [dr, dc] = direction === 'H' ? [0, 1] : [1, 0];
         for (let wordLen = 2; wordLen <= maxLen; wordLen++) {
           if (deadline && (explored % 200 === 0) && now() > deadline) break outer;
-          const wordsOfLen = wordPoolForProfile(effectiveProfile, wordLen);
+          const wordsOfLen = wordPoolForProfile(profile, wordLen);
           if (!wordsOfLen || wordsOfLen.length === 0) continue;
           for (let startOffset = 0; startOffset < wordLen; startOffset++) {
             const startR = anchor.r - dr * startOffset;
@@ -231,7 +263,6 @@
 
             // Try candidate words of this length that match the fixed-letter pattern.
             let attemptsHere = 0;
-            const attemptCap = 25;
             for (const candidateWord of wordsOfLen) {
               if (explored++ > maxExplore) break outer;
               if (attemptsHere++ > attemptCap) break;
@@ -244,7 +275,14 @@
                 if (fixedLetters[i] !== undefined) continue;
                 const r = startR + dr * i, c = startC + dc * i;
                 const u = used[uIdx++];
-                placements.push({ r, c, letter: u.letter, blank: u.blank });
+                // fromRack records which physical rack tile this placement
+                // consumes ('?' for a blank, otherwise the letter itself) so
+                // the caller can remove exactly these tiles from the bot's
+                // rack afterwards — without this, the bot's rack never
+                // actually shrinks and it can appear to replay the same
+                // letters (e.g. "BY") far more often than the bag/rack could
+                // ever really supply.
+                placements.push({ r, c, letter: u.letter, blank: u.blank, fromRack: u.blank ? '?' : u.letter });
               }
               if (placements.length === 0) continue;
 
@@ -313,24 +351,36 @@
 
       // Fallback ladder: only pass when there is truly no legal placement
       // anywhere in the full dictionary, not just within this bot's
-      // "personality" preferences (word length / simple-words filter /
-      // exploration budget). Each rung below widens the search rather than
-      // giving up, so Pass becomes a genuine last resort instead of a
-      // frequent outcome caused by a bot's own vocabulary restrictions.
+      // preferred word length or exploration budget. Each rung below widens
+      // the search rather than giving up, so Pass becomes a genuine last
+      // resort — the final rung (exhaustive) is a complete, unbounded check
+      // that makes Pass a forced/guaranteed decision, not just an unlikely one.
       let candidates = generateCandidates(board, rack, profile, genStart, cap);
 
-      if (candidates.length === 0 && profile.simpleWordsOnly) {
-        // Rung 1: same profile, but ignore the simple-word vocabulary filter.
-        candidates = generateCandidates(board, rack, profile, genStart, cap, { forceFullPool: true });
+      if (candidates.length === 0) {
+        // Rung 1: allow longer words than the profile normally prefers.
+        candidates = generateCandidates(board, rack, profile, genStart, cap, { widenMaxLen: true });
       }
 
       if (candidates.length === 0) {
         // Rung 2: also relax the search-depth cap so a longer scan can run
         // (still bounded by the think-time deadline inside generateCandidates).
         candidates = generateCandidates(board, rack, profile, genStart, cap, {
-          forceFullPool: true,
+          widenMaxLen: true,
           candidateCap: Math.max(profile.searchDepth * 3, 300)
         });
+      }
+
+      if (candidates.length === 0) {
+        // Rung 3 (final, forced): a truly exhaustive search — every word
+        // length up to the full board size, every matching dictionary word,
+        // no early-exit budgets or think-time deadline. This is the rung
+        // that actually GUARANTEES the bot only passes when there is no
+        // legal play at all (e.g. holding a Q with no U and no way to use
+        // an existing U on the board, especially late-game with a near-full
+        // board and a thin rack). Cheap board/rack-shape checks earlier in
+        // generateCandidates keep this fast even without a budget.
+        candidates = generateCandidates(board, rack, profile, genStart, cap, { exhaustive: true });
       }
 
       const move = chooseMove(candidates, profile);

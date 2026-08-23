@@ -41,7 +41,10 @@
       lastMove: null,       // for challenge: {placements, direction, formed, score, by}
       moveLog: [],
       gameOver: false,
-      passStreak: 0
+      gameOverReason: '',
+      passStreak: 0,
+      youWords: [],   // {text, score} for every word the player has scored, for the end-game summary
+      botWords: []    // same, for the bot
     };
   }
 
@@ -62,6 +65,8 @@
     $('playBotLevel').addEventListener('change', updateBotThinkTimeNote);
     $('playBagDetailBtn').addEventListener('click', toggleBagDetail);
     $('playBagDetailCloseBtn').addEventListener('click', () => setBagDetailVisible(false));
+    $('playSummaryNewGameBtn').addEventListener('click', backToSetupFromSummary);
+    $('playSummaryReviewBtn').addEventListener('click', reviewFromSummary);
     updateBotThinkTimeNote();
   }
 
@@ -145,6 +150,7 @@
 
     $('playCoinFlipCard').style.display = 'none';
     $('playGameCard').style.display = 'block';
+    $('playSummaryCard').style.display = 'none';
     $('playBotLabel').textContent = global.BotSystem.getProfile(pendingGameOpts.botLevel).label;
     $('playManualScoreWrap').style.display = pendingGameOpts.scoringMode === 'manual' ? 'flex' : 'none';
     $('playChallengeBtn').style.display = pendingGameOpts.challengeRule === 'void' ? 'none' : '';
@@ -622,10 +628,22 @@
     global.BoardSystems.applyPlacements(state.board, placements);
     state.lastMove = { placements, direction, formed, score: scoreToApply, by: 'you' };
     logEntry('you', `คุณลงคำ: ${breakdown.map(b => `${b.word}(+${b.score})`).join(', ')} รวม +${scoreToApply}`);
+    recordWords('youWords', formed, breakdown);
     refillRackAfterMove('you', placements);
     state.pending = [];
     state.passStreak = 0;
     endTurn();
+  }
+
+  // Track each scored word for the end-of-game summary (longest word, best
+  // single word, total words played, etc.) — separate from moveLog text.
+  function recordWords(key, formed, breakdown) {
+    if (!formed || formed.length === 0) return;
+    const scoreByText = {};
+    (breakdown || []).forEach(b => { scoreByText[b.word] = b.score; });
+    formed.forEach(w => {
+      state[key].push({ text: w.text, score: scoreByText[w.text] });
+    });
   }
 
   function holdManualScore() {
@@ -635,6 +653,13 @@
     state.lastMove.applied = true;
     state.lastMove.score = val;
     logEntry('you', `ยืนยันคะแนนเอง: +${val}`);
+    // Manual mode only knows the total, not a per-word breakdown — attribute
+    // the whole score to the longest word formed so summary stats stay sane.
+    if (state.lastMove.formed && state.lastMove.formed.length) {
+      const longest = state.lastMove.formed.slice().sort((a, b) => b.text.length - a.text.length)[0];
+      const breakdown = state.lastMove.formed.map(w => ({ word: w.text, score: w.text === longest.text ? val : 0 }));
+      recordWords('youWords', state.lastMove.formed, breakdown);
+    }
     state.turn = 'you';
     state.passStreak = 0;
     endTurn();
@@ -652,12 +677,35 @@
 
   function refillRackAfterMove(who, placements) {
     const rackKey = who === 'you' ? 'youRack' : 'botRack';
-    const usedIdx = new Set(placements.map(p => p.rackIdx).filter(i => i !== undefined));
-    const remaining = state[rackKey].filter((_, idx) => !usedIdx.has(idx));
+    let remaining;
+    if (who === 'you') {
+      // Player placements always carry rackIdx (set at click/drag time),
+      // so we can remove the exact physical tiles by position.
+      const usedIdx = new Set(placements.map(p => p.rackIdx).filter(i => i !== undefined));
+      remaining = state[rackKey].filter((_, idx) => !usedIdx.has(idx));
+    } else {
+      // Bot placements carry fromRack (the letter actually consumed from
+      // its rack — '?' for a blank) instead of a rackIdx. Remove exactly
+      // that many of each letter so the bot's rack genuinely shrinks by
+      // what it played — otherwise the bot's "hand" never changes and it
+      // can look like it has an unlimited supply of any letter (e.g.
+      // playing "BY" turn after turn far more than the bag could supply).
+      remaining = state[rackKey].slice();
+      placements.forEach(p => {
+        const wanted = p.fromRack !== undefined ? p.fromRack : p.letter;
+        const idx = remaining.indexOf(wanted);
+        if (idx !== -1) remaining.splice(idx, 1);
+      });
+    }
     const needed = 7 - remaining.length;
     const drawn = global.RackManage.drawTiles(state.bag, needed);
     const newRack = remaining.concat(drawn);
     state[rackKey] = who === 'you' ? sortRackAlpha(newRack) : newRack;
+    // Classic Scrabble end condition: bag is empty AND a player has used
+    // every tile in their rack — that player has gone out, game ends now.
+    if (global.RackManage.bagCount(state.bag) === 0 && state[rackKey].length === 0) {
+      endGame(who === 'you' ? 'คุณลงตัวอักษรหมดมือและ Tile Bag ว่างเปล่า' : 'บอทลงตัวอักษรหมดมือและ Tile Bag ว่างเปล่า');
+    }
   }
 
   // ---------- pass / exchange ----------
@@ -690,10 +738,89 @@
 
   function checkGameEndByPasses() {
     if (state.passStreak >= 6) {
-      state.gameOver = true;
-      logEntry('you', 'เกมจบ: Pass ติดต่อกันครบกำหนด');
-      stopTimer();
+      endGame('เกมจบ: Pass ติดต่อกันครบกำหนด');
     }
+  }
+
+  // ---------- end game / summary ----------
+
+  function endGame(reasonText) {
+    if (state.gameOver) return; // already ended, don't double-fire
+    state.gameOver = true;
+    state.gameOverReason = reasonText;
+    logEntry('you', reasonText);
+    stopTimer();
+    renderAll();
+    renderSummary();
+    showSummaryCard(true);
+  }
+
+  function showSummaryCard(show) {
+    $('playSummaryCard').style.display = show ? 'block' : 'none';
+    $('playGameCard').style.display = show ? 'none' : 'block';
+  }
+
+  function wordStats(words) {
+    if (!words || words.length === 0) {
+      return { count: 0, longest: null, best: null };
+    }
+    const longest = words.slice().sort((a, b) => b.text.length - a.text.length)[0];
+    const best = words.slice().sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+    return { count: words.length, longest, best };
+  }
+
+  function renderSummary() {
+    const you = state.youScore, bot = state.botScore;
+    const youWon = you > bot, botWon = bot > you, tie = you === bot;
+
+    $('playSummaryReason').textContent = state.gameOverReason || '';
+
+    let title = '🏁 จบเกม';
+    if (youWon) title = '🎉 คุณชนะ!';
+    else if (botWon) title = `🤖 ${global.BotSystem.getProfile(state.botLevel).label} ชนะ`;
+    else if (tie) title = '🤝 เสมอกัน';
+    $('playSummaryTitle').textContent = title;
+
+    const botLabel = global.BotSystem.getProfile(state.botLevel).label;
+    $('playSummaryScores').innerHTML = `
+      <div class="play-summary-scoreblock${youWon ? ' is-winner' : ''}">
+        <span class="ss-label">คุณ</span>
+        <span class="ss-score">${you}</span>
+        <span class="ss-crown">${youWon ? '👑' : ''}</span>
+      </div>
+      <div class="play-summary-scoreblock${botWon ? ' is-winner' : ''}">
+        <span class="ss-label">${botLabel}</span>
+        <span class="ss-score">${bot}</span>
+        <span class="ss-crown">${botWon ? '👑' : ''}</span>
+      </div>
+    `;
+
+    const youStats = wordStats(state.youWords);
+    const botStats = wordStats(state.botWords);
+    const rows = [
+      ['จำนวนคำที่คุณลง', youStats.count],
+      ['จำนวนคำที่บอทลง', botStats.count],
+      ['คำที่ยาวที่สุดของคุณ', youStats.longest ? `${youStats.longest.text} (${youStats.longest.text.length} ตัว)` : '-'],
+      ['คำที่ยาวที่สุดของบอท', botStats.longest ? `${botStats.longest.text} (${botStats.longest.text.length} ตัว)` : '-'],
+      ['คำคะแนนสูงสุดของคุณ', youStats.best ? `${youStats.best.text} (+${youStats.best.score || 0})` : '-'],
+      ['คำคะแนนสูงสุดของบอท', botStats.best ? `${botStats.best.text} (+${botStats.best.score || 0})` : '-'],
+      ['Tile Bag คงเหลือ', global.RackManage.bagCount(state.bag)]
+    ];
+    $('playSummaryTable').innerHTML = rows.map(([label, val]) =>
+      `<tr><td>${label}</td><td>${val}</td></tr>`
+    ).join('');
+  }
+
+  function backToSetupFromSummary() {
+    showSummaryCard(false);
+    $('playGameCard').style.display = 'none';
+    $('playSetupCard').style.display = 'block';
+  }
+
+  function reviewFromSummary() {
+    // Let the person see the full move log behind the summary without
+    // losing the final board/scoreboard state.
+    showSummaryCard(false);
   }
 
   // ---------- challenge ----------
@@ -780,6 +907,7 @@
       state.botScore += scoreToApply;
       state.lastMove = { placements: move.placements, direction: move.direction, formed: move.formed, score: scoreToApply, by: 'bot' };
       logEntry('bot', `บอทลงคำ: ${move.formed.map(w => w.text).join(', ')} +${scoreToApply}`);
+      recordWords('botWords', move.formed, move.formed.map(w => ({ word: w.text, score: w.text === move.word ? scoreToApply : 0 })));
       refillRackAfterMove('bot', move.placements);
       state.passStreak = 0;
       state.turn = 'you';
@@ -808,9 +936,7 @@
       else if (state.turn === 'bot') state.botSeconds = Math.max(0, state.botSeconds - 1);
       updateTimerDisplay();
       if ((state.turn === 'you' && state.youSeconds === 0) || (state.turn === 'bot' && state.botSeconds === 0)) {
-        state.gameOver = true;
-        logEntry(state.turn, 'หมดเวลา! เกมจบ');
-        stopTimer();
+        endGame('หมดเวลา! เกมจบ');
       }
     }, 1000);
   }
