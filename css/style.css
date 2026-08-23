@@ -1177,6 +1177,36 @@ main {
 .play-tile.tile-dragging { opacity: 0.4; }
 .play-cell.drag-over { outline: 2px dashed var(--teal); outline-offset: -2px; }
 .play-tile.drag-over { outline: 2px dashed var(--teal); outline-offset: 2px; }
+
+.wd-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: flex-start; justify-content: center;
+  z-index: 500; padding: 1.2rem; overflow-y: auto;
+}
+.wd-card {
+  background: var(--board-1); border: 1px solid var(--brass);
+  border-radius: 14px; padding: 1.2rem; max-width: 480px; width: 100%;
+  color: var(--cream);
+}
+.wd-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+.wd-word { font-size: 1.4rem; font-weight: 700; font-family: var(--font-mono); }
+.wd-def { font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.8rem; line-height: 1.5; }
+.wd-row { display: flex; gap: 0.6rem; padding: 0.4rem 0; border-bottom: 1px solid var(--rail); font-size: 0.88rem; }
+.wd-label { min-width: 70px; opacity: 0.7; }
+.wd-actions { display: flex; gap: 0.6rem; margin: 0.8rem 0; flex-wrap: wrap; }
+.wd-cardbox-note { font-size: 0.8rem; opacity: 0.75; margin-bottom: 0.4rem; }
+.wd-note-input {
+  width: 100%; min-height: 60px; margin-top: 0.8rem; border-radius: 8px;
+  border: 1px solid var(--rail); background: var(--board-2); color: var(--cream);
+  padding: 0.5rem; font-family: inherit; font-size: 0.85rem;
+}
+.wd-plus-slot { display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--rail);
+  margin-right: 4px; font-weight: 700; cursor: default; }
+.wd-plus-slot.wd-plus-valid { border-color: var(--brass); color: var(--brass); }
+.word-row-clickable { cursor: pointer; }
+.word-unfamiliar { background: rgba(209,165,61,0.12); border-color: var(--brass); }
+.word-idx { font-size: 0.7rem; opacity: 0.6; margin-right: 4px; }
 .play-tile-ghost {
   position: fixed;
   z-index: 9999;
@@ -1193,6 +1223,54 @@ main {
   margin: 0.6rem 0;
   font-size: 0.85rem;
 }
+
+.play-summary-card { text-align: center; }
+.play-summary-reason {
+  color: var(--brass);
+  font-size: 0.95rem;
+  margin: 0.2rem 0 1rem;
+}
+.play-summary-scores {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin: 1rem 0 1.4rem;
+}
+.play-summary-scoreblock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.8rem 1.4rem;
+  border-radius: 10px;
+  background: var(--board-1);
+  border: 1px solid var(--rail);
+  min-width: 120px;
+}
+.play-summary-scoreblock.is-winner {
+  outline: 2px solid var(--brass);
+  background: var(--board-2);
+}
+.play-summary-scoreblock .ss-label { font-size: 0.85rem; opacity: 0.8; }
+.play-summary-scoreblock .ss-score {
+  font-size: 1.8rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--ink-soft, var(--cream));
+}
+.play-summary-scoreblock .ss-crown { font-size: 1.1rem; margin-top: 2px; }
+.play-summary-stats { display: flex; justify-content: center; margin-bottom: 0.5rem; }
+.play-summary-table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 280px;
+}
+.play-summary-table td {
+  padding: 0.35rem 0.8rem;
+  border-bottom: 1px solid var(--rail);
+  text-align: left;
+}
+.play-summary-table td:last-child { text-align: right; font-family: var(--font-mono); }
+.play-summary-table tr:last-child td { border-bottom: none; }
 .play-manual-score input { width: 80px; padding: 0.3rem; border-radius: 6px; border: 1px solid var(--rail); background: var(--board-2); color: var(--cream); }
 
 .play-actions { flex-wrap: wrap; }
