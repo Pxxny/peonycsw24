@@ -26,6 +26,7 @@
   const SETTINGS_KEY = 'csw24_settings_v1';
   const UNFAM_KEY = 'csw24_unfamiliar_v1';
   const NOTES_KEY = 'csw24_word_notes_v1';
+  const HISTORY_KEY = 'csw24_word_history_v1';
   const DAY_MS = 86400000;
   const PAGE_SIZE = 150;
 
@@ -490,6 +491,35 @@
     localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
   }
 
+  // ---------- word history log (every time a word is encountered anywhere) ----------
+  // { word: [{t: ms, mode: 'quiz'|'generate'|'cardbox'|'suggested'|'typing'|'racks'|'alpha'|'marathon'}, ...] }
+  // Capped per-word to keep storage bounded on words seen very often.
+  const HISTORY_CAP_PER_WORD = 200;
+  let _historyCache = null;
+  function loadHistory() {
+    if (_historyCache) return _historyCache;
+    try { _historyCache = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}'); }
+    catch (e) { _historyCache = {}; }
+    return _historyCache;
+  }
+  const MODE_LABELS = {
+    quiz: 'แบบทดสอบ', generate: 'สร้างคำศัพท์', cardbox: 'ทบทวน Cardbox',
+    suggested: 'คำแนะนำ Dashboard', typing: 'พิมพ์ศัพท์ (Minigame)',
+    racks: 'Random Racks (Minigame)', alpha: 'Alphagram Blitz (Minigame)',
+    marathon: 'Time Attack Marathon (Minigame)', browse: 'คลังคำศัพท์'
+  };
+  function logWordEncounter(word, mode) {
+    if (!word || !mode) return;
+    const hist = loadHistory();
+    const list = hist[word] || (hist[word] = []);
+    list.push({ t: Date.now(), mode: mode });
+    if (list.length > HISTORY_CAP_PER_WORD) list.splice(0, list.length - HISTORY_CAP_PER_WORD);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+  }
+  function getWordHistory(word) {
+    return (loadHistory()[word] || []).slice().reverse(); // most recent first
+  }
+
   // Longest dictionary suffix/prefix this word is built from (e.g. RETINAS
   // -> suffix +S off RETINA). Simple heuristic: strip 1 letter and check the
   // remainder is a valid shorter word.
@@ -893,8 +923,8 @@
       openWordDetail(word);
     };
 
-    // "+?" combos: front hooks, back hooks, and any longer words this word
-    // is a prefix of (e.g. RETINA -> RETINAE, RETINAL, RETINAS).
+    // "+?" combos: only the letters that actually extend this word (back
+    // hooks), plus any longer words this word is a prefix of.
     const hooks = getHooks(word);
     const longerSet = lengthSet(word.length + 1);
     const extensions = [];
@@ -903,10 +933,12 @@
       if (longerSet.has(word + l)) extensions.push(word + l);
     }
     let plusHTML = '<span class="wd-label">' + word + ' + ?</span>';
-    for (let c = 65; c <= 90; c++) {
-      const l = String.fromCharCode(c);
-      const valid = hooks.back.indexOf(l) !== -1;
-      plusHTML += '<span class="wd-plus-slot' + (valid ? ' wd-plus-valid' : '') + '">' + l + '</span>';
+    if (hooks.back.length) {
+      plusHTML += hooks.back.map(function (l) {
+        return '<span class="wd-plus-slot wd-plus-valid">' + l + '</span>';
+      }).join('');
+    } else {
+      plusHTML += '<span style="opacity:0.6">ไม่มีตัวต่อท้ายได้</span>';
     }
     if (extensions.length) {
       plusHTML += '<div style="margin-top:6px">' + extensions.join(', ') + '</div>';
@@ -926,9 +958,7 @@
     noteInput.onblur = function () { setNote(word, noteInput.value.trim()); };
 
     document.getElementById('wdFullPageBtn').onclick = function () {
-      document.getElementById('browseWordSearch').value = word;
-      runBrowseSearch();
-      overlay.style.display = 'none';
+      openWordFullPage(word);
     };
 
     const unfamBtn = document.getElementById('wdUnfamBtn');
@@ -943,11 +973,156 @@
     overlay.style.display = 'flex';
   }
 
+  // ---------- word full page (Word Growth Tree + history) ----------
+
   document.getElementById('wdCloseBtn').addEventListener('click', function () {
     document.getElementById('wordDetailOverlay').style.display = 'none';
   });
   document.getElementById('wordDetailOverlay').addEventListener('click', function (e) {
     if (e.target.id === 'wordDetailOverlay') e.currentTarget.style.display = 'none';
+  });
+
+  function wordGrowthChildren(word) {
+    // One-letter extensions in either direction, capped at 8 total letters
+    // per the growth-tree concept shown in the reference screenshot.
+    if (word.length >= 8) return [];
+    const hooks = getHooks(word);
+    const children = [];
+    hooks.front.forEach(function (l) { children.push({ word: l + word, tag: l + '+' }); });
+    hooks.back.forEach(function (l) { children.push({ word: word + l, tag: '+' + l }); });
+    return children;
+  }
+
+  let _wfpZoom = 1;
+  function wfpSetZoom(z) {
+    _wfpZoom = Math.max(0.5, Math.min(2, z));
+    document.getElementById('wfpTree').style.transform = 'scale(' + _wfpZoom + ')';
+    document.getElementById('wfpZoomPct').textContent = Math.round(_wfpZoom * 100) + '%';
+  }
+  document.getElementById('wfpZoomInBtn').addEventListener('click', function () { wfpSetZoom(_wfpZoom + 0.1); });
+  document.getElementById('wfpZoomOutBtn').addEventListener('click', function () { wfpSetZoom(_wfpZoom - 0.1); });
+  document.getElementById('wfpResetViewBtn').addEventListener('click', function () {
+    wfpSetZoom(1);
+    document.getElementById('wfpTreeViewport').scrollTo(0, 0);
+  });
+  document.getElementById('wfpExpandAllBtn').addEventListener('click', function () {
+    document.querySelectorAll('#wfpTree .wfp-node-def[data-pending]').forEach(function (el) {
+      const w = el.dataset.word;
+      fetchDefinition(w, function (text) { el.textContent = text ? '[' + w.length + '] ' + text : ''; });
+      el.removeAttribute('data-pending');
+    });
+  });
+
+  // Distinct colors per anagram group, so words that are anagrams of each
+  // other (same letters, different order) visually share a color — the
+  // same convention as the reference Word Growth Tree design.
+  const WFP_GROUP_COLORS = ['#e879c8', '#7dd3fc', '#facc15', '#86efac', '#fca5a5', '#c4b5fd'];
+  function wfpGroupColor(word) {
+    const key = sortLetters(word);
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    return WFP_GROUP_COLORS[hash % WFP_GROUP_COLORS.length];
+  }
+
+  const NODE_W = 200, NODE_H = 74, ROW_GAP = 14, COL_GAP = 140;
+
+  function renderWordTree(word) {
+    const children = wordGrowthChildren(word);
+    const canvas = document.getElementById('wfpTree');
+    wfpSetZoom(1);
+
+    const rootX = 0, rootY = Math.max(0, (children.length - 1) * (NODE_H + ROW_GAP)) / 2;
+    const childX = COL_GAP + 140;
+
+    let html = '<svg class="wfp-tree-svg" id="wfpTreeSvg"></svg>';
+    html += '<div class="wfp-node wfp-node-root" style="left:' + rootX + 'px;top:' + rootY + 'px;width:140px;min-height:' + NODE_H + 'px">' +
+      '<span class="wfp-node-tag">ROOT</span><span class="wfp-node-word">' + word + '</span>' +
+      '</div>';
+    html += '<div class="wfp-node-paths" style="left:' + rootX + 'px;top:' + (rootY + NODE_H + 8) + 'px">' + children.length + ' PATHS</div>';
+
+    if (!children.length) {
+      html += '<div class="wfp-tree-empty" style="position:absolute;left:' + childX + 'px;top:' + rootY + 'px">ไม่มีคำที่เติมต่อได้อีก (หรือถึง 8 ตัวอักษรแล้ว)</div>';
+    } else {
+      children.forEach(function (c, i) {
+        const y = i * (NODE_H + ROW_GAP);
+        const color = wfpGroupColor(c.word);
+        html += '<div class="wfp-node wfp-node-child" data-word="' + c.word + '" style="left:' + childX + 'px;top:' + y + 'px;width:' + NODE_W + 'px;border-color:' + color + '55">' +
+          '<span class="wfp-node-tag" style="background:' + color + '33;color:' + color + '">' + c.tag + '</span>' +
+          '<span class="wfp-node-word">' + c.word + '</span>' +
+          '<span class="wfp-node-def" data-pending data-word="' + c.word + '">กำลังโหลด...</span>' +
+          '</div>';
+      });
+    }
+    canvas.innerHTML = html;
+    canvas.style.width = (childX + NODE_W + 40) + 'px';
+    canvas.style.height = (Math.max(rootY + NODE_H + 40, children.length * (NODE_H + ROW_GAP)) + 40) + 'px';
+
+    // Draw connector lines root -> each child (simple curved bezier).
+    const svg = document.getElementById('wfpTreeSvg');
+    svg.setAttribute('width', canvas.style.width);
+    svg.setAttribute('height', canvas.style.height);
+    let paths = '';
+    const startX = 140, startY = rootY + NODE_H / 2;
+    children.forEach(function (c, i) {
+      const endY = i * (NODE_H + ROW_GAP) + NODE_H / 2;
+      const midX = (startX + childX) / 2;
+      paths += '<path class="wfp-tree-edge" d="M' + startX + ',' + startY + ' C' + midX + ',' + startY + ' ' + midX + ',' + endY + ' ' + childX + ',' + endY + '"/>';
+    });
+    svg.innerHTML = paths;
+
+    // Lazily fetch each visible child's definition (first 6 only up-front;
+    // "กางทุกกิ่ง" fetches the rest on demand) to avoid firing a burst of
+    // network requests for words the person may never look at.
+    canvas.querySelectorAll('.wfp-node-def[data-pending]').forEach(function (el, i) {
+      if (i >= 6) return;
+      const w = el.dataset.word;
+      fetchDefinition(w, function (text) { el.textContent = text ? '[' + w.length + '] ' + text : ''; });
+      el.removeAttribute('data-pending');
+    });
+
+    canvas.querySelectorAll('.wfp-node-child').forEach(function (node) {
+      node.addEventListener('click', function () { openWordFullPage(node.dataset.word); });
+    });
+  }
+
+  function renderWordHistoryInto(word, summaryElId, listElId) {
+    const hist = getWordHistory(word);
+    const summaryEl = document.getElementById(summaryElId);
+    const listEl = document.getElementById(listElId);
+    if (!hist.length) {
+      summaryEl.textContent = '';
+      listEl.innerHTML = '<div class="wd-history-empty">ยังไม่เคยเจอคำนี้เลย</div>';
+    } else {
+      const counts = {};
+      hist.forEach(function (h) { counts[h.mode] = (counts[h.mode] || 0) + 1; });
+      summaryEl.textContent = 'เจอทั้งหมด ' + hist.length + ' ครั้ง — ' +
+        Object.keys(counts).map(function (m) { return (MODE_LABELS[m] || m) + ' ' + counts[m]; }).join(', ');
+      listEl.innerHTML = hist.slice(0, 30).map(function (h) {
+        const d = new Date(h.t);
+        return '<div class="wd-history-item"><span>' + (MODE_LABELS[h.mode] || h.mode) + '</span>' +
+          '<span>' + d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + '</span></div>';
+      }).join('');
+    }
+  }
+
+  // The full page is its own overlay, stacked above the quick-detail modal.
+  // It never touches Browse tab state (search box, sort, filters, scroll),
+  // so closing/back always leaves Browse exactly as the person left it.
+  function openWordFullPage(word) {
+    document.getElementById('wfpWord').textContent = word;
+    renderWordTree(word);
+    renderWordHistoryInto(word, 'wfpHistorySummary', 'wfpHistoryList');
+    document.getElementById('wordFullPageOverlay').style.display = 'flex';
+  }
+
+  document.getElementById('wfpCloseBtn').addEventListener('click', function () {
+    document.getElementById('wordFullPageOverlay').style.display = 'none';
+  });
+  document.getElementById('wfpBackBtn').addEventListener('click', function () {
+    document.getElementById('wordFullPageOverlay').style.display = 'none';
+  });
+  document.getElementById('wordFullPageOverlay').addEventListener('click', function (e) {
+    if (e.target.id === 'wordFullPageOverlay') e.currentTarget.style.display = 'none';
   });
 
 
@@ -1189,6 +1364,7 @@
       const words = pickRandomWords(min, max, count);
       if (!words.length) { showToast('ไม่พบคำศัพท์ในช่วงความยาวที่เลือก'); return; }
       if (words.length < count) showToast('มีคำในช่วงนี้ได้แค่ ' + words.length + ' คำ');
+      words.forEach(function (w) { logWordEncounter(w, 'generate'); });
       genState.words = words;
       document.getElementById('genResultsPanel').style.display = '';
       document.getElementById('exportTitle').textContent =
@@ -1323,6 +1499,7 @@
 
       const words = pickRandomWords(min, max, count);
       if (!words.length) { showToast('ไม่พบคำศัพท์ในช่วงความยาวที่เลือก'); return; }
+      words.forEach(function (w) { logWordEncounter(w, 'quiz'); });
       quizState.words = words;
       document.getElementById('quizListPanel').style.display = '';
       renderQuizList();
@@ -1436,9 +1613,22 @@
     return function (a, b) { return b.addedAt - a.addedAt; };
   }
 
+  // Cardbox search: a plain query does a substring match like before. But if
+  // the query contains '?' (a blank), treat it as a rack — same convention
+  // as Word Builder (e.g. "TISANE?") — and show only Cardbox words that can
+  // actually be built from those rack letters (blanks covering any letters
+  // the rack doesn't have).
   function cardboxFilteredSorted(box) {
     const q = cardboxRenderState.search;
-    const filtered = q ? box.filter(function (c) { return c.word.indexOf(q) !== -1; }) : box.slice();
+    let filtered;
+    if (q && q.indexOf('?') !== -1) {
+      const rackLetters = q.replace(/[^A-Z?]/g, '');
+      const blankCount = (rackLetters.match(/\?/g) || []).length;
+      const rackCounts = letterCounts(rackLetters.replace(/\?/g, ''));
+      filtered = box.filter(function (c) { return isSubsetOfCountsWithBlanks(c.word, rackCounts, blankCount); });
+    } else {
+      filtered = q ? box.filter(function (c) { return c.word.indexOf(q) !== -1; }) : box.slice();
+    }
     filtered.sort(cardboxSortCompare(cardboxRenderState.sort));
     return filtered;
   }
@@ -1909,6 +2099,7 @@
 
   function recordAnswer(word, isCorrect, hintUsed) {
     updateCardResult(word, isCorrect, hintUsed);
+    logWordEncounter(word, 'cardbox');
     if (isCorrect) session.correct++; else session.incorrect++;
   }
 
@@ -2222,6 +2413,7 @@
 
   function generateDashSuggested() {
     dashSuggestedWords = pickRandomWords(settings.dashMin, settings.dashMax, settings.dashCount);
+    dashSuggestedWords.forEach(function (w) { logWordEncounter(w, 'suggested'); });
   }
 
   function updateDashSelectedCount() {
@@ -2441,10 +2633,13 @@
         wrap.querySelectorAll('.length-chip').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         browseState.activeLength = btn.dataset.len === 'all' ? 'all' : parseInt(btn.dataset.len, 10);
-        if (browseState.activeLength !== 'all') {
+        const sortSel = document.getElementById('browseSortSelect');
+        if (browseState.activeLength === 7) {
           browseState.sort = 'prob-desc';
-          const sortSel = document.getElementById('browseSortSelect');
           if (sortSel) sortSel.value = 'prob-desc';
+        } else {
+          browseState.sort = 'alpha';
+          if (sortSel) sortSel.value = 'alpha';
         }
         runBrowseSearch();
       });
@@ -3016,6 +3211,7 @@
     if (val === word) {
       input.disabled = true;
       tg.typed.push(word);
+      logWordEncounter(word, 'typing');
       tg.index++;
       tgSaveProgress();
       setTimeout(function () {
@@ -3207,6 +3403,7 @@
         if (rg.solutions.has(guess)) {
           rg.found.add(guess);
           rg.score += wordScore(guess);
+          logWordEncounter(guess, 'racks');
           showToast('✓ ถูกต้อง! +' + wordScore(guess) + ' คะแนน');
           if (window.Achievements) window.Achievements.record('racks_correct');
           rgRenderPlay();
@@ -3459,6 +3656,7 @@
         cur.found.add(guess);
         alpha.score += wordScore(guess);
         alpha.found.push(guess);
+        logWordEncounter(guess, 'alpha');
         if (cur.found.size >= cur.solutions.length) {
           showToast('✓ ครบทุกคำในชุดนี้! +' + wordScore(guess) + ' คะแนน');
           alpha.index++;
@@ -3751,6 +3949,7 @@
         mar.correct++;
         mar.streak++;
         mar.bestStreak = Math.max(mar.bestStreak, mar.streak);
+        logWordEncounter(guess, 'marathon');
         showToast('✓ ถูกต้อง! +' + gained + ' คะแนน');
         if (window.Achievements) window.Achievements.record('marathon_correct', { count: 1, streak: mar.streak });
         marNextRound();
