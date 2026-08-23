@@ -32,6 +32,7 @@
     <span class="burger-menu-title">เมนู</span>
     <button class="burger-close-btn" id="burgerCloseBtn" aria-label="ปิดเมนู">✕</button>
   </div>
+  <button class="tab-btn burger-tab-btn" data-tab="play" data-i18n="tab.play">♟️ Play</button>
   <button class="tab-btn burger-tab-btn" data-tab="dashboard" data-i18n="tab.dashboard">📊 Dashboard</button>
   <button class="tab-btn burger-tab-btn" data-tab="browse" data-i18n="tab.browse">📖 คลังคำศัพท์</button>
   <button class="tab-btn burger-tab-btn" data-tab="builder" data-i18n="tab.builder">🧩 Word Builder</button>
@@ -39,7 +40,6 @@
   <button class="tab-btn burger-tab-btn" data-tab="generate" data-i18n="tab.generate">📝 สร้างคำศัพท์</button>
   <button class="tab-btn burger-tab-btn" data-tab="quiz" data-i18n="tab.quiz">🎯 แบบทดสอบ</button>
   <button class="tab-btn burger-tab-btn" data-tab="minigame" data-i18n="tab.minigame">🕹️ Minigame</button>
-  <button class="tab-btn burger-tab-btn" data-tab="play" data-i18n="tab.play">♟️ Play</button>
   <button class="tab-btn burger-tab-btn" data-tab="achievements" data-i18n="tab.achievements">🏆 Achievement</button>
   <button class="tab-btn burger-tab-btn" id="settingsTabBtn" data-tab="settings" data-i18n="tab.settings">⚙️ Setting</button>
 </nav>
@@ -699,6 +699,22 @@
         <div id="playMoveLog" class="play-move-log"></div>
       </div>
     </div>
+
+    <div class="panel-card play-summary-card" id="playSummaryCard" style="display:none">
+      <h2 id="playSummaryTitle">🏁 จบเกม</h2>
+      <p class="play-summary-reason" id="playSummaryReason"></p>
+
+      <div class="play-summary-scores" id="playSummaryScores"></div>
+
+      <div class="play-summary-stats">
+        <table class="play-summary-table" id="playSummaryTable"></table>
+      </div>
+
+      <div class="btn-row play-actions">
+        <button class="btn btn-primary" id="playSummaryNewGameBtn">🔁 เล่นใหม่</button>
+        <button class="btn btn-outline" id="playSummaryReviewBtn">📜 ดู Move History</button>
+      </div>
+    </div>
   </section>
 
   <section id="tab-achievements" class="tab-panel">
@@ -791,6 +807,32 @@
 </main>
 
 <div id="toast"></div>
+
+<div id="wordDetailOverlay" class="wd-overlay" style="display:none">
+  <div class="wd-card">
+    <div class="wd-head">
+      <span id="wdWord" class="wd-word"></span>
+      <button type="button" class="btn btn-outline" id="wdCloseBtn">✕ ปิด</button>
+    </div>
+    <div class="wd-def" id="wdDef"></div>
+    <div class="wd-row"><span class="wd-label">PROP</span><span id="wdProp"></span></div>
+    <div class="wd-row"><span class="wd-label">RANK</span><span id="wdRank"></span></div>
+    <div class="wd-actions">
+      <button type="button" class="btn btn-primary" id="wdAddCardboxBtn">➕ เพิ่มเข้า Cardbox</button>
+    </div>
+    <div id="wdCardboxNote" class="wd-cardbox-note"></div>
+    <div class="wd-row" id="wdPlusRow"></div>
+    <div class="wd-row"><span class="wd-label">HOOK</span><span id="wdHook"></span></div>
+    <div class="wd-row"><span class="wd-label">SUFFIX</span><span id="wdSuffix"></span></div>
+    <div class="wd-row"><span class="wd-label">PREFIX</span><span id="wdPrefix"></span></div>
+    <div class="wd-row"><span class="wd-label">ANAGRAM</span><span id="wdAnagram"></span></div>
+    <textarea id="wdNoteInput" class="wd-note-input" placeholder="📝 เพิ่มโน้ต..."></textarea>
+    <div class="wd-actions">
+      <button type="button" class="btn btn-outline" id="wdFullPageBtn">📖 เปิดหน้าคำเต็ม</button>
+      <button type="button" class="btn btn-outline" id="wdUnfamBtn">✍ มาร์กว่าไม่คุ้น</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
