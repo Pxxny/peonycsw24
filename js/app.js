@@ -21,10 +21,11 @@
   };
   const TILE_BAG_TOTAL = 100;
 
-  const CARDBOX_KEY = 'csw24_cardbox_v1';
-  const CARDBOX_SELECTION_KEY = 'csw24_cardbox_selection_v1';
+  const CARDBOX_KEY = 'csw24_cardbox_v1';  const CARDBOX_SELECTION_KEY = 'csw24_cardbox_selection_v1';
   const CUSTOM_KEY = 'csw24_custom_words_v1';
   const SETTINGS_KEY = 'csw24_settings_v1';
+  const UNFAM_KEY = 'csw24_unfamiliar_v1';
+  const NOTES_KEY = 'csw24_word_notes_v1';
   const DAY_MS = 86400000;
   const PAGE_SIZE = 150;
 
@@ -36,7 +37,7 @@
     th: {
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 สร้างคำศัพท์', 'tab.quiz': '🎯 แบบทดสอบ',
       'tab.cardbox': '🗂️ Cardbox', 'tab.browse': '📖 คลังคำศัพท์', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
-      'tab.achievements': '🏆 Achievement', 'tab.settings': '⚙️ Setting',
+      'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievement', 'tab.settings': '⚙️ Setting',
       'ach.title': '🏆 Achievement', 'ach.sub': 'ปลดล็อกเหรียญตราจากการเรียนและเล่นมินิเกม ข้อมูลเก็บไว้ในเบราว์เซอร์นี้เท่านั้น',
       'app.title': 'CSW24 Word Lab',
       'app.subtitle': 'เจนคำศัพท์ · หา Anagram · เก็บลง Cardbox · ทบทวนแบบ Spaced Repetition · Minigame',
@@ -90,7 +91,7 @@
     en: {
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 Generate', 'tab.quiz': '🎯 Quiz',
       'tab.cardbox': '🗂️ Cardbox', 'tab.browse': '📖 Word Browser', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
-      'tab.achievements': '🏆 Achievements', 'tab.settings': '⚙️ Settings',
+      'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievements', 'tab.settings': '⚙️ Settings',
       'ach.title': '🏆 Achievements', 'ach.sub': 'Unlock badges by studying and playing minigames. All data is stored in this browser only.',
       'app.title': 'CSW24 Word Lab',
       'app.subtitle': 'Generate words · Find Anagrams · Save to Cardbox · Spaced Repetition review · Minigames',
@@ -460,6 +461,72 @@
     return { front: front, back: back };
   }
 
+  // ---------- word detail: unfamiliar marks, notes, definitions ----------
+
+  let _unfamCache = null;
+  function loadUnfamiliar() {
+    if (_unfamCache) return _unfamCache;
+    try { _unfamCache = JSON.parse(localStorage.getItem(UNFAM_KEY) || '[]'); }
+    catch (e) { _unfamCache = []; }
+    return _unfamCache;
+  }
+  function isUnfamiliar(word) { return loadUnfamiliar().indexOf(word) !== -1; }
+  function toggleUnfamiliar(word) {
+    const list = loadUnfamiliar();
+    const i = list.indexOf(word);
+    if (i === -1) list.push(word); else list.splice(i, 1);
+    localStorage.setItem(UNFAM_KEY, JSON.stringify(list));
+    return i === -1; // true = now marked
+  }
+
+  function loadNotes() {
+    try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function getNote(word) { return loadNotes()[word] || ''; }
+  function setNote(word, text) {
+    const notes = loadNotes();
+    if (text) notes[word] = text; else delete notes[word];
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+  }
+
+  // Longest dictionary suffix/prefix this word is built from (e.g. RETINAS
+  // -> suffix +S off RETINA). Simple heuristic: strip 1 letter and check the
+  // remainder is a valid shorter word.
+  function suffixInfo(word) {
+    if (word.length < 2) return null;
+    const base = word.slice(0, -1);
+    if (lengthSet(base.length).has(base)) return '+' + word.slice(-1) + ' (จาก ' + base + ')';
+    return null;
+  }
+  function prefixInfo(word) {
+    if (word.length < 2) return null;
+    const base = word.slice(1);
+    if (lengthSet(base.length).has(base)) return word.charAt(0) + '+ (จาก ' + base + ')';
+    return null;
+  }
+
+  // Definition lookup via the Free Dictionary API (dictionaryapi.dev) — no
+  // API key or signup needed. Silently returns '' on any failure (offline,
+  // word not found, obscure Scrabble-only word not in a general dictionary)
+  // so the UI just omits the definition rather than showing an error.
+  const _defCache = {};
+  function fetchDefinition(word, cb) {
+    if (_defCache[word] !== undefined) { cb(_defCache[word]); return; }
+    fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(word.toLowerCase()))
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (arr) {
+        let text = '';
+        if (Array.isArray(arr) && arr[0] && arr[0].meanings && arr[0].meanings[0]) {
+          const def = arr[0].meanings[0].definitions && arr[0].meanings[0].definitions[0];
+          if (def && def.definition) text = def.definition;
+        }
+        _defCache[word] = text;
+        cb(text);
+      })
+      .catch(function () { _defCache[word] = ''; cb(''); });
+  }
+
   // ---------- word "Probability" and "Playability" ----------
   // Probability: chance of drawing exactly this word's letters (as a set,
   // any order) in a single random draw of word.length tiles from the full
@@ -727,7 +794,7 @@
   // keep their own independently-checked Set of words while sharing the same
   // row markup/behavior. `checkClass` distinguishes each tab's checkboxes so
   // their change-listeners don't pick up checkboxes belonging to another tab.
-  function wordRowHTML(word, showCheckbox, selection, checkClass) {
+  function wordRowHTML(word, showCheckbox, selection, checkClass, idx) {
     uidCounter++;
     const uid = uidCounter;
     const sel = selection || browseState.selected;
@@ -736,10 +803,13 @@
       ? '<label class="card-row-select"><input type="checkbox" class="' + cls + '" data-word="' + word + '"' +
         (sel.has(word) ? ' checked' : '') + '></label>'
       : '';
+    const idxHTML = idx !== undefined ? '<span class="word-idx">#' + idx + '</span>' : '';
+    const unfamCls = isUnfamiliar(word) ? ' word-unfamiliar' : '';
     return (
-      '<div class="word-row" data-word="' + word + '">' +
+      '<div class="word-row word-row-clickable' + unfamCls + '" data-word="' + word + '">' +
         '<div class="word-row-top">' +
           checkboxHTML +
+          idxHTML +
           '<div>' + tileRowHTML(word) + '</div>' +
           '<div class="word-meta">' +
             '<span class="meta-item">' + word.length + ' ตัวอักษร</span>' +
@@ -755,8 +825,8 @@
     );
   }
 
-  function browseWordRowHTML(word) {
-    return wordRowHTML(word, true, browseState.selected, 'browse-check');
+  function browseWordRowHTML(word, idx) {
+    return wordRowHTML(word, true, browseState.selected, 'browse-check', idx);
   }
 
   function bindAnagramToggles(container) {
@@ -795,7 +865,92 @@
     });
   }
 
-  // ---------- toast ----------
+  // ---------- word detail modal ----------
+
+  function openWordDetail(word) {
+    const overlay = document.getElementById('wordDetailOverlay');
+    document.getElementById('wdWord').textContent = word;
+    document.getElementById('wdDef').textContent = 'กำลังโหลดความหมาย...';
+    fetchDefinition(word, function (text) {
+      document.getElementById('wdDef').textContent = text || 'ไม่พบความหมาย';
+    });
+
+    const idx = browseState.results.indexOf(word);
+    const inLenMode = browseState.activeLength !== 'all';
+    document.getElementById('wdProp').textContent =
+      (inLenMode ? 'คำที่ ' : 'คำที่ ') + (idx !== -1 ? idx + 1 : '?') +
+      (inLenMode ? ' (Prob ' + wordProbabilityNormalizedPct(word) + '%)' : '');
+
+    const box = loadCardbox();
+    const card = box.find(function (c) { return c.word === word; });
+    document.getElementById('wdRank').textContent = card ? statusLabel(card.status) : 'ยังไม่เรียน';
+    document.getElementById('wdCardboxNote').textContent = card ? 'มีอยู่ใน Cardbox แล้ว' : '';
+    const addBtn = document.getElementById('wdAddCardboxBtn');
+    addBtn.style.display = card ? 'none' : '';
+    addBtn.onclick = function () {
+      addWordsToCardbox([word]);
+      showToast('เพิ่ม ' + word + ' เข้า Cardbox แล้ว');
+      openWordDetail(word);
+    };
+
+    // "+?" combos: front hooks, back hooks, and any longer words this word
+    // is a prefix of (e.g. RETINA -> RETINAE, RETINAL, RETINAS).
+    const hooks = getHooks(word);
+    const longerSet = lengthSet(word.length + 1);
+    const extensions = [];
+    for (let c = 65; c <= 90; c++) {
+      const l = String.fromCharCode(c);
+      if (longerSet.has(word + l)) extensions.push(word + l);
+    }
+    let plusHTML = '<span class="wd-label">' + word + ' + ?</span>';
+    for (let c = 65; c <= 90; c++) {
+      const l = String.fromCharCode(c);
+      const valid = hooks.back.indexOf(l) !== -1;
+      plusHTML += '<span class="wd-plus-slot' + (valid ? ' wd-plus-valid' : '') + '">' + l + '</span>';
+    }
+    if (extensions.length) {
+      plusHTML += '<div style="margin-top:6px">' + extensions.join(', ') + '</div>';
+    }
+    document.getElementById('wdPlusRow').innerHTML = plusHTML;
+
+    document.getElementById('wdHook').textContent =
+      (hooks.front.length ? '‹ ' + hooks.front.join(',') + word : '—') + ' / ' +
+      (hooks.back.length ? word + hooks.back.join(',') + ' ›' : '—');
+    document.getElementById('wdSuffix').textContent = suffixInfo(word) || 'ไม่มี';
+    document.getElementById('wdPrefix').textContent = prefixInfo(word) || 'ไม่มี';
+    const anagrams = getAnagrams(word);
+    document.getElementById('wdAnagram').textContent = anagrams.length ? [word].concat(anagrams).join(', ') : word;
+
+    const noteInput = document.getElementById('wdNoteInput');
+    noteInput.value = getNote(word);
+    noteInput.onblur = function () { setNote(word, noteInput.value.trim()); };
+
+    document.getElementById('wdFullPageBtn').onclick = function () {
+      document.getElementById('browseWordSearch').value = word;
+      runBrowseSearch();
+      overlay.style.display = 'none';
+    };
+
+    const unfamBtn = document.getElementById('wdUnfamBtn');
+    unfamBtn.textContent = isUnfamiliar(word) ? '✓ มาร์กแล้ว (กดเพื่อยกเลิก)' : '✍ มาร์กว่าไม่คุ้น';
+    unfamBtn.onclick = function () {
+      toggleUnfamiliar(word);
+      unfamBtn.textContent = isUnfamiliar(word) ? '✓ มาร์กแล้ว (กดเพื่อยกเลิก)' : '✍ มาร์กว่าไม่คุ้น';
+      const row = document.querySelector('.word-row[data-word="' + word + '"]');
+      if (row) row.classList.toggle('word-unfamiliar', isUnfamiliar(word));
+    };
+
+    overlay.style.display = 'flex';
+  }
+
+  document.getElementById('wdCloseBtn').addEventListener('click', function () {
+    document.getElementById('wordDetailOverlay').style.display = 'none';
+  });
+  document.getElementById('wordDetailOverlay').addEventListener('click', function (e) {
+    if (e.target.id === 'wordDetailOverlay') e.currentTarget.style.display = 'none';
+  });
+
+
 
   let toastTimer = null;
   function showToast(msg) {
@@ -2286,6 +2441,11 @@
         wrap.querySelectorAll('.length-chip').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         browseState.activeLength = btn.dataset.len === 'all' ? 'all' : parseInt(btn.dataset.len, 10);
+        if (browseState.activeLength !== 'all') {
+          browseState.sort = 'prob-desc';
+          const sortSel = document.getElementById('browseSortSelect');
+          if (sortSel) sortSel.value = 'prob-desc';
+        }
         runBrowseSearch();
       });
     });
@@ -2346,6 +2506,15 @@
           browseState.results.every(function (w) { return browseState.selected.has(w); });
       }
     });
+
+    // Clicking a word row (but not its checkbox or anagram toggle) opens the
+    // word detail modal.
+    document.getElementById('browseResults').addEventListener('click', function (e) {
+      if (e.target.closest('.browse-check') || e.target.closest('.anagram-toggle')) return;
+      const row = e.target.closest('.word-row');
+      if (row) openWordDetail(row.dataset.word);
+    });
+
 
     document.getElementById('browseSelectAll').addEventListener('change', function (e) {
       const checked = e.target.checked;
@@ -2532,7 +2701,7 @@
     // (potentially huge) container on every "Load More" click is what made
     // paging through large result sets increasingly slow.
     const temp = document.createElement('div');
-    temp.innerHTML = slice.map(browseWordRowHTML).join('');
+    temp.innerHTML = slice.map(function (w, i) { return browseWordRowHTML(w, browseState.shown + i + 1); }).join('');
     bindAnagramToggles(temp);
     while (temp.firstChild) wrap.appendChild(temp.firstChild);
     browseState.shown += slice.length;
