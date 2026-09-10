@@ -28,6 +28,7 @@
   const NOTES_KEY = 'csw24_word_notes_v1';
   const HISTORY_KEY = 'csw24_word_history_v1';
   const LEARN_LOG_KEY = 'csw24_learn_log_v1';
+  const DAILY_GOAL_KEY = 'csw24_daily_goal_v1';
   const DAY_MS = 86400000;
 
   // DD/MM/YY HH:MM:SS — used to show a Cardbox card's next-review time.
@@ -100,6 +101,7 @@
       'mini.startGame': '▶ เริ่มเกม', 'mini.newRack': '▶ สุ่ม Rack ใหม่',
       'dash.title': 'Dashboard', 'dash.sub': 'ภาพรวมความคืบหน้าในการเรียนคำศัพท์ของคุณ ข้อมูลทั้งหมดเก็บไว้ในเบราว์เซอร์นี้เท่านั้น',
       'dash.mastered': 'เชี่ยวชาญ', 'dash.reset': '♻ Reset ความคืบหน้าทั้งหมด',
+      'dash.learnBtnMastered': '🎓 Learn — ชำนาญแล้ว {n} คำ',
       'dash.suggested': 'คำแนะนำสำหรับวันนี้', 'dash.suggestedSub': 'สุ่มมาให้ตอนเปิดเว็บ (รีเฉพาะตอนรีเฟรชหน้า) ความยาวตามที่ตั้งไว้ในหน้า Setting',
       'dash.suggestedRefresh': '🔁 สุ่มใหม่ (ไม่รอ refresh หน้า)',
       'settings.title': '⚙️ Setting', 'settings.sub': 'ตั้งค่าภาษา สีเว็บ และช่วงความยาวคำแนะนำของ Dashboard',
@@ -170,6 +172,7 @@
       'mini.startGame': '▶ Start game', 'mini.newRack': '▶ New rack',
       'dash.title': 'Dashboard', 'dash.sub': 'Overview of your word-learning progress. All data is stored in this browser only.',
       'dash.mastered': 'Mastered', 'dash.reset': '♻ Reset all progress',
+      'dash.learnBtnMastered': '🎓 Learn — Mastered {n} words',
       'dash.suggested': 'Suggested for today', 'dash.suggestedSub': 'Randomized when the page loads (refreshes only on page reload). Length set in Settings.',
       'dash.suggestedRefresh': '🔁 Reshuffle (without reloading)',
       'settings.title': '⚙️ Settings', 'settings.sub': 'Set language, site colors, and the Dashboard suggested-word length range.',
@@ -892,6 +895,121 @@
     return partners;
   }
 
+  // ---------- Stem system (6-letter combos that extend to many 7-letter bingos) ----------
+  //
+  // A "stem" here is a 6-letter alphagram (unordered letter set). Its value is how many
+  // of the 26 letters, when added to it, form at least one valid 7-letter word — the
+  // standard Scrabble/CSW sense of "stem" (e.g. SATIRE + one letter = 8+ bingos).
+  // This is deliberately NOT the alphagram-partner-count used by Alphagram Blitz — that
+  // measures how many 7-letter words share one fixed 7-letter letter-set, which answers a
+  // different question ("how many words are anagrams of each other") than "how flexible is
+  // this 6-letter base for building bingos".
+  //
+  // The table is built once lazily (it's a single pass over the 6- and 7-letter lists) and
+  // cached, since it doesn't depend on custom words settings changing per-call — if custom
+  // words toggle changes, callers can force a rebuild via stemInvalidateCache().
+
+  const ALPHABET_26 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  let stemTableCache = null; // Map<alphagramKey6, { key, letterHits: Map<letter, string[]>, total }>
+  let stemTableCacheSignature = null;
+
+  function stemPoolSignature() {
+    // Cheap signature so we know whether to rebuild (custom words toggle, or custom list length).
+    return (includeCustomEnabled() ? 'custom:' + (customByLength[6] || []).length + ',' + (customByLength[7] || []).length : 'base');
+  }
+
+  function stemBuildTable() {
+    const words6 = lengthPool(6);
+    const words7 = lengthPool(7);
+
+    // Group 6-letter words by alphagram, just so we know which 6-letter keys actually
+    // correspond to at least one real word (a stem should itself be a playable word/rack,
+    // not just any arbitrary letter combination).
+    const key6ToWords = new Map();
+    for (let i = 0; i < words6.length; i++) {
+      const w = words6[i];
+      const key = sortLetters(w);
+      if (!key6ToWords.has(key)) key6ToWords.set(key, []);
+      key6ToWords.get(key).push(w);
+    }
+
+    const table = new Map();
+
+    for (let i = 0; i < words7.length; i++) {
+      const w7 = words7[i];
+      // Try removing each letter position to see which 6-letter base(s) this word extends.
+      // Using a Set of 6-letter keys already tried for this word avoids duplicate work when
+      // w7 has repeated letters (e.g. removing either 'S' in a word with two S's gives the
+      // same 6-letter remainder).
+      const triedKeys = new Set();
+      for (let pos = 0; pos < w7.length; pos++) {
+        const removedLetter = w7[pos];
+        const remainder = w7.slice(0, pos) + w7.slice(pos + 1);
+        const key6 = sortLetters(remainder);
+        if (triedKeys.has(key6)) continue;
+        triedKeys.add(key6);
+        if (!key6ToWords.has(key6)) continue; // remainder isn't itself a real 6-letter word/rack
+
+        let entry = table.get(key6);
+        if (!entry) {
+          entry = { key: key6, letterHits: new Map(), total: 0 };
+          table.set(key6, entry);
+        }
+        if (!entry.letterHits.has(removedLetter)) entry.letterHits.set(removedLetter, []);
+        const bucket = entry.letterHits.get(removedLetter);
+        if (bucket.indexOf(w7) === -1) bucket.push(w7);
+      }
+    }
+
+    for (const entry of table.values()) {
+      entry.total = entry.letterHits.size; // number of distinct letters that unlock >=1 bingo
+      entry.words6 = key6ToWords.get(entry.key) || [];
+    }
+
+    return table;
+  }
+
+  function stemGetTable() {
+    const sig = stemPoolSignature();
+    if (!stemTableCache || stemTableCacheSignature !== sig) {
+      stemTableCache = stemBuildTable();
+      stemTableCacheSignature = sig;
+    }
+    return stemTableCache;
+  }
+
+  function stemInvalidateCache() {
+    stemTableCache = null;
+    stemTableCacheSignature = null;
+  }
+
+  // Returns the top N 6-letter stems ranked by how many distinct letters extend them to a
+  // 7-letter word (descending). Each result:
+  //   { key, words6: [...], total, letterHits: Map<letter, word7[]> }
+  function stemTopStems(count) {
+    const table = stemGetTable();
+    const entries = Array.from(table.values());
+    entries.sort(function (a, b) { return b.total - a.total || a.key.localeCompare(b.key); });
+    return entries.slice(0, Math.max(1, count || 20));
+  }
+
+  // Returns the full stem entry for a specific 6-letter word (any valid anagram of it),
+  // or null if that letter combination isn't tracked (i.e. extends to no 7-letter word).
+  function stemLookup(word6) {
+    const table = stemGetTable();
+    return table.get(sortLetters(word6)) || null;
+  }
+
+  // Convenience: for a given 6-letter word, list { letter, words7 } sorted by letter A-Z,
+  // for rendering "add this letter -> these bingos" in a study UI.
+  function stemExtensionsFor(word6) {
+    const entry = stemLookup(word6);
+    if (!entry) return [];
+    return ALPHABET_26
+      .filter(function (letter) { return entry.letterHits.has(letter); })
+      .map(function (letter) { return { letter: letter, words7: entry.letterHits.get(letter).slice().sort() }; });
+  }
+
   function pickRandomWords(min, max, count) {
     const lengths = [];
     let totalWeight = 0;
@@ -1438,6 +1556,7 @@
         if (btn.dataset.tab === 'dashboard') renderDashboard();
         if (btn.dataset.tab === 'settings') { renderDashboard(); }
         if (btn.dataset.tab === 'achievements' && window.Achievements) window.Achievements.renderTab();
+        if (btn.dataset.tab === 'stats') renderStatsTab();
         if (btn.dataset.tab === 'play' && window.PlayGame) window.PlayGame.init();
         if (btn.dataset.tab === 'browse' && !browseInitialized) {
           browseInitialized = true;
@@ -3509,6 +3628,7 @@
         '<div class="field-hint" id="learnHintText"></div>' +
         '<div class="session-feedback" id="learnFeedback"></div>' +
         '<div class="session-controls" id="learnNextWrap" style="display:none">' +
+          '<button class="btn btn-outline" id="learnInstantLearnBtn">⚡ Instant Learn</button>' +
           '<button class="btn btn-teal" id="learnNextBtn">ต่อไป (Enter) →</button>' +
         '</div>' +
       '</div>';
@@ -3552,7 +3672,7 @@
       feedback.textContent = '⏭ ข้ามคำนี้ — เฉลย: ' + validGroup.slice().sort().join(', ');
       feedback.className = 'session-feedback wrong';
       found.clear();
-      finishLearnCard(word, false, true);
+      finishLearnCard(word, false, true, validGroup);
     });
 
     function checkTyped() {
@@ -3576,7 +3696,7 @@
           feedback.textContent = '✓ ถูกต้องครบทุกคำ!';
           feedback.className = 'session-feedback correct';
           input.disabled = true;
-          finishLearnCard(word, true, false);
+          finishLearnCard(word, true, false, validGroup);
         } else {
           feedback.textContent = '✓ ถูกต้อง! หาต่ออีก ' + (validGroup.length - found.size) + ' คำ';
           feedback.className = 'session-feedback correct';
@@ -3591,7 +3711,7 @@
     form.addEventListener('submit', function (e) { e.preventDefault(); });
   }
 
-  function finishLearnCard(word, allCorrect, isSkipped) {
+  function finishLearnCard(word, allCorrect, isSkipped, validGroup) {
     const hintBtn = document.getElementById('learnHintBtn');
     const skipBtn = document.getElementById('learnSkipBtn');
     const input = document.getElementById('learnAnagramInput');
@@ -3604,13 +3724,129 @@
     logWordEncounter(word, 'learn');
     if (allCorrect) learnSession.correct++; else learnSession.incorrect++;
     learnSession.results.push(allCorrect);
+
+    // A scrambled rack that has multiple valid answers (e.g. AEINORT ->
+    // OTARINE / NOTAIRE) puts every one of those words into the level's
+    // queue individually. Once the learner has cleared the whole group
+    // from this single card, drop any of its still-queued partner words
+    // so the same rack doesn't come back around as a second (or third)
+    // card later in the session.
+    if (validGroup && validGroup.length > 1) {
+      const remaining = validGroup.filter(function (w) { return w !== word; });
+      for (let i = learnSession.queue.length - 1; i > learnSession.index; i--) {
+        if (remaining.indexOf(learnSession.queue[i]) !== -1) {
+          learnSession.queue.splice(i, 1);
+        }
+      }
+    }
+
     renderLearnDots();
 
     const nextWrap = document.getElementById('learnNextWrap');
     if (nextWrap) {
       nextWrap.style.display = '';
       document.getElementById('learnNextBtn').addEventListener('click', nextLearnCard);
+      const ilBtn = document.getElementById('learnInstantLearnBtn');
+      if (ilBtn) {
+        ilBtn.addEventListener('click', function () {
+          startLearnInstantLearn(validGroup && validGroup.length ? validGroup : [word]);
+        });
+      }
     }
+  }
+
+  // ---------- Learn: Instant Learn (same ungraded typing-drill mechanic
+  // used in Cardbox's Anagram mode) — shows the answer(s), then has the
+  // learner retype until memorized. Never touches stats/scheduling. ----------
+  function startLearnInstantLearn(words) {
+    const nextWrap = document.getElementById('learnNextWrap');
+    if (nextWrap) nextWrap.style.display = 'none';
+    const area = document.getElementById('learnSessionArea');
+    const wrap = document.createElement('div');
+    wrap.id = 'learnInstantLearnArea';
+    area.appendChild(wrap);
+
+    wrap.innerHTML =
+      '<div class="instant-learn-block">' +
+        '<div class="session-prompt-label">⚡ Instant Learn · ดูคำให้จำ แล้วพิมพ์ซ้ำ (ไม่บันทึกสถิติ)</div>' +
+        '<div class="anagram-partners">' +
+          words.slice().sort().map(function (w) { return '<span class="anagram-chip">' + w + '</span>'; }).join('') +
+        '</div>' +
+        '<div class="field" style="margin-top:0.8rem">' +
+          '<label>โหมดพิมพ์ซ้ำ</label>' +
+          '<div class="btn-row">' +
+            '<button type="button" class="btn btn-outline btn-sm il-mode-btn active" data-mode="count">พิมพ์ 5 ครั้ง</button>' +
+            '<button type="button" class="btn btn-outline btn-sm il-mode-btn" data-mode="free">พิมพ์จนกว่าจะจำได้</button>' +
+          '</div>' +
+        '</div>' +
+        '<div id="learnInstantLearnDrill" style="margin-top:0.9rem"></div>' +
+      '</div>';
+
+    const drillEl = document.getElementById('learnInstantLearnDrill');
+    let mode = 'count';
+
+    wrap.querySelectorAll('.il-mode-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        wrap.querySelectorAll('.il-mode-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode = btn.dataset.mode;
+        runDrill();
+      });
+    });
+
+    function runDrill() {
+      let repIndex = 0;
+      const targetReps = 5;
+
+      function renderRep() {
+        const currentTarget = words[repIndex % words.length];
+        const countLabel = mode === 'count' ? ' (' + (repIndex + 1) + '/' + targetReps + ')' : ' (พิมพ์ไปแล้ว ' + repIndex + ' ครั้ง)';
+        drillEl.innerHTML =
+          '<div class="session-prompt-label">พิมพ์คำนี้อีกครั้ง' + countLabel + '</div>' +
+          tileRowHTML(currentTarget, 'big') +
+          '<form class="session-answer-form" id="learnIlForm">' +
+            '<input type="text" id="learnIlInput" autocomplete="off" placeholder="พิมพ์คำด้านบนให้ตรงกัน" autofocus>' +
+          '</form>' +
+          '<div class="session-feedback" id="learnIlFeedback"></div>' +
+          (mode === 'free' ? '<div class="session-controls"><button type="button" class="btn btn-outline btn-sm" id="learnIlDoneBtn">✅ จำได้แล้ว จบ Instant Learn</button></div>' : '');
+
+        const ilForm = document.getElementById('learnIlForm');
+        const ilInput = document.getElementById('learnIlInput');
+        const ilFeedback = document.getElementById('learnIlFeedback');
+        ilInput.focus();
+
+        const doneBtn = document.getElementById('learnIlDoneBtn');
+        if (doneBtn) doneBtn.addEventListener('click', endInstantLearn);
+
+        ilForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          const guess = ilInput.value.trim().toUpperCase();
+          if (!guess) return;
+          if (guess === currentTarget) {
+            ilFeedback.textContent = '✓ ถูกต้อง!';
+            ilFeedback.className = 'session-feedback correct';
+            repIndex++;
+            if (mode === 'count' && repIndex >= targetReps) {
+              setTimeout(endInstantLearn, 500);
+              return;
+            }
+            setTimeout(renderRep, 400);
+          } else {
+            ilFeedback.textContent = '✗ ยังไม่ตรง ลองอีกครั้ง';
+            ilFeedback.className = 'session-feedback wrong';
+            ilInput.value = '';
+          }
+        });
+      }
+      renderRep();
+    }
+
+    function endInstantLearn() {
+      wrap.innerHTML = '<p class="session-missed-none">⚡ จบ Instant Learn แล้ว</p>';
+      if (nextWrap) nextWrap.style.display = '';
+    }
+
+    runDrill();
   }
 
   function nextLearnCard() {
@@ -3683,11 +3919,333 @@
     document.getElementById('customWordsCount').textContent =
       customWords.length ? 'คำศัพท์ที่นำเข้าเอง: ' + customWords.length + ' คำ' : 'ยังไม่มีคำศัพท์ที่นำเข้าเอง';
 
+    const dashLearnBtnEl = document.getElementById('dashLearnBtn');
+    if (dashLearnBtnEl) dashLearnBtnEl.textContent = t('dash.learnBtnMastered').replace('{n}', counts.mastered);
+
+    renderDashActions(box, now, dueCount);
     renderDashSuggested();
   }
 
   function statCard(num, label, cls) {
     return '<div class="stat-card ' + cls + '"><div class="stat-num">' + num + '</div><div class="stat-label">' + label + '</div></div>';
+  }
+
+  // ---------- Stats tab: top words by various counts ----------
+  const STATS_TOP_N = 20;
+
+  function statsRankListHTML(pairs, unitLabel) {
+    if (!pairs.length) return '<div class="empty-state">ยังไม่มีข้อมูล</div>';
+    return '<div class="stats-rank-list">' + pairs.map(function (p, i) {
+      return '<div class="stats-rank-row">' +
+        '<span class="stats-rank-num">' + (i + 1) + '</span>' +
+        '<span class="stats-rank-word">' + p.word + '</span>' +
+        '<span class="stats-rank-count">' + p.count + ' ' + unitLabel + '</span>' +
+        '</div>';
+    }).join('') + '</div>';
+  }
+
+  function topFromCounts(countMap, n) {
+    return Object.keys(countMap)
+      .map(function (w) { return { word: w, count: countMap[w] }; })
+      .filter(function (p) { return p.count > 0; })
+      .sort(function (a, b) { return b.count - a.count; })
+      .slice(0, n);
+  }
+
+  function renderStatsTab() {
+    const hist = loadHistory();
+
+    // 1) เจอบ่อยที่สุด: รวมทุก mode ในประวัติ
+    const seenCounts = {};
+    // 5) พิมพ์บ่อยที่สุด: เฉพาะ mode 'typing'
+    const typingCounts = {};
+    // 4) เรียนบ่อยที่สุด: เฉพาะ mode 'learn'
+    const learnCounts = {};
+    Object.keys(hist).forEach(function (word) {
+      const events = hist[word];
+      seenCounts[word] = events.length;
+      let typingN = 0, learnN = 0;
+      events.forEach(function (e) {
+        if (e.mode === 'typing') typingN++;
+        if (e.mode === 'learn') learnN++;
+      });
+      if (typingN) typingCounts[word] = typingN;
+      if (learnN) learnCounts[word] = learnN;
+    });
+
+    // 2) ถูกบ่อยที่สุด / 3) ผิดบ่อยที่สุด: จาก Cardbox (สะสมทุกครั้งที่ทบทวน)
+    const box = loadCardbox();
+    const correctCounts = {}, incorrectCounts = {};
+    box.forEach(function (c) {
+      if (c.correct) correctCounts[c.word] = c.correct;
+      if (c.incorrect) incorrectCounts[c.word] = c.incorrect;
+    });
+
+    const seenEl = document.getElementById('statsSeenList');
+    if (seenEl) seenEl.innerHTML = statsRankListHTML(topFromCounts(seenCounts, STATS_TOP_N), 'ครั้ง');
+
+    const correctEl = document.getElementById('statsCorrectList');
+    if (correctEl) correctEl.innerHTML = statsRankListHTML(topFromCounts(correctCounts, STATS_TOP_N), 'ครั้ง');
+
+    const incorrectEl = document.getElementById('statsIncorrectList');
+    if (incorrectEl) incorrectEl.innerHTML = statsRankListHTML(topFromCounts(incorrectCounts, STATS_TOP_N), 'ครั้ง');
+
+    const learnEl = document.getElementById('statsLearnList');
+    if (learnEl) learnEl.innerHTML = statsRankListHTML(topFromCounts(learnCounts, STATS_TOP_N), 'ครั้ง');
+
+    const typingEl = document.getElementById('statsTypingList');
+    if (typingEl) typingEl.innerHTML = statsRankListHTML(topFromCounts(typingCounts, STATS_TOP_N), 'ครั้ง');
+  }
+
+  // ---------- Dashboard: REVIEW / time-studied / Daily Goal ----------
+  // Rough per-word time estimate for the ETA shown on the REVIEW button —
+  // not a measured average, just a simple assumption so the number is more
+  // useful than a bare word count.
+  const REVIEW_SECONDS_PER_WORD = 12;
+
+  function renderDashActions(box, now, dueCount) {
+    const etaMin = Math.max(1, Math.round((dueCount * REVIEW_SECONDS_PER_WORD) / 60));
+    const reviewDetail = document.getElementById('dashReviewDetail');
+    if (reviewDetail) {
+      reviewDetail.innerHTML = dueCount
+        ? 'ถึงกำหนดแล้ว <strong>' + dueCount + '</strong> คำ · ~' + etaMin + ' นาที'
+        : 'ไม่มีคำถึงกำหนดตอนนี้';
+    }
+
+    const time = studyTimeStats();
+    const timeDetail = document.getElementById('dashTimeDetail');
+    if (timeDetail) {
+      timeDetail.textContent = 'วันนี้ ' + formatMinutes(time.todayMinutes) + ' · ทั้งหมด ' + formatMinutes(time.totalMinutes);
+    }
+
+    const goal = dashGoalInfo(box, now);
+    const goalDetail = document.getElementById('dashGoalDetail');
+    if (goalDetail) {
+      goalDetail.innerHTML = 'ถึงกำหนดวันนี้ <strong>' + goal.dueToday + '</strong> คำ · Anagram <strong>' + goal.anagramToday + '</strong>';
+    }
+  }
+
+  function formatMinutes(min) {
+    if (min < 60) return min + ' นาที';
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return h + ' ชม.' + (m ? ' ' + m + ' นาที' : '');
+  }
+
+  // Estimates time spent studying from the global word-encounter log
+  // (every mode logs a timestamp there via logWordEncounter). Consecutive
+  // encounters within SESSION_GAP_MS of each other are treated as one
+  // continuous study session; each answer also counts a small floor so a
+  // lone encounter still registers instead of adding zero.
+  const SESSION_GAP_MS = 2 * 60 * 1000; // 2 minutes idle = new session
+  const PER_ANSWER_FLOOR_MS = 4 * 1000; // assume >=4s spent per answer
+
+  function studyTimeStats() {
+    const hist = loadHistory();
+    const events = [];
+    Object.keys(hist).forEach(function (word) {
+      hist[word].forEach(function (e) { events.push(e.t); });
+    });
+    events.sort(function (a, b) { return a - b; });
+
+    const since = startOfTodayMs();
+    let totalMs = 0, todayMs = 0;
+    for (let i = 0; i < events.length; i++) {
+      const t = events[i];
+      const prev = i > 0 ? events[i - 1] : null;
+      const gap = prev != null ? t - prev : null;
+      const durationMs = (gap != null && gap < SESSION_GAP_MS) ? gap : PER_ANSWER_FLOOR_MS;
+      totalMs += durationMs;
+      if (t >= since) todayMs += durationMs;
+    }
+    return {
+      totalMinutes: Math.round(totalMs / 60000),
+      todayMinutes: Math.round(todayMs / 60000)
+    };
+  }
+
+  function dashGoalInfo(box, now) {
+    const dueToday = box.filter(function (c) { return (c.due || 0) <= now; }).length;
+    const since = startOfTodayMs();
+    const log = loadLearnLog();
+    let anagramToday = 0;
+    for (let i = 0; i < log.length; i++) {
+      if (log[i].t >= since) anagramToday++;
+    }
+    return { dueToday: dueToday, anagramToday: anagramToday };
+  }
+
+  function initDashActions() {
+    const reviewBtn = document.getElementById('dashReviewBtn');
+    if (reviewBtn) {
+      reviewBtn.addEventListener('click', function () {
+        const box = loadCardbox();
+        const now = Date.now();
+        const pool = box.filter(function (c) { return (c.due || 0) <= now; });
+        if (!pool.length) { showToast('ไม่มีคำที่ถึงกำหนดทบทวนตอนนี้'); return; }
+        pool.sort(function (a, b) { return (a.due || 0) - (b.due || 0); });
+        const tabBtn = document.querySelector('.tab-btn[data-tab="cardbox"]');
+        if (tabBtn) tabBtn.click();
+        startStudySession(pool, 'flashcard', 'alpha', settings.anagramCycleInterval);
+      });
+    }
+
+    const timeBtn = document.getElementById('dashTimeBtn');
+    if (timeBtn) {
+      timeBtn.addEventListener('click', function () {
+        const time = studyTimeStats();
+        showToast('วันนี้เรียนไป ' + formatMinutes(time.todayMinutes) + ' · รวมทั้งหมด ' + formatMinutes(time.totalMinutes));
+      });
+    }
+
+    const goalBtn = document.getElementById('dashGoalBtn');
+    const goalModal = document.getElementById('dashGoalModal');
+    if (goalBtn && goalModal) {
+      goalBtn.addEventListener('click', function () {
+        goalViewDate = dateKeyToday();
+        renderGoalModal();
+        goalModal.hidden = false;
+      });
+      const closeBtn = document.getElementById('dashGoalCloseBtn');
+      if (closeBtn) closeBtn.addEventListener('click', function () { goalModal.hidden = true; });
+      goalModal.addEventListener('click', function (e) {
+        if (e.target === goalModal) goalModal.hidden = true;
+      });
+    }
+
+    const prevBtn = document.getElementById('dashGoalPrevDay');
+    const nextBtn = document.getElementById('dashGoalNextDay');
+    if (prevBtn) prevBtn.addEventListener('click', function () { shiftGoalDate(-1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { shiftGoalDate(1); });
+
+    // Daily Goal type picker — picks a length to study for the viewed date,
+    // saved per-date so switching days keeps each day's own goal/progress.
+    const goalTypeRow = document.getElementById('dashGoalTypeRow');
+    if (goalTypeRow) {
+      goalTypeRow.querySelectorAll('.mode-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          const goalType = chip.dataset.goal;
+          const bestL = computeGoalLength(goalType);
+          saveDailyGoalEntry(goalViewDate, { goal: goalType, length: bestL });
+          renderGoalModal();
+        });
+      });
+    }
+  }
+
+  // ---------- Daily Goal: per-date state ----------
+  let goalViewDate = null; // 'YYYY-MM-DD' of the date currently shown in the modal
+
+  function dateKeyToday() { return dateKeyFromMs(Date.now()); }
+  function dateKeyFromMs(ms) {
+    const d = new Date(ms);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function msFromDateKey(key) {
+    const parts = key.split('-').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+  }
+
+  function loadDailyGoals() {
+    try { return JSON.parse(localStorage.getItem(DAILY_GOAL_KEY) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function saveDailyGoalEntry(dateKey, entry) {
+    const all = loadDailyGoals();
+    all[dateKey] = entry;
+    localStorage.setItem(DAILY_GOAL_KEY, JSON.stringify(all));
+  }
+
+  function shiftGoalDate(deltaDays) {
+    const ms = msFromDateKey(goalViewDate) + deltaDays * 86400000;
+    goalViewDate = dateKeyFromMs(ms);
+    renderGoalModal();
+  }
+
+  function renderGoalModal() {
+    const todayKey = dateKeyToday();
+    const label = document.getElementById('dashGoalDateLabel');
+    if (label) {
+      const d = new Date(msFromDateKey(goalViewDate));
+      const dateStr = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+      label.textContent = goalViewDate === todayKey ? 'วันนี้ (' + dateStr + ')' : dateStr;
+    }
+
+    // Stats shown (due/anagram) are based on the viewed date's start-of-day,
+    // so past days show what was due/logged as of that day.
+    const box = loadCardbox();
+    const refMs = msFromDateKey(goalViewDate);
+    const goal = dashGoalInfo(box, refMs + 86400000 - 1);
+    document.getElementById('dashGoalStatGrid').innerHTML =
+      statCard(goal.dueToday, 'ถึงกำหนด', 'brass') +
+      statCard(goal.anagramToday, 'ANAGRAM', 'teal');
+
+    const goalTypeRow = document.getElementById('dashGoalTypeRow');
+    const saved = loadDailyGoals()[goalViewDate];
+    if (goalTypeRow) {
+      goalTypeRow.querySelectorAll('.mode-chip').forEach(function (c) {
+        c.classList.toggle('active', !!saved && c.dataset.goal === saved.goal);
+      });
+    }
+
+    const resultEl = document.getElementById('dashGoalResult');
+    if (resultEl) {
+      if (saved) {
+        resultEl.innerHTML = '<p class="panel-sub">แนะนำ: คำยาว <strong>' + saved.length + '</strong> ตัวอักษร</p>' +
+          '<button type="button" class="btn btn-teal btn-sm" id="dashGoalGoBtn">ไปเรียนเลย →</button>';
+        const goBtn = document.getElementById('dashGoalGoBtn');
+        if (goBtn) goBtn.addEventListener('click', function () { goToLearnLength(saved.length); });
+      } else {
+        resultEl.innerHTML = '';
+      }
+    }
+  }
+
+  // Picks which word-length fits each goal type, based on current Cardbox stats.
+  function computeGoalLength(goalType) {
+    const lengths = [2, 3, 4, 5, 6, 7, 8, 9];
+    let statsByLen = lengths.map(function (L) { return { L: L, s: learnLengthCardStats(L) }; });
+
+    let bestL = null;
+    if (goalType === 'everyday') {
+      // ทำทุกวัน: ความยาวที่มีคำ due เยอะสุด (ถ้าไม่มีเลย ใช้ความยาวที่เรียนสะสมมากสุด)
+      statsByLen.sort(function (a, b) { return b.s.dueCount - a.s.dueCount; });
+      bestL = statsByLen[0].s.dueCount > 0 ? statsByLen[0].L :
+        statsByLen.slice().sort(function (a, b) { return b.s.inCardbox - a.s.inCardbox; })[0].L;
+    } else if (goalType === 'formula') {
+      // จำสูตร: คำสั้น (2-4 ตัวอักษร) ที่ยังเหลือให้เรียนเยอะสุด
+      const shortLens = statsByLen.filter(function (x) { return x.L <= 4; });
+      shortLens.sort(function (a, b) { return (b.s.totalInLength - b.s.inCardbox) - (a.s.totalInLength - a.s.inCardbox); });
+      bestL = shortLens[0].L;
+    } else if (goalType === 'stem') {
+      // จำ Stem: ความยาวกลาง (5-7) ที่เรียนไปแล้วบ้าง แต่ยัง mastered ไม่เยอะ
+      const midLens = statsByLen.filter(function (x) { return x.L >= 5 && x.L <= 7 && x.s.inCardbox > 0; });
+      const pool = midLens.length ? midLens : statsByLen.filter(function (x) { return x.L >= 5 && x.L <= 7; });
+      pool.sort(function (a, b) { return (a.s.mastered / (a.s.inCardbox || 1)) - (b.s.mastered / (b.s.inCardbox || 1)); });
+      bestL = pool[0].L;
+    } else if (goalType === 'serious') {
+      // จริงจัง: ความยาวที่ยาก/ยาวสุดที่เริ่มเรียนแล้ว (8-9), ไม่งั้น fallback 7
+      const hardLens = statsByLen.filter(function (x) { return x.L >= 8; });
+      hardLens.sort(function (a, b) { return b.s.inCardbox - a.s.inCardbox; });
+      bestL = hardLens[0].s.inCardbox > 0 ? hardLens[0].L : 7;
+    }
+    return bestL == null ? 5 : bestL;
+  }
+
+  // Jumps to the Learn tab set to the given length.
+  function goToLearnLength(L) {
+    const goalModal = document.getElementById('dashGoalModal');
+    if (goalModal) goalModal.hidden = true;
+
+    const learnTabBtn = document.querySelector('.tab-btn[data-tab="learn"]');
+    if (learnTabBtn) learnTabBtn.click();
+
+    learnState.activeLength = L;
+    document.querySelectorAll('#learnLenChips .length-chip').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.len == String(L));
+    });
+    renderLearnContent();
+    showToast('แนะนำ: คำยาว ' + L + ' ตัวอักษร สำหรับเป้าหมายนี้');
   }
 
   // ---------- Dashboard: suggested words (fixed for the page load, unless reshuffled) ----------
@@ -5360,6 +5918,7 @@
     initMarathonGame();
     initMinigameTabs();
     initDashSuggested();
+    initDashActions();
     initLearnTab();
     initGlobalShortcuts();
     if (window.Achievements) {
