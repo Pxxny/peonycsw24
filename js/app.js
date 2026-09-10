@@ -27,6 +27,7 @@
   const UNFAM_KEY = 'csw24_unfamiliar_v1';
   const NOTES_KEY = 'csw24_word_notes_v1';
   const HISTORY_KEY = 'csw24_word_history_v1';
+  const LEARN_LOG_KEY = 'csw24_learn_log_v1';
   const DAY_MS = 86400000;
 
   // DD/MM/YY HH:MM:SS — used to show a Cardbox card's next-review time.
@@ -53,6 +54,10 @@
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 สร้างคำศัพท์', 'tab.quiz': '🎯 แบบทดสอบ',
       'tab.cardbox': '🗂️ Cardbox', 'tab.addwords': '➕ เพิ่มคำศัพท์', 'tab.browse': '📖 คลังคำศัพท์', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
       'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievement', 'tab.settings': '⚙️ Setting',
+      'tab.learn': '🎓 Learn',
+      'learn.title': '🎓 Learn', 'learn.sub': 'เลือกความยาวคำศัพท์ที่ต้องการเรียน',
+      'learn.extraSoon': '🚧 Extra — เร็วๆ นี้',
+      'dash.learnBtn': '🎓 Learn',
       'ach.title': '🏆 Achievement', 'ach.sub': 'ปลดล็อกเหรียญตราจากการเรียนและเล่นมินิเกม ข้อมูลเก็บไว้ในเบราว์เซอร์นี้เท่านั้น',
       'app.title': 'CSW24 Word Lab',
       'app.subtitle': 'เจนคำศัพท์ · หา Anagram · เก็บลง Cardbox · ทบทวนแบบ Spaced Repetition · Minigame',
@@ -119,6 +124,10 @@
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 Generate', 'tab.quiz': '🎯 Quiz',
       'tab.cardbox': '🗂️ Cardbox', 'tab.addwords': '➕ Add Words', 'tab.browse': '📖 Word Browser', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
       'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievements', 'tab.settings': '⚙️ Settings',
+      'tab.learn': '🎓 Learn',
+      'learn.title': '🎓 Learn', 'learn.sub': 'Choose the word length you want to learn',
+      'learn.extraSoon': '🚧 Extra — coming soon',
+      'dash.learnBtn': '🎓 Learn',
       'ach.title': '🏆 Achievements', 'ach.sub': 'Unlock badges by studying and playing minigames. All data is stored in this browser only.',
       'app.title': 'CSW24 Word Lab',
       'app.subtitle': 'Generate words · Find Anagrams · Save to Cardbox · Spaced Repetition review · Minigames',
@@ -619,6 +628,7 @@
     quiz: 'แบบทดสอบ', generate: 'สร้างคำศัพท์', cardbox: 'ทบทวน Cardbox',
     suggested: 'คำแนะนำ Dashboard', typing: 'พิมพ์ศัพท์ (Minigame)',
     racks: 'Random Racks (Minigame)', alpha: 'Alphagram Blitz (Minigame)',
+    learn: 'Learn (ด่าน)',
     marathon: 'Time Attack Marathon (Minigame)', browse: 'คลังคำศัพท์'
   };
   function logWordEncounter(word, mode) {
@@ -3066,6 +3076,579 @@
     });
   }
 
+  // ---------- Learn tab ----------
+  // Each word length is split into "levels" of 10 words each, in a fixed
+  // order (alphabetical for short/easy lengths, most-probable-first for
+  // longer lengths where alphabetical order would front-load obscure
+  // words). Every 10th level is a "boss" level that mixes in words drawn
+  // from the levels just completed, as a review checkpoint.
+
+  const LEARN_WORDS_PER_LEVEL = 10;
+  const LEARN_BOSS_EVERY = 10;
+  // Lengths where "hardest/rarest word first" (alphabetical) would be a bad
+  // learning order — sort by draw probability instead (common/easy first).
+  const LEARN_PROB_SORT_LENGTHS = { 7: true, 8: true, 9: true };
+
+  const learnState = { activeLength: null };
+  const _learnLevelWordsCache = {};
+
+  function learnLevelWords(L) {
+    if (_learnLevelWordsCache[L]) return _learnLevelWordsCache[L];
+    const pool = (typeof lengthPool === 'function' ? lengthPool(L) : (CSW24_BY_LENGTH[L] || [])).slice();
+    if (LEARN_PROB_SORT_LENGTHS[L]) {
+      pool.sort(function (a, b) { return wordDrawProbability(b) - wordDrawProbability(a) || a.localeCompare(b); });
+    } else {
+      pool.sort(function (a, b) { return a.localeCompare(b); });
+    }
+    _learnLevelWordsCache[L] = pool;
+    return pool;
+  }
+
+  // Total number of levels for a length, including boss levels interleaved
+  // every LEARN_BOSS_EVERY regular levels.
+  function learnLevelCount(L) {
+    const words = learnLevelWords(L);
+    const regularLevels = Math.ceil(words.length / LEARN_WORDS_PER_LEVEL);
+    const bossLevels = Math.floor(regularLevels / LEARN_BOSS_EVERY);
+    return regularLevels + bossLevels;
+  }
+
+  // Maps a 1-based display level index to either a regular word slice or a
+  // boss review slice pulled from the preceding regular levels. Boss levels
+  // land at a fixed spot in the display sequence (every LEARN_BOSS_EVERY
+  // regular levels get one extra display slot after them), so both the
+  // regular level number and the display index can be computed directly
+  // instead of scanning from level 1 each call.
+  function learnLevelInfo(L, levelIndex) {
+    const words = learnLevelWords(L);
+    const regularLevels = Math.ceil(words.length / LEARN_WORDS_PER_LEVEL);
+    if (regularLevels <= 0) return null;
+    // Every full block of LEARN_BOSS_EVERY regular levels occupies
+    // LEARN_BOSS_EVERY + 1 display slots (the boss level tacked on).
+    const blockSpan = LEARN_BOSS_EVERY + 1;
+    const blockIndex = Math.floor((levelIndex - 1) / blockSpan);
+    const posInBlock = (levelIndex - 1) % blockSpan; // 0..LEARN_BOSS_EVERY
+    const regularBase = blockIndex * LEARN_BOSS_EVERY;
+
+    if (posInBlock < LEARN_BOSS_EVERY) {
+      const r = regularBase + posInBlock + 1;
+      if (r > regularLevels) return null;
+      const start = (r - 1) * LEARN_WORDS_PER_LEVEL;
+      return {
+        kind: 'regular', regularLevel: r,
+        words: words.slice(start, start + LEARN_WORDS_PER_LEVEL)
+      };
+    }
+
+    // Boss slot: only exists once the block's regular levels are complete.
+    const regularSeen = regularBase + LEARN_BOSS_EVERY;
+    if (regularSeen > regularLevels) return null;
+    const bossNum = blockIndex + 1;
+    const rangeStart = regularBase * LEARN_WORDS_PER_LEVEL;
+    const rangeEnd = regularSeen * LEARN_WORDS_PER_LEVEL;
+    const span = words.slice(rangeStart, Math.min(rangeEnd, words.length));
+    const reviewWords = span.filter(function (_, i) { return i % Math.max(1, Math.floor(span.length / LEARN_WORDS_PER_LEVEL)) === 0; }).slice(0, LEARN_WORDS_PER_LEVEL);
+    return { kind: 'boss', bossNumber: bossNum, coversLevels: [regularBase + 1, regularSeen], words: reviewWords };
+  }
+
+  // ---------- Learn: per-answer log (word, length, correct/incorrect, time) ----------
+
+  let _learnLogCache = null;
+  function loadLearnLog() {
+    if (_learnLogCache) return _learnLogCache;
+    try { _learnLogCache = JSON.parse(localStorage.getItem(LEARN_LOG_KEY) || '[]'); }
+    catch (e) { _learnLogCache = []; }
+    return _learnLogCache;
+  }
+  function saveLearnLog(list) {
+    _learnLogCache = list;
+    localStorage.setItem(LEARN_LOG_KEY, JSON.stringify(list));
+  }
+  const LEARN_LOG_CAP = 5000;
+  function logLearnAnswer(word, len, isCorrect) {
+    const log = loadLearnLog();
+    log.push({ word: word, len: len, correct: !!isCorrect, t: Date.now() });
+    if (log.length > LEARN_LOG_CAP) log.splice(0, log.length - LEARN_LOG_CAP);
+    saveLearnLog(log);
+  }
+  function startOfTodayMs() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  // Today's accuracy for a given length, from the answer log (not lifetime
+  // Cardbox totals, which never reset day to day).
+  function learnTodayStats(L) {
+    const since = startOfTodayMs();
+    const log = loadLearnLog();
+    let correct = 0, total = 0;
+    const newWordsToday = new Set();
+    for (let i = 0; i < log.length; i++) {
+      const e = log[i];
+      if (e.len !== L || e.t < since) continue;
+      total++;
+      if (e.correct) correct++;
+    }
+    const box = loadCardbox();
+    box.forEach(function (c) {
+      if (c.word.length === L && c.addedAt >= since) newWordsToday.add(c.word);
+    });
+    return {
+      accuracyPct: total ? Math.round((correct / total) * 100) : null,
+      answeredToday: total,
+      newToday: newWordsToday.size
+    };
+  }
+
+  // Cardbox-derived stats scoped to one word length.
+  function learnLengthCardStats(L) {
+    const box = loadCardbox().filter(function (c) { return c.word.length === L; });
+    const now = Date.now();
+    let mastered = 0, dueCount = 0, anagramDone = 0;
+    box.forEach(function (c) {
+      if (c.status === 'mastered') mastered++;
+      if ((c.due || 0) <= now) dueCount++;
+      // "anagram done" = words in this length the learner has gotten right
+      // at least once (mirrors card.status graduating out of 'new').
+      if (c.correct >= 1) anagramDone++;
+    });
+    const totalInLength = (CSW24_BY_LENGTH[L] || []).length;
+    return { mastered: mastered, dueCount: dueCount, anagramDone: anagramDone, totalInLength: totalInLength, inCardbox: box.length };
+  }
+
+  function learnLevelProgress(L, levelWords, byWordMap) {
+    const byWord = byWordMap || (function () {
+      const box = loadCardbox();
+      const m = {};
+      box.forEach(function (c) { m[c.word] = c; });
+      return m;
+    })();
+    let done = 0;
+    levelWords.forEach(function (w) {
+      const c = byWord[w];
+      if (c && c.correct >= 1) done++;
+    });
+    return { done: done, total: levelWords.length };
+  }
+
+  function learnCardboxByWord() {
+    const box = loadCardbox();
+    const m = {};
+    box.forEach(function (c) { m[c.word] = c; });
+    return m;
+  }
+
+  function initLearnTab() {
+    const wrap = document.getElementById('learnLenChips');
+    if (!wrap) return;
+    wrap.querySelectorAll('.length-chip').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        wrap.querySelectorAll('.length-chip').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        if (btn.dataset.len === 'extra') {
+          learnState.activeLength = 'extra';
+          renderLearnContent();
+          return;
+        }
+        learnState.activeLength = parseInt(btn.dataset.len, 10);
+        renderLearnContent();
+      });
+    });
+
+    const dashLearnBtn = document.getElementById('dashLearnBtn');
+    if (dashLearnBtn) {
+      dashLearnBtn.addEventListener('click', function () {
+        const learnTabBtn = document.querySelector('.tab-btn[data-tab="learn"]');
+        if (learnTabBtn) learnTabBtn.click();
+      });
+    }
+  }
+
+  function renderLearnContent() {
+    const card = document.getElementById('learnContentCard');
+    const content = document.getElementById('learnContent');
+    if (!card || !content) return;
+    const L = learnState.activeLength;
+    if (L == null) {
+      card.style.display = 'none';
+      content.innerHTML = '';
+      return;
+    }
+    if (L === 'extra') {
+      card.style.display = '';
+      content.innerHTML = '<p class="panel-sub" data-i18n="learn.extraSoon">🚧 Extra — เร็วๆ นี้</p>';
+      return;
+    }
+    card.style.display = '';
+
+    const today = learnTodayStats(L);
+    const stats = learnLengthCardStats(L);
+    const masteredPct = stats.totalInLength ? ((stats.mastered / stats.totalInLength) * 100).toFixed(1) : '0.0';
+    const anagramFrac = stats.anagramDone + '/' + stats.totalInLength;
+    const accuracyLabel = today.accuracyPct == null ? '—' : today.accuracyPct + '%';
+
+    let html = '';
+    html += '<div class="learn-summary-line">';
+    html += 'แม่นแล้ว ' + masteredPct + '% / ท่องไปแล้ว ' + stats.inCardbox + ' / ' + stats.totalInLength + ' คำ • ' + anagramFrac + ' anagram';
+    html += '</div>';
+
+    html += '<div class="stat-grid learn-stat-grid">';
+    html += statCard(accuracyLabel, 'ความแม่นยำวันนี้', 'teal');
+    html += statCard(stats.dueCount, 'ถึงกำหนดทบทวน', 'brass');
+    html += statCard(today.newToday, 'คำใหม่วันนี้', '');
+    html += '</div>';
+
+    const levelCount = learnLevelCount(L);
+    // Next not-yet-completed level: first level whose words aren't all
+    // marked correct at least once yet (falls back to level 1).
+    const byWordForStart = learnCardboxByWord();
+    let startLevel = 1;
+    for (let lv = 1; lv <= levelCount; lv++) {
+      const info = learnLevelInfo(L, lv);
+      if (!info) break;
+      const prog = learnLevelProgress(L, info.words, byWordForStart);
+      if (prog.done < prog.total) { startLevel = lv; break; }
+      startLevel = lv + 1;
+    }
+    if (startLevel > levelCount) startLevel = levelCount;
+
+    html += '<div class="btn-row">';
+    html += '<button class="btn btn-primary" id="learnStartBtn" data-level="' + startLevel + '">▶ เริ่มเรียนเลย 10 คำ (Level ' + startLevel + ')</button>';
+    html += '</div>';
+
+    html += '<div id="learnLevelListWrap"></div>';
+
+    content.innerHTML = html;
+
+    const startBtn = document.getElementById('learnStartBtn');
+    if (startBtn) {
+      startBtn.addEventListener('click', function () {
+        startLearnLevel(L, parseInt(startBtn.dataset.level, 10));
+      });
+    }
+
+    // Long lengths (7L-9L) can have thousands of levels — render a
+    // page at a time instead of the whole list, so the tab stays fast
+    // on mobile. The initial page is the one containing startLevel.
+    const LEVELS_PER_PAGE = 50;
+    const initialPage = Math.floor((startLevel - 1) / LEVELS_PER_PAGE);
+    renderLearnLevelPage(L, levelCount, initialPage, LEVELS_PER_PAGE);
+  }
+
+  function renderLearnLevelPage(L, levelCount, page, pageSize) {
+    const wrap = document.getElementById('learnLevelListWrap');
+    if (!wrap) return;
+    const totalPages = Math.max(1, Math.ceil(levelCount / pageSize));
+    page = Math.max(0, Math.min(page, totalPages - 1));
+    const from = page * pageSize + 1;
+    const to = Math.min(levelCount, (page + 1) * pageSize);
+
+    let html = '';
+    if (totalPages > 1) {
+      html += '<div class="learn-level-pager">';
+      html += '<button type="button" class="btn btn-outline btn-sm" id="learnPagePrev"' + (page === 0 ? ' disabled' : '') + '>← ก่อนหน้า</button>';
+      html += '<span>Level ' + from + '–' + to + ' / ' + levelCount + '</span>';
+      html += '<button type="button" class="btn btn-outline btn-sm" id="learnPageNext"' + (page === totalPages - 1 ? ' disabled' : '') + '>ถัดไป →</button>';
+      html += '</div>';
+    }
+
+    html += '<div class="learn-level-list" id="learnLevelList">';
+    const byWord = learnCardboxByWord();
+    for (let lv = from; lv <= to; lv++) {
+      const info = learnLevelInfo(L, lv);
+      if (!info) continue;
+      const prog = learnLevelProgress(L, info.words, byWord);
+      const pct = prog.total ? Math.round((prog.done / prog.total) * 100) : 0;
+      const isBoss = info.kind === 'boss';
+      html += '<div class="learn-level-row' + (isBoss ? ' learn-level-boss' : '') + '">';
+      html += '<div class="learn-level-info">';
+      if (isBoss) {
+        html += '<span class="learn-level-badge boss">👑 Boss ' + info.bossNumber + '</span>';
+        html += '<span class="learn-level-sub">ทบทวน Level ' + info.coversLevels[0] + '–' + info.coversLevels[1] + '</span>';
+      } else {
+        html += '<span class="learn-level-badge">Level ' + lv + '</span>';
+        html += '<span class="learn-level-sub">' + info.words[0] + '–' + info.words[info.words.length - 1] + '</span>';
+      }
+      html += '</div>';
+      html += '<div class="learn-level-progress"><div class="learn-level-bar"><div class="learn-level-bar-fill" style="width:' + pct + '%"></div></div><span>' + prog.done + '/' + prog.total + '</span></div>';
+      html += '<button type="button" class="btn btn-outline btn-sm learn-level-start" data-level="' + lv + '">▶ เริ่ม</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+
+    wrap.innerHTML = html;
+
+    wrap.querySelectorAll('.learn-level-start').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        startLearnLevel(L, parseInt(btn.dataset.level, 10));
+      });
+    });
+    const prevBtn = document.getElementById('learnPagePrev');
+    if (prevBtn) prevBtn.addEventListener('click', function () { renderLearnLevelPage(L, levelCount, page - 1, pageSize); });
+    const nextBtn = document.getElementById('learnPageNext');
+    if (nextBtn) nextBtn.addEventListener('click', function () { renderLearnLevelPage(L, levelCount, page + 1, pageSize); });
+  }
+
+  // ---------- Learn: in-level session (Anagram drill wrapped in a level shell) ----------
+  // Reuses the same typing/scoring mechanic as Cardbox's Anagram mode
+  // (type the scrambled word, hints, multi-answer racks) but keeps its own
+  // queue/state so it never touches the Cardbox review session, and wraps
+  // each level with a level-intro, progress dots, and an end-of-level
+  // summary screen instead of dropping straight into a bare word queue.
+
+  const learnSession = {
+    length: null, levelIndex: null, info: null, queue: [], index: 0,
+    correct: 0, incorrect: 0, results: [], hintLevel: 0, hintUsed: false
+  };
+
+  function startLearnLevel(L, levelIndex) {
+    const info = learnLevelInfo(L, levelIndex);
+    if (!info || !info.words.length) { showToast('ไม่พบคำในด่านนี้'); return; }
+    // Make sure every word in the level exists as a Cardbox card so
+    // recordAnswer's SM-2 scheduling has something to update.
+    addWordsToCardbox(info.words);
+
+    learnSession.length = L;
+    learnSession.levelIndex = levelIndex;
+    learnSession.info = info;
+    learnSession.queue = info.words.slice();
+    learnSession.index = 0;
+    learnSession.correct = 0;
+    learnSession.incorrect = 0;
+    learnSession.results = [];
+
+    document.getElementById('learnContentCard').style.display = 'none';
+    document.getElementById('learnSessionCard').style.display = '';
+    renderLearnLevelIntro();
+  }
+
+  function endLearnLevel() {
+    document.getElementById('learnSessionCard').style.display = 'none';
+    document.getElementById('learnContentCard').style.display = '';
+    renderLearnContent();
+  }
+
+  function renderLearnDots() {
+    const dotsEl = document.getElementById('learnLevelDots');
+    if (!dotsEl) return;
+    dotsEl.innerHTML = learnSession.queue.map(function (_, i) {
+      let cls = 'learn-level-dot';
+      if (i < learnSession.results.length) {
+        cls += learnSession.results[i] ? ' dot-correct' : ' dot-wrong';
+      } else if (i === learnSession.index) {
+        cls += ' dot-current';
+      }
+      return '<span class="' + cls + '"></span>';
+    }).join('');
+  }
+
+  function updateLearnProgressBar() {
+    const total = learnSession.queue.length;
+    document.getElementById('learnSessionProgressLabel').textContent =
+      'คำที่ ' + Math.min(learnSession.index + 1, total) + ' / ' + total +
+      '   ·   ถูก ' + learnSession.correct + '   ผิด ' + learnSession.incorrect;
+    const pct = total ? Math.round((learnSession.index / total) * 100) : 0;
+    document.getElementById('learnSessionBarFill').style.width = pct + '%';
+    renderLearnDots();
+  }
+
+  function renderLearnLevelIntro() {
+    updateLearnProgressBar();
+    const area = document.getElementById('learnSessionArea');
+    const info = learnSession.info;
+    const isBoss = info.kind === 'boss';
+    let html = '<div class="learn-level-intro' + (isBoss ? ' boss' : '') + '">';
+    if (isBoss) {
+      html += '<div class="learn-level-intro-badge">👑 ด่านบอส ' + info.bossNumber + '</div>';
+      html += '<p class="panel-sub">ทบทวนคำจาก Level ' + info.coversLevels[0] + '–' + info.coversLevels[1] + ' (' + learnSession.length + 'L) — ' + info.words.length + ' คำ</p>';
+    } else {
+      html += '<div class="learn-level-intro-badge">Level ' + learnSession.levelIndex + '</div>';
+      html += '<p class="panel-sub">' + learnSession.length + 'L · ' + info.words.length + ' คำ</p>';
+    }
+    html += '<div class="session-controls"><button class="btn btn-primary" id="learnLevelGoBtn">▶ เริ่ม</button>' +
+      '<button class="btn btn-outline" id="learnLevelBackBtn">↩ กลับ</button></div>';
+    html += '</div>';
+    area.innerHTML = html;
+    document.getElementById('learnLevelGoBtn').addEventListener('click', renderLearnCard);
+    document.getElementById('learnLevelBackBtn').addEventListener('click', endLearnLevel);
+  }
+
+  function renderLearnCard() {
+    updateLearnProgressBar();
+    const area = document.getElementById('learnSessionArea');
+
+    if (learnSession.index >= learnSession.queue.length) {
+      renderLearnLevelSummary();
+      return;
+    }
+
+    const word = learnSession.queue[learnSession.index];
+    const letters = sortLetters(word);
+    learnSession.hintLevel = 0;
+    learnSession.hintUsed = false;
+
+    const validGroup = [word].concat(getAnagrams(word));
+    const found = new Set();
+
+    area.innerHTML =
+      '<div class="session-card">' +
+        '<div class="session-prompt-label">เรียงตัวอักษรให้เป็นคำศัพท์' +
+          (validGroup.length > 1 ? ' (มี ' + validGroup.length + ' คำตอบ ต้องหาให้ครบ)' : '') +
+        '</div>' +
+        tileRowHTML(letters, 'big') +
+        (validGroup.length > 1 ? '<div class="anagram-found-progress" id="learnFoundProgress">พบแล้ว 0 / ' + validGroup.length + ' คำ</div>' : '') +
+        (validGroup.length > 1 ? '<div class="anagram-partners" id="learnFoundList"></div>' : '') +
+        '<form class="session-answer-form" id="learnAnagramForm">' +
+          '<input type="text" id="learnAnagramInput" autocomplete="off" placeholder="พิมพ์คำตอบ — ตรวจให้อัตโนมัติ" autofocus>' +
+        '</form>' +
+        '<div class="session-controls">' +
+          '<button type="button" class="btn btn-outline btn-sm" id="learnHintBtn">💡 Hint</button>' +
+          '<button type="button" class="btn btn-outline btn-sm" id="learnSkipBtn">⏭ ข้าม / ยอมแพ้</button>' +
+        '</div>' +
+        '<div class="field-hint" id="learnHintText"></div>' +
+        '<div class="session-feedback" id="learnFeedback"></div>' +
+        '<div class="session-controls" id="learnNextWrap" style="display:none">' +
+          '<button class="btn btn-teal" id="learnNextBtn">ต่อไป (Enter) →</button>' +
+        '</div>' +
+      '</div>';
+
+    const form = document.getElementById('learnAnagramForm');
+    const input = document.getElementById('learnAnagramInput');
+    const feedback = document.getElementById('learnFeedback');
+    const hintBtn = document.getElementById('learnHintBtn');
+    const hintText = document.getElementById('learnHintText');
+    const progressEl = document.getElementById('learnFoundProgress');
+    const foundListEl = document.getElementById('learnFoundList');
+    input.focus();
+
+    function renderFoundList() {
+      if (!foundListEl) return;
+      foundListEl.innerHTML = Array.from(found).sort().map(function (w) {
+        return '<span class="anagram-chip">' + w + '</span>';
+      }).join('');
+    }
+
+    hintBtn.addEventListener('click', function () {
+      const maxHint = Math.max(1, word.length - 1);
+      if (learnSession.hintLevel < maxHint) {
+        learnSession.hintLevel++;
+        learnSession.hintUsed = true;
+      }
+      const revealed = word.slice(0, learnSession.hintLevel).split('').join(' ');
+      const blanks = word.length - learnSession.hintLevel;
+      hintText.textContent = '💡 ' + revealed + (blanks > 0 ? '  ' + '_ '.repeat(blanks).trim() : '') +
+        ' (' + learnSession.hintLevel + '/' + word.length + ' ตัวอักษร)';
+      if (learnSession.hintLevel >= maxHint) {
+        hintBtn.disabled = true;
+        hintBtn.textContent = '💡 Hint (สูงสุดแล้ว)';
+      }
+    });
+
+    const skipBtn = document.getElementById('learnSkipBtn');
+    skipBtn.addEventListener('click', function () {
+      input.value = '';
+      input.disabled = true;
+      feedback.textContent = '⏭ ข้ามคำนี้ — เฉลย: ' + validGroup.slice().sort().join(', ');
+      feedback.className = 'session-feedback wrong';
+      found.clear();
+      finishLearnCard(word, false, true);
+    });
+
+    function checkTyped() {
+      const guess = input.value.trim().toUpperCase();
+      if (!guess) { feedback.textContent = ''; feedback.className = 'session-feedback'; return; }
+      if (found.has(guess)) {
+        feedback.textContent = 'พิมพ์คำนี้ไปแล้ว ลองคำอื่น (เหลืออีก ' + (validGroup.length - found.size) + ' คำ)';
+        feedback.className = 'session-feedback wrong';
+        return;
+      }
+      const minRemainingLen = Math.min.apply(null, validGroup.filter(function (w) { return !found.has(w); }).map(function (w) { return w.length; }));
+      if (guess.length < minRemainingLen) { feedback.textContent = ''; feedback.className = 'session-feedback'; return; }
+
+      const isValid = validGroup.indexOf(guess) !== -1;
+      if (isValid) {
+        found.add(guess);
+        if (progressEl) progressEl.textContent = 'พบแล้ว ' + found.size + ' / ' + validGroup.length + ' คำ';
+        renderFoundList();
+        input.value = '';
+        if (found.size === validGroup.length) {
+          feedback.textContent = '✓ ถูกต้องครบทุกคำ!';
+          feedback.className = 'session-feedback correct';
+          input.disabled = true;
+          finishLearnCard(word, true, false);
+        } else {
+          feedback.textContent = '✓ ถูกต้อง! หาต่ออีก ' + (validGroup.length - found.size) + ' คำ';
+          feedback.className = 'session-feedback correct';
+        }
+      } else {
+        feedback.textContent = '✗ ยังไม่ถูก ลองอีกครั้ง';
+        feedback.className = 'session-feedback wrong';
+      }
+    }
+
+    input.addEventListener('input', checkTyped);
+    form.addEventListener('submit', function (e) { e.preventDefault(); });
+  }
+
+  function finishLearnCard(word, allCorrect, isSkipped) {
+    const hintBtn = document.getElementById('learnHintBtn');
+    const skipBtn = document.getElementById('learnSkipBtn');
+    const input = document.getElementById('learnAnagramInput');
+    if (hintBtn) hintBtn.disabled = true;
+    if (skipBtn) skipBtn.disabled = true;
+    if (input) input.disabled = true;
+
+    recordAnswer(word, allCorrect, learnSession.hintUsed, isSkipped);
+    logLearnAnswer(word, learnSession.length, allCorrect);
+    logWordEncounter(word, 'learn');
+    if (allCorrect) learnSession.correct++; else learnSession.incorrect++;
+    learnSession.results.push(allCorrect);
+    renderLearnDots();
+
+    const nextWrap = document.getElementById('learnNextWrap');
+    if (nextWrap) {
+      nextWrap.style.display = '';
+      document.getElementById('learnNextBtn').addEventListener('click', nextLearnCard);
+    }
+  }
+
+  function nextLearnCard() {
+    learnSession.index++;
+    renderLearnCard();
+  }
+
+  function renderLearnLevelSummary() {
+    const total = learnSession.queue.length;
+    const pct = total ? Math.round((learnSession.correct / total) * 100) : 0;
+    const stars = pct >= 90 ? '⭐⭐⭐' : pct >= 70 ? '⭐⭐' : pct >= 40 ? '⭐' : '·';
+    const info = learnSession.info;
+    const area = document.getElementById('learnSessionArea');
+    area.innerHTML =
+      '<div class="session-summary">' +
+        '<div class="session-prompt-label">' + (info.kind === 'boss' ? '👑 จบด่านบอสแล้ว' : 'จบ Level ' + learnSession.levelIndex + ' แล้ว') + '</div>' +
+        '<div class="learn-summary-stars">' + stars + '</div>' +
+        '<div class="big-stat">' + pct + '%</div>' +
+        '<p>ตอบถูก ' + learnSession.correct + ' / ' + total + ' คำ · ตอบผิด ' + learnSession.incorrect + ' คำ</p>' +
+        '<div class="session-controls">' +
+          '<button class="btn btn-outline" id="learnBackToListBtn">↩ กลับไปหน้า Level</button>' +
+          (learnSession.levelIndex < learnLevelCount(learnSession.length) ? '<button class="btn btn-primary" id="learnNextLevelBtn">▶ Level ถัดไป</button>' : '') +
+        '</div>' +
+      '</div>';
+    document.getElementById('learnBackToListBtn').addEventListener('click', endLearnLevel);
+    const nextLevelBtn = document.getElementById('learnNextLevelBtn');
+    if (nextLevelBtn) {
+      nextLevelBtn.addEventListener('click', function () {
+        startLearnLevel(learnSession.length, learnSession.levelIndex + 1);
+      });
+    }
+    if (window.Achievements) {
+      window.Achievements.record('session_complete', {
+        total: total, correct: learnSession.correct, incorrect: learnSession.incorrect
+      });
+    }
+  }
+
   // ---------- Dashboard ----------
 
   function renderDashboard() {
@@ -4777,6 +5360,7 @@
     initMarathonGame();
     initMinigameTabs();
     initDashSuggested();
+    initLearnTab();
     initGlobalShortcuts();
     if (window.Achievements) {
       window.Achievements.init();
