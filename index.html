@@ -29,6 +29,7 @@
     <button class="tab-btn toolbar-tab-btn" data-tab="browse" data-i18n="tab.browse"><span class="toolbar-icon">📖</span><span class="toolbar-label">คลังคำศัพท์</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="builder" data-i18n="tab.builder"><span class="toolbar-icon">🧩</span><span class="toolbar-label">Word Builder</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="cardbox" data-i18n="tab.cardbox"><span class="toolbar-icon">🗂️</span><span class="toolbar-label">Cardbox</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="addwords" data-i18n="tab.addwords"><span class="toolbar-icon">➕</span><span class="toolbar-label">เพิ่มคำศัพท์</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="generate" data-i18n="tab.generate"><span class="toolbar-icon">📝</span><span class="toolbar-label">สร้างคำศัพท์</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="quiz" data-i18n="tab.quiz"><span class="toolbar-icon">🎯</span><span class="toolbar-label">แบบทดสอบ</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="minigame" data-i18n="tab.minigame"><span class="toolbar-icon">🕹️</span><span class="toolbar-label">Minigame</span></button>
@@ -318,6 +319,30 @@
       </div>
 
       <p class="field-hint" id="reviewFooterHint"></p>
+    </div>
+  </section>
+
+  <!-- ============== ADD WORDS TAB ============== -->
+  <section id="tab-addwords" class="tab-panel">
+    <div class="panel-card">
+      <h2 data-i18n="cardbox.addTitle">➕ เพิ่มคำศัพท์เข้า Cardbox</h2>
+      <p class="panel-sub" data-i18n="cardbox.addSub">พิมพ์คำศัพท์ทีละบรรทัด (Enter ขึ้นบรรทัดใหม่ เว้นวรรคได้) ระบบจะแนะนำคำที่ใกล้เคียงขณะพิมพ์ ทุกคำที่เพิ่มต้องมีอยู่ใน CSW24 เท่านั้น — คำที่ไม่มีจะขึ้นแจ้งเตือนและไม่ถูกเพิ่ม</p>
+
+      <div class="field" id="addWordsField" style="position:relative">
+        <label for="addWordsInput" data-i18n="cardbox.addLabel">คำศัพท์ (บรรทัดละคำ)</label>
+        <textarea id="addWordsInput" rows="6" spellcheck="false" autocomplete="off" autocapitalize="characters"
+          style="text-transform:uppercase;width:100%;background:var(--cream);color:var(--ink);border:none;border-radius:7px;padding:0.6rem 0.7rem;font-family:var(--font-mono);font-size:0.95rem;resize:vertical"
+          placeholder="เช่น&#10;AEROBE&#10;HOUSE CAT"></textarea>
+        <div id="addWordsSuggest" class="add-words-suggest" style="display:none"></div>
+      </div>
+
+      <div id="addWordsPreview" class="add-words-preview"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="addWordsBtn" data-i18n="cardbox.addBtn">💾 เพิ่มเข้า Cardbox</button>
+        <button class="btn btn-outline" id="clearAddWordsBtn" data-i18n="cardbox.addClear">ล้างช่องพิมพ์</button>
+      </div>
+      <p class="field-hint" id="addWordsHint"></p>
     </div>
   </section>
 
@@ -828,6 +853,7 @@
     <div id="wdCardboxNote" class="wd-cardbox-note"></div>
     <div class="wd-row" id="wdPlusRow"></div>
     <div class="wd-row"><span class="wd-label">HOOK</span><span id="wdHook"></span></div>
+    <div class="wd-row"><span class="wd-label">FORMS</span><span id="wdForms"></span></div>
     <div class="wd-row"><span class="wd-label">SUFFIX</span><span id="wdSuffix"></span></div>
     <div class="wd-row"><span class="wd-label">PREFIX</span><span id="wdPrefix"></span></div>
     <div class="wd-row"><span class="wd-label">ANAGRAM</span><span id="wdAnagram"></span></div>
