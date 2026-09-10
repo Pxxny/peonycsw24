@@ -272,6 +272,8 @@ main {
 
 .btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.4rem; }
 
+.toolbar-tab-hidden { display: none !important; }
+
 .btn-hero {
   font-size: 1.15rem;
   font-weight: 800;
@@ -285,6 +287,75 @@ main {
 @media (min-width: 560px) {
   .btn-hero { width: auto; min-width: 260px; }
 }
+
+/* ---------- dashboard action buttons (Review / Time / Daily Goal) ---------- */
+
+.dash-action-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.7rem;
+  margin-top: 0.9rem;
+}
+@media (min-width: 640px) {
+  .dash-action-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.dash-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  text-align: left;
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--rail);
+  background: var(--board-2);
+  cursor: pointer;
+  font-family: var(--font-body);
+  color: var(--cream);
+  transition: transform .12s ease, filter .12s ease, border-color .12s ease;
+}
+.dash-action-btn:hover { transform: translateY(-1px); border-color: var(--brass); filter: brightness(1.05); }
+.dash-action-btn:active { transform: translateY(0); }
+.dash-action-icon { font-size: 1.3rem; }
+.dash-action-title { font-weight: 700; font-size: 0.95rem; }
+.dash-action-detail { font-size: 0.82rem; color: #a9c2b6; }
+.dash-action-detail strong { color: var(--brass); }
+.dash-action-btn.dash-action-review .dash-action-detail strong { color: var(--clay); }
+
+/* ---------- modal ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 16, 13, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 200;
+}
+.modal-overlay[hidden] { display: none; }
+.modal-box {
+  background: var(--board-1);
+  border: 1px solid var(--rail);
+  border-radius: 14px;
+  padding: 1.5rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 14px 40px rgba(0,0,0,.45);
+}
+.modal-box h2 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  margin: 0 0 0.9rem;
+}
+.modal-close-row { display: flex; justify-content: flex-end; margin-top: 1.1rem; }
+.goal-date-nav { display: flex; align-items: center; justify-content: center; gap: .75rem; margin: .3rem 0 .6rem; font-weight: 600; }
+.stats-rank-list { display: flex; flex-direction: column; gap: .35rem; }
+.stats-rank-row { display: flex; align-items: center; gap: .6rem; padding: .45rem .6rem; border-radius: 8px; background: rgba(255,255,255,.03); }
+.stats-rank-num { width: 1.6rem; text-align: right; opacity: .6; font-variant-numeric: tabular-nums; }
+.stats-rank-word { flex: 1; font-weight: 600; }
+.stats-rank-count { opacity: .75; font-size: .9em; white-space: nowrap; }
 
 /* ---------- letter tiles ---------- */
 
