@@ -51,7 +51,7 @@
   const I18N = {
     th: {
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 สร้างคำศัพท์', 'tab.quiz': '🎯 แบบทดสอบ',
-      'tab.cardbox': '🗂️ Cardbox', 'tab.browse': '📖 คลังคำศัพท์', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
+      'tab.cardbox': '🗂️ Cardbox', 'tab.addwords': '➕ เพิ่มคำศัพท์', 'tab.browse': '📖 คลังคำศัพท์', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
       'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievement', 'tab.settings': '⚙️ Setting',
       'ach.title': '🏆 Achievement', 'ach.sub': 'ปลดล็อกเหรียญตราจากการเรียนและเล่นมินิเกม ข้อมูลเก็บไว้ในเบราว์เซอร์นี้เท่านั้น',
       'app.title': 'CSW24 Word Lab',
@@ -62,6 +62,16 @@
       'common.randomize': '🎲 สุ่มคำศัพท์', 'common.selectAll': 'เลือกทั้งหมด', 'common.saveToCardbox': '💾 Save to Cardbox',
       'quiz.title': 'แบบทดสอบ — เลือกคำเก็บใน Cardbox',
       'quiz.sub': 'สุ่มคำศัพท์ชุดใหม่ (ค่าเริ่มต้น 50 คำ) เลือกคำที่ถูกใจอยากจำ แล้วกด Save to Cardbox เพื่อเก็บไว้ทบทวน',
+      'cardbox.addTitle': '➕ เพิ่มคำศัพท์เข้า Cardbox', 'cardbox.addLabel': 'คำศัพท์ (บรรทัดละคำ)',
+      'cardbox.addSub': 'พิมพ์คำศัพท์ทีละบรรทัด (Enter ขึ้นบรรทัดใหม่ เว้นวรรคได้) ระบบจะแนะนำคำที่ใกล้เคียงขณะพิมพ์ ทุกคำที่เพิ่มต้องมีอยู่ใน CSW24 เท่านั้น — คำที่ไม่มีจะขึ้นแจ้งเตือนและไม่ถูกเพิ่ม',
+      'cardbox.addBtn': '💾 เพิ่มเข้า Cardbox', 'cardbox.addClear': 'ล้างช่องพิมพ์',
+      'cardbox.addOk': 'มีใน CSW24', 'cardbox.addNotFound': 'ไม่พบคำนี้ใน CSW24',
+      'cardbox.addAlready': 'มีใน Cardbox แล้ว',
+      'cardbox.addWillAdd': 'จะเพิ่ม {n} คำ', 'cardbox.addWillSkipInvalid': 'ข้าม {n} คำที่ไม่มีใน CSW24',
+      'cardbox.addWillSkipDup': 'ข้าม {n} คำที่มีอยู่แล้ว',
+      'cardbox.addNoneEntered': 'กรุณาพิมพ์คำศัพท์ก่อน',
+      'cardbox.addRejected': '⚠️ {n} คำไม่มีใน CSW24 ไม่ถูกเพิ่ม: {words}',
+      'cardbox.addSuccess': '💾 เพิ่ม {n} คำเข้า Cardbox แล้ว', 'cardbox.addAlreadyCount': '{n} คำมีอยู่แล้ว',
       'cardbox.title': 'การ์ดของฉัน (Cardbox)', 'cardbox.studyMode': 'รูปแบบ Quiz',
       'cardbox.anagramOrder': 'การเรียงตัวอักษร', 'cardbox.studyCount': 'จำนวนคำที่ทบทวน', 'cardbox.start': '▶ เริ่มทบทวน',
       'cardbox.anagramCycleInterval': 'Cycle Interval (คำที่ข้าม/ผิดจะวนกลับมาอีกกี่คำ)',
@@ -107,7 +117,7 @@
     },
     en: {
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 Generate', 'tab.quiz': '🎯 Quiz',
-      'tab.cardbox': '🗂️ Cardbox', 'tab.browse': '📖 Word Browser', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
+      'tab.cardbox': '🗂️ Cardbox', 'tab.addwords': '➕ Add Words', 'tab.browse': '📖 Word Browser', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
       'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievements', 'tab.settings': '⚙️ Settings',
       'ach.title': '🏆 Achievements', 'ach.sub': 'Unlock badges by studying and playing minigames. All data is stored in this browser only.',
       'app.title': 'CSW24 Word Lab',
@@ -118,6 +128,16 @@
       'common.randomize': '🎲 Randomize', 'common.selectAll': 'Select all', 'common.saveToCardbox': '💾 Save to Cardbox',
       'quiz.title': 'Quiz — pick words to save to Cardbox',
       'quiz.sub': 'Randomize a fresh batch (default 50), select the words you want to learn, then Save to Cardbox.',
+      'cardbox.addTitle': '➕ Add words to Cardbox', 'cardbox.addLabel': 'Words (one per line)',
+      'cardbox.addSub': 'Type one word per line (Enter for a new line, spaces are fine). You\u2019ll get live suggestions as you type. Every word must exist in CSW24 — anything not found shows a notification and is not added.',
+      'cardbox.addBtn': '💾 Add to Cardbox', 'cardbox.addClear': 'Clear input',
+      'cardbox.addOk': 'In CSW24', 'cardbox.addNotFound': 'Not found in CSW24',
+      'cardbox.addAlready': 'Already in Cardbox',
+      'cardbox.addWillAdd': 'Will add {n} word(s)', 'cardbox.addWillSkipInvalid': 'skipping {n} not in CSW24',
+      'cardbox.addWillSkipDup': 'skipping {n} already added',
+      'cardbox.addNoneEntered': 'Type a word first',
+      'cardbox.addRejected': '⚠️ {n} word(s) not in CSW24, not added: {words}',
+      'cardbox.addSuccess': '💾 Added {n} word(s) to Cardbox', 'cardbox.addAlreadyCount': '{n} already there',
       'cardbox.title': 'My Cards (Cardbox)', 'cardbox.studyMode': 'Study mode',
       'cardbox.anagramOrder': 'Letter order', 'cardbox.studyCount': 'Words to review', 'cardbox.start': '▶ Start review',
       'cardbox.anagramCycleInterval': 'Cycle interval (cards before a skipped/wrong word repeats)',
@@ -490,6 +510,69 @@
       }
     }
     return { front: front, back: back };
+  }
+
+  // One extra level of hooks beyond getHooks(): for each single-letter back
+  // hook (e.g. GODSO + N -> GODSON), also check whether *that* resulting
+  // word has back hooks of its own (GODSON + S -> GODSONS). Surfaces
+  // "hook chains" a plain one-letter hook list doesn't show, so the user
+  // can see a word is buildable in more than one step. Kept shallow (one
+  // extra level, back hooks only) to stay cheap enough for the word-detail
+  // click path — this is not meant to be a full recursive tree (the
+  // Word Growth Tree screen already covers that).
+  function getChainedBackHooks(word, backHooks) {
+    const chains = [];
+    backHooks.forEach(function (letter) {
+      const extended = word + letter;
+      const next = getHooks(extended);
+      if (next.back.length) chains.push({ word: extended, hooks: next.back });
+    });
+    return chains;
+  }
+
+  // Common CSW-legal inflection suffixes to test against a word. Two kinds:
+  //  - "add" patterns just append the suffix straight on (CAT -> CATS).
+  //  - "y" patterns apply only to words ending in Y, replacing the Y before
+  //    adding the suffix (ACIDY -> drop Y -> ACID + IER -> ACIDIER). This
+  //    covers the classic adjective comparative/superlative pattern
+  //    (-Y/-IER/-IEST) plus a few related -Y swaps.
+  const INFLECTION_SUFFIXES = [
+    { suffix: 'S', label: '+S' },
+    { suffix: 'ES', label: '+ES' },
+    { suffix: 'ED', label: '+ED' },
+    { suffix: 'ING', label: '+ING' },
+    { suffix: 'ER', label: '+ER' },
+    { suffix: 'EST', label: '+EST' },
+    { suffix: 'LY', label: '+LY' }
+  ];
+  const Y_SWAP_SUFFIXES = [
+    { suffix: 'IER', label: '-Y+IER' },
+    { suffix: 'IEST', label: '-Y+IEST' },
+    { suffix: 'IED', label: '-Y+IED' },
+    { suffix: 'ILY', label: '-Y+ILY' },
+    { suffix: 'IES', label: '-Y+IES' },
+    { suffix: 'INESS', label: '-Y+INESS' }
+  ];
+
+  // Finds valid CSW24 words formed by inflecting `word` — plain suffixes
+  // (CAT -> CATS) and, for words ending in Y, the Y-replacement forms an
+  // adjective like ACIDY takes for comparative/superlative (ACIDY ->
+  // ACIDIER, ACIDIEST). Returns a list of { form, label } for whichever
+  // combinations actually land on a real dictionary word.
+  function getInflections(word) {
+    const results = [];
+    const seen = new Set();
+    function tryForm(form, label) {
+      if (seen.has(form)) return;
+      seen.add(form);
+      if (form !== word && lengthSet(form.length).has(form)) results.push({ form: form, label: label });
+    }
+    INFLECTION_SUFFIXES.forEach(function (s) { tryForm(word + s.suffix, s.label); });
+    if (word.length > 1 && word.charAt(word.length - 1) === 'Y') {
+      const stem = word.slice(0, -1);
+      Y_SWAP_SUFFIXES.forEach(function (s) { tryForm(stem + s.suffix, s.label); });
+    }
+    return results;
   }
 
   // ---------- word detail: unfamiliar marks, notes, definitions ----------
@@ -927,6 +1010,41 @@
 
   // ---------- word detail modal ----------
 
+  // Renders the HOOK row: the plain front/back one-letter hooks, plus (if
+  // any back hook itself leads to a word with further back hooks) a
+  // "chain" line so a word like GODSO shows not just "+N -> GODSON" but
+  // that GODSON can then take "+S -> GODSONS" too.
+  function hookDetailHTML(word, hooks) {
+    let html = (hooks.front.length ? '‹ ' + hooks.front.join(',') + word : '—') + ' / ' +
+      (hooks.back.length ? word + hooks.back.join(',') + ' ›' : '—');
+    const chains = getChainedBackHooks(word, hooks.back);
+    if (chains.length) {
+      html += '<div class="wd-hook-chains">' + chains.map(function (c) {
+        return '<div class="wd-hook-chain-line">' +
+          '<span class="wd-hook-chain-word">' + c.word + '</span>' +
+          ' + <span class="hook-letter" style="background:var(--teal-deep);color:var(--cream)">' +
+          c.hooks.join('</span><span class="hook-letter" style="background:var(--teal-deep);color:var(--cream);margin-left:2px">') +
+          '</span> → ' +
+          c.hooks.map(function (l) { return c.word + l; }).join(', ') +
+        '</div>';
+      }).join('') + '</div>';
+    }
+    return html;
+  }
+
+  // Renders the FORMS row: valid inflected forms of the word (plurals,
+  // -ED/-ING, comparative/superlative -ER/-EST, and for -Y adjectives like
+  // ACIDY the -Y -> -IER/-IEST/etc swap forms), each tagged with which
+  // suffix pattern produced it.
+  function inflectionFormsHTML(word) {
+    const forms = getInflections(word);
+    if (!forms.length) return '<span style="opacity:0.6">ไม่มีรูปแปรที่พบใน CSW24</span>';
+    return forms.map(function (f) {
+      return '<span class="wd-form-chip"><span class="wd-form-word">' + f.form + '</span>' +
+        '<span class="wd-form-label">' + f.label + '</span></span>';
+    }).join('');
+  }
+
   function openWordDetail(word) {
     const overlay = document.getElementById('wordDetailOverlay');
     document.getElementById('wdWord').textContent = word;
@@ -975,11 +1093,11 @@
     }
     document.getElementById('wdPlusRow').innerHTML = plusHTML;
 
-    document.getElementById('wdHook').textContent =
-      (hooks.front.length ? '‹ ' + hooks.front.join(',') + word : '—') + ' / ' +
-      (hooks.back.length ? word + hooks.back.join(',') + ' ›' : '—');
+    document.getElementById('wdHook').innerHTML = hookDetailHTML(word, hooks);
     document.getElementById('wdSuffix').textContent = suffixInfo(word) || 'ไม่มี';
     document.getElementById('wdPrefix').textContent = prefixInfo(word) || 'ไม่มี';
+    const wdFormsEl = document.getElementById('wdForms');
+    if (wdFormsEl) wdFormsEl.innerHTML = inflectionFormsHTML(word);
     const anagrams = getAnagrams(word);
     document.getElementById('wdAnagram').textContent = anagrams.length ? [word].concat(anagrams).join(', ') : word;
 
@@ -1876,6 +1994,223 @@
       const words = Array.from(selectedWords).sort();
       startAnagramReview(words, parseInt(document.getElementById('reviewSeconds').value, 10) || 5);
     });
+  }
+
+  // ---------- Add words panel (multi-line entry + autocomplete + CSW24 validation) ----------
+
+  function initAddWordsPanel() {
+    const input = document.getElementById('addWordsInput');
+    const suggestBox = document.getElementById('addWordsSuggest');
+    const preview = document.getElementById('addWordsPreview');
+    const hint = document.getElementById('addWordsHint');
+    const addBtn = document.getElementById('addWordsBtn');
+    const clearBtn = document.getElementById('clearAddWordsBtn');
+    if (!input || !suggestBox || !preview || !addBtn) return;
+
+    let suggestItems = [];
+    let suggestActive = -1;
+
+    // Checks a single word against the full CSW24 dictionary (+ custom
+    // words, if the user has that option enabled) using the same
+    // length-bucketed Set lookup the rest of the app uses.
+    function isValidCswWord(w) {
+      if (!w) return false;
+      return lengthSet(w.length).has(w);
+    }
+
+    function currentWordAndCaret() {
+      const val = input.value;
+      const caret = input.selectionStart == null ? val.length : input.selectionStart;
+      // Find the token (run of non-whitespace) the caret is currently inside,
+      // so suggestions track whichever word is actively being typed even if
+      // it's not the last line/token.
+      let start = caret;
+      while (start > 0 && !/\s/.test(val[start - 1])) start--;
+      let end = caret;
+      while (end < val.length && !/\s/.test(val[end])) end++;
+      return { word: val.slice(start, end).toUpperCase(), start: start, end: end };
+    }
+
+    function hideSuggest() {
+      suggestBox.style.display = 'none';
+      suggestBox.innerHTML = '';
+      suggestItems = [];
+      suggestActive = -1;
+    }
+
+    function renderSuggest(prefix) {
+      if (!prefix || prefix.length < 2) { hideSuggest(); return; }
+      const results = [];
+      for (let L = CSW24_MIN_LEN; L <= CSW24_MAX_LEN && results.length < 8; L++) {
+        if (L < prefix.length) continue;
+        const pool = lengthPool(L);
+        for (let i = 0; i < pool.length && results.length < 8; i++) {
+          if (pool[i].indexOf(prefix) === 0) results.push(pool[i]);
+        }
+      }
+      if (!results.length) { hideSuggest(); return; }
+      suggestItems = results;
+      suggestActive = -1;
+      suggestBox.innerHTML = results.map(function (w) {
+        return '<div class="add-words-suggest-item" data-word="' + w + '">' +
+          '<span>' + w + '</span><span class="aw-len">' + w.length + '</span></div>';
+      }).join('');
+      suggestBox.style.display = '';
+      suggestBox.querySelectorAll('.add-words-suggest-item').forEach(function (el) {
+        el.addEventListener('mousedown', function (e) {
+          e.preventDefault();
+          applySuggestion(el.dataset.word);
+        });
+      });
+    }
+
+    function applySuggestion(word) {
+      const tok = currentWordAndCaret();
+      const val = input.value;
+      const before = val.slice(0, tok.start);
+      const after = val.slice(tok.end);
+      input.value = before + word + after;
+      const pos = before.length + word.length;
+      input.focus();
+      input.setSelectionRange(pos, pos);
+      hideSuggest();
+      renderPreview();
+    }
+
+    function highlightActive() {
+      const items = suggestBox.querySelectorAll('.add-words-suggest-item');
+      items.forEach(function (el, i) { el.classList.toggle('active', i === suggestActive); });
+      if (suggestActive >= 0 && items[suggestActive]) {
+        items[suggestActive].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    // Parses the textarea into individual candidate words (one per line;
+    // extra whitespace on a line splits into separate words too), checks
+    // each against CSW24, and renders a status list + summary hint. Returns
+    // the set of words that validated clean and aren't already duplicated
+    // within the box, ready to be added.
+    function renderPreview() {
+      const raw = input.value;
+      const tokens = raw.split(/\s+/).map(function (w) { return w.trim().toUpperCase(); }).filter(Boolean);
+      const box = loadCardbox();
+      const already = new Set(box.map(function (c) { return c.word; }));
+
+      if (!tokens.length) {
+        preview.innerHTML = '';
+        hint.textContent = '';
+        addBtn.disabled = false;
+        return;
+      }
+
+      const seen = new Set();
+      const rows = tokens.map(function (w) {
+        const isDup = already.has(w) || seen.has(w);
+        seen.add(w);
+        const valid = isValidCswWord(w);
+        let cls = 'aw-invalid', icon = '❌', status = t('cardbox.addNotFound');
+        if (valid && isDup) { cls = 'aw-dup'; icon = '➖'; status = t('cardbox.addAlready'); }
+        else if (valid) { cls = 'aw-valid'; icon = '✅'; status = t('cardbox.addOk'); }
+        return { w: w, cls: cls, icon: icon, status: status, valid: valid, isDup: isDup };
+      });
+
+      preview.innerHTML = rows.map(function (r) {
+        return '<div class="aw-line ' + r.cls + '"><span class="aw-icon">' + r.icon + '</span>' +
+          '<span class="aw-word">' + r.w + '</span><span class="aw-status">' + r.status + '</span></div>';
+      }).join('');
+
+      const toAdd = rows.filter(function (r) { return r.valid && !r.isDup; }).length;
+      const invalidCount = rows.filter(function (r) { return !r.valid; }).length;
+      const dupCount = rows.filter(function (r) { return r.valid && r.isDup; }).length;
+
+      let msg = t('cardbox.addWillAdd').replace('{n}', toAdd);
+      if (invalidCount) msg += ' · ' + t('cardbox.addWillSkipInvalid').replace('{n}', invalidCount);
+      if (dupCount) msg += ' · ' + t('cardbox.addWillSkipDup').replace('{n}', dupCount);
+      hint.textContent = msg;
+    }
+
+    input.addEventListener('input', function () {
+      renderPreview();
+      const tok = currentWordAndCaret();
+      renderSuggest(tok.word);
+    });
+
+    input.addEventListener('keydown', function (e) {
+      if (suggestBox.style.display !== 'none' && suggestItems.length) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          suggestActive = Math.min(suggestItems.length - 1, suggestActive + 1);
+          highlightActive();
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          suggestActive = Math.max(0, suggestActive - 1);
+          highlightActive();
+          return;
+        }
+        if ((e.key === 'Tab' || e.key === 'Enter') && suggestActive >= 0) {
+          e.preventDefault();
+          applySuggestion(suggestItems[suggestActive]);
+          return;
+        }
+        if (e.key === 'Escape') { hideSuggest(); return; }
+      }
+    });
+
+    input.addEventListener('blur', function () {
+      // Slight delay so a mousedown on a suggestion item still registers
+      // before the dropdown is torn down.
+      setTimeout(hideSuggest, 120);
+    });
+
+    clearBtn.addEventListener('click', function () {
+      input.value = '';
+      hideSuggest();
+      renderPreview();
+      input.focus();
+    });
+
+    addBtn.addEventListener('click', function () {
+      const raw = input.value;
+      const tokens = raw.split(/\s+/).map(function (w) { return w.trim().toUpperCase(); }).filter(Boolean);
+      if (!tokens.length) { showToast(t('cardbox.addNoneEntered')); return; }
+
+      const uniqueTokens = Array.from(new Set(tokens));
+      const valid = [];
+      const invalid = [];
+      uniqueTokens.forEach(function (w) {
+        if (isValidCswWord(w)) valid.push(w); else invalid.push(w);
+      });
+
+      if (invalid.length) {
+        // Every word must exist in CSW24 — surface exactly which ones don't
+        // so the user can fix or drop them, and never add anything invalid.
+        const shown = invalid.slice(0, 5).join(', ') + (invalid.length > 5 ? ', …' : '');
+        showToast(t('cardbox.addRejected').replace('{n}', invalid.length).replace('{words}', shown));
+      }
+
+      if (valid.length) {
+        const added = addWordsToCardbox(valid);
+        const dup = valid.length - added;
+        let msg = t('cardbox.addSuccess').replace('{n}', added);
+        if (dup) msg += ' (' + t('cardbox.addAlreadyCount').replace('{n}', dup) + ')';
+        showToast(msg);
+        renderCardboxTab();
+        renderDashboard();
+      }
+
+      if (!invalid.length && valid.length) {
+        input.value = '';
+        preview.innerHTML = '';
+        hint.textContent = '';
+        hideSuggest();
+      } else {
+        renderPreview();
+      }
+    });
+
+    renderPreview();
   }
 
   function initCardboxTab() {
@@ -4428,6 +4763,7 @@
     initGenerator();
     initQuizTab();
     initCardboxTab();
+    initAddWordsPanel();
     initCardboxList();
     initAnagramReview();
     initDueTimeControls();
