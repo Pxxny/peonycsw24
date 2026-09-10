@@ -11,9 +11,6 @@
 <body>
 
 <header class="app-header">
-  <button class="burger-btn" id="burgerBtn" aria-label="เมนู" aria-expanded="false" aria-controls="burgerMenu">
-    <span></span><span></span><span></span>
-  </button>
   <div class="logo-tiles">
     <span class="logo-tile">C</span>
     <span class="logo-tile">S</span>
@@ -23,25 +20,21 @@
   </div>
   <h1 data-i18n="app.title">CSW24 Word Lab</h1>
   <p data-i18n="app.subtitle">เจนคำศัพท์ · หา Anagram · เก็บลง Cardbox · ทบทวนแบบ Spaced Repetition · Minigame</p>
-  <p class="current-tab-label" id="currentTabLabel"></p>
 </header>
 
-<div class="burger-overlay" id="burgerOverlay"></div>
-<nav class="burger-menu" id="burgerMenu" aria-hidden="true">
-  <div class="burger-menu-head">
-    <span class="burger-menu-title">เมนู</span>
-    <button class="burger-close-btn" id="burgerCloseBtn" aria-label="ปิดเมนู">✕</button>
+<nav class="toolbar" id="toolbar" aria-label="เมนูหลัก">
+  <div class="toolbar-scroll">
+    <button class="tab-btn toolbar-tab-btn" data-tab="play" data-i18n="tab.play"><span class="toolbar-icon">♟️</span><span class="toolbar-label">Play</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="dashboard" data-i18n="tab.dashboard"><span class="toolbar-icon">📊</span><span class="toolbar-label">Dashboard</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="browse" data-i18n="tab.browse"><span class="toolbar-icon">📖</span><span class="toolbar-label">คลังคำศัพท์</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="builder" data-i18n="tab.builder"><span class="toolbar-icon">🧩</span><span class="toolbar-label">Word Builder</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="cardbox" data-i18n="tab.cardbox"><span class="toolbar-icon">🗂️</span><span class="toolbar-label">Cardbox</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="generate" data-i18n="tab.generate"><span class="toolbar-icon">📝</span><span class="toolbar-label">สร้างคำศัพท์</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="quiz" data-i18n="tab.quiz"><span class="toolbar-icon">🎯</span><span class="toolbar-label">แบบทดสอบ</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="minigame" data-i18n="tab.minigame"><span class="toolbar-icon">🕹️</span><span class="toolbar-label">Minigame</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="achievements" data-i18n="tab.achievements"><span class="toolbar-icon">🏆</span><span class="toolbar-label">Achievement</span></button>
+    <button class="tab-btn toolbar-tab-btn" id="settingsTabBtn" data-tab="settings" data-i18n="tab.settings"><span class="toolbar-icon">⚙️</span><span class="toolbar-label">Setting</span></button>
   </div>
-  <button class="tab-btn burger-tab-btn" data-tab="play" data-i18n="tab.play">♟️ Play</button>
-  <button class="tab-btn burger-tab-btn" data-tab="dashboard" data-i18n="tab.dashboard">📊 Dashboard</button>
-  <button class="tab-btn burger-tab-btn" data-tab="browse" data-i18n="tab.browse">📖 คลังคำศัพท์</button>
-  <button class="tab-btn burger-tab-btn" data-tab="builder" data-i18n="tab.builder">🧩 Word Builder</button>
-  <button class="tab-btn burger-tab-btn" data-tab="cardbox" data-i18n="tab.cardbox">🗂️ Cardbox</button>
-  <button class="tab-btn burger-tab-btn" data-tab="generate" data-i18n="tab.generate">📝 สร้างคำศัพท์</button>
-  <button class="tab-btn burger-tab-btn" data-tab="quiz" data-i18n="tab.quiz">🎯 แบบทดสอบ</button>
-  <button class="tab-btn burger-tab-btn" data-tab="minigame" data-i18n="tab.minigame">🕹️ Minigame</button>
-  <button class="tab-btn burger-tab-btn" data-tab="achievements" data-i18n="tab.achievements">🏆 Achievement</button>
-  <button class="tab-btn burger-tab-btn" id="settingsTabBtn" data-tab="settings" data-i18n="tab.settings">⚙️ Setting</button>
 </nav>
 
 <main>
@@ -78,6 +71,10 @@
       <div class="quiz-list-head">
         <label class="checkbox-field"><input type="checkbox" id="genSelectAll"> <span data-i18n="common.selectAll">เลือกทั้งหมด</span></label>
         <span class="selected-count" id="genSelectedCount">เลือกแล้ว 0 คำ</span>
+      </div>
+      <div class="control-row" id="exportOptionsRow">
+        <label class="checkbox-field"><input type="checkbox" id="exportIncludeAnagrams"> จัดกลุ่มตาม Anagram (Alphagram)</label>
+        <label class="checkbox-field"><input type="checkbox" id="exportIncludeHooks"> แสดง Hook (front/back)</label>
       </div>
       <div class="btn-row">
         <button class="btn btn-outline btn-sm" id="exportPdfBtn">⬇ Export PDF</button>
@@ -189,6 +186,10 @@
               <option value="alpha">เรียงตามตัวอักษร (A→Z)</option>
               <option value="random">สุ่ม</option>
             </select>
+          </div>
+          <div class="field" id="anagramCycleField">
+            <label for="anagramCycleInterval" data-i18n="cardbox.anagramCycleInterval">Cycle Interval (คำที่ข้าม/ผิดจะวนกลับมาอีกกี่คำ)</label>
+            <input type="number" id="anagramCycleInterval" min="0" max="20" value="3">
           </div>
           <div class="field">
             <label for="studyCount" data-i18n="cardbox.studyCount">จำนวนคำที่ทบทวน</label>
@@ -781,10 +782,14 @@
     <div class="panel-card">
       <h2 data-i18n="settings.studySession">เซสชันทบทวน (Cardbox)</h2>
       <p class="panel-sub" data-i18n="settings.studySessionSub">ปรับพฤติกรรมระหว่างทำ Quiz ในเซสชันทบทวน</p>
-      <label class="checkbox-field"><input type="checkbox" id="autoAdvanceToggle" checked> <span data-i18n="settings.autoAdvance">ไปคำต่อไปอัตโนมัติเมื่อตอบถูกครบ</span></label>
-      <p class="field-hint" data-i18n="settings.autoAdvanceHint">เมื่อเปิด: หลังตอบถูกครบทุกคำ ระบบจะไปคำถัดไปให้เองโดยไม่ต้องกด Enter ซ้ำ</p>
-      <label class="checkbox-field" style="margin-top:0.7rem"><input type="checkbox" id="showHooksToggle" checked> <span data-i18n="settings.showHooks">แสดง Hook (Front/Back) ของคำ</span></label>
+      <label class="checkbox-field"><input type="checkbox" id="showHooksToggle" checked> <span data-i18n="settings.showHooks">แสดง Hook (Front/Back) ของคำ</span></label>
       <p class="field-hint" data-i18n="settings.showHooksHint">เมื่อเปิด: ทุกที่ที่แสดงคำศัพท์จะโชว์ตัวอักษรที่เติมหน้า/หลังคำแล้วได้เป็นคำใหม่ทันที</p>
+      <label class="checkbox-field" style="margin-top:0.7rem"><input type="checkbox" id="anagramAutoReshuffleToggle"> <span data-i18n="settings.anagramAutoReshuffle">สลับตัวอักษร Anagram อัตโนมัติหลังตอบ</span></label>
+      <p class="field-hint" data-i18n="settings.anagramAutoReshuffleHint">เมื่อเปิด: หลังตอบครบ/ข้ามคำใน Anagram แล้ว ระหว่างรอไปคำถัดไป ตัวอักษรจะสลับที่ใหม่ให้เองทุกกี่วินาทีตามที่ตั้ง</p>
+      <div class="field" style="margin-top:0.5rem;max-width:12rem">
+        <label for="anagramReshuffleSeconds" data-i18n="settings.anagramReshuffleSeconds">สลับทุกกี่วินาที</label>
+        <input type="number" id="anagramReshuffleSeconds" min="1" max="30" value="3">
+      </div>
     </div>
 
     <div class="panel-card">
