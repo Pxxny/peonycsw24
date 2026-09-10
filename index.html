@@ -26,6 +26,7 @@
   <div class="toolbar-scroll">
     <button class="tab-btn toolbar-tab-btn" data-tab="play" data-i18n="tab.play"><span class="toolbar-icon">♟️</span><span class="toolbar-label">Play</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="dashboard" data-i18n="tab.dashboard"><span class="toolbar-icon">📊</span><span class="toolbar-label">Dashboard</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="learn" data-i18n="tab.learn"><span class="toolbar-icon">🎓</span><span class="toolbar-label">Learn</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="browse" data-i18n="tab.browse"><span class="toolbar-icon">📖</span><span class="toolbar-label">คลังคำศัพท์</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="builder" data-i18n="tab.builder"><span class="toolbar-icon">🧩</span><span class="toolbar-label">Word Builder</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="cardbox" data-i18n="tab.cardbox"><span class="toolbar-icon">🗂️</span><span class="toolbar-label">Cardbox</span></button>
@@ -590,7 +591,10 @@
         <div class="legend" id="dashLegend"></div>
       </div>
 
-      <button class="btn btn-danger btn-sm" id="resetBtn" data-i18n="dash.reset">♻ Reset ความคืบหน้าทั้งหมด</button>
+      <div class="btn-row">
+        <button class="btn btn-teal" id="dashLearnBtn" data-i18n="dash.learnBtn">🎓 Learn</button>
+        <button class="btn btn-danger btn-sm" id="resetBtn" data-i18n="dash.reset">♻ Reset ความคืบหน้าทั้งหมด</button>
+      </div>
     </div>
 
     <div class="panel-card">
@@ -605,6 +609,36 @@
         <button class="btn btn-outline btn-sm" id="dashSuggestedRefreshBtn" data-i18n="dash.suggestedRefresh">🔁 สุ่มใหม่ (ไม่รอ refresh หน้า)</button>
         <button class="btn btn-teal" id="dashSaveBtn" data-i18n="common.saveToCardbox">💾 Save to Cardbox</button>
       </div>
+    </div>
+  </section>
+
+  <!-- ============== LEARN TAB ============== -->
+  <section id="tab-learn" class="tab-panel">
+    <div class="panel-card">
+      <h2 data-i18n="learn.title">🎓 Learn</h2>
+      <p class="panel-sub" data-i18n="learn.sub">เลือกความยาวคำศัพท์ที่ต้องการเรียน</p>
+      <div class="chip-row chip-row-lg" id="learnLenChips">
+        <button type="button" class="length-chip" data-len="2">2L</button>
+        <button type="button" class="length-chip" data-len="3">3L</button>
+        <button type="button" class="length-chip" data-len="4">4L</button>
+        <button type="button" class="length-chip" data-len="5">5L</button>
+        <button type="button" class="length-chip" data-len="6">6L</button>
+        <button type="button" class="length-chip" data-len="7">7L</button>
+        <button type="button" class="length-chip" data-len="8">8L</button>
+        <button type="button" class="length-chip" data-len="9">9L</button>
+        <button type="button" class="length-chip length-chip-extra" id="learnExtraBtn" data-len="extra">Extra</button>
+      </div>
+    </div>
+
+    <div class="panel-card" id="learnContentCard" style="display:none">
+      <div id="learnContent"></div>
+    </div>
+
+    <div class="panel-card" id="learnSessionCard" style="display:none">
+      <div class="session-progress" id="learnSessionProgressLabel"></div>
+      <div class="session-bar"><div class="session-bar-fill" id="learnSessionBarFill" style="width:0%"></div></div>
+      <div class="learn-level-dots" id="learnLevelDots"></div>
+      <div id="learnSessionArea"></div>
     </div>
   </section>
 
