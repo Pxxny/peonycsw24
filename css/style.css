@@ -1282,3 +1282,92 @@ main {
   .play-cell { font-size: 0.6rem; }
   .play-tile { width: 32px; height: 32px; font-size: 0.9rem; }
 }
+
+/* ---------- Add words to Cardbox (typeahead + validated multi-line entry) ---------- */
+
+.add-words-suggest {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  left: 0;
+  margin-top: 2px;
+  background: var(--board-2);
+  border: 1px solid var(--rail);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  max-height: 220px;
+  overflow-y: auto;
+  min-width: 12rem;
+}
+.add-words-suggest-item {
+  padding: 0.5rem 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--cream);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.add-words-suggest-item:hover,
+.add-words-suggest-item.active {
+  background: var(--board-1);
+  color: var(--brass);
+}
+.add-words-suggest-item .aw-len { color: #7f9a8d; font-size: 0.72rem; }
+
+.add-words-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.8rem 0;
+}
+.aw-line {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 7px;
+  background: var(--board-2);
+  border: 1px solid var(--rail);
+}
+.aw-line .aw-icon { flex: 0 0 auto; }
+.aw-line .aw-word { flex: 1; letter-spacing: 0.03em; }
+.aw-line .aw-status { font-size: 0.74rem; font-family: var(--font-body); }
+.aw-line.aw-valid { border-color: var(--teal-deep); }
+.aw-line.aw-valid .aw-status { color: var(--teal); }
+.aw-line.aw-invalid { border-color: var(--clay-deep); }
+.aw-line.aw-invalid .aw-status { color: var(--clay); }
+.aw-line.aw-dup { opacity: 0.65; }
+.aw-line.aw-dup .aw-status { color: var(--brass); }
+
+/* ---------- word detail: chained hooks + inflection forms ---------- */
+
+.wd-hook-chains {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.wd-hook-chain-line {
+  font-size: 0.78rem;
+  color: #b8ceC0;
+  font-family: var(--font-mono);
+}
+.wd-hook-chain-word { color: var(--brass); font-weight: 700; }
+
+.wd-form-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  background: var(--board-2);
+  border: 1px solid var(--rail);
+  border-radius: 6px;
+  padding: 0.22rem 0.5rem;
+  margin: 0 0.35rem 0.35rem 0;
+  font-family: var(--font-mono);
+}
+.wd-form-word { color: var(--cream); font-weight: 700; font-size: 0.85rem; }
+.wd-form-label { color: var(--teal); font-size: 0.68rem; font-family: var(--font-body); text-transform: uppercase; letter-spacing: 0.04em; }
