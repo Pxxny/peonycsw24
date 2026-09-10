@@ -28,6 +28,20 @@
   const NOTES_KEY = 'csw24_word_notes_v1';
   const HISTORY_KEY = 'csw24_word_history_v1';
   const DAY_MS = 86400000;
+
+  // DD/MM/YY HH:MM:SS — used to show a Cardbox card's next-review time.
+  function formatDueDate(ms) {
+    if (!ms) return '—';
+    const d = new Date(ms);
+    const pad = function (n) { return String(n).padStart(2, '0'); };
+    const dd = pad(d.getDate());
+    const mm = pad(d.getMonth() + 1);
+    const yy = pad(d.getFullYear() % 100);
+    const hh = pad(d.getHours());
+    const mi = pad(d.getMinutes());
+    const ss = pad(d.getSeconds());
+    return dd + '/' + mm + '/' + yy + ' ' + hh + ':' + mi + ':' + ss;
+  }
   const PAGE_SIZE = 150;
 
   let uidCounter = 0;
@@ -50,6 +64,7 @@
       'quiz.sub': 'สุ่มคำศัพท์ชุดใหม่ (ค่าเริ่มต้น 50 คำ) เลือกคำที่ถูกใจอยากจำ แล้วกด Save to Cardbox เพื่อเก็บไว้ทบทวน',
       'cardbox.title': 'การ์ดของฉัน (Cardbox)', 'cardbox.studyMode': 'รูปแบบ Quiz',
       'cardbox.anagramOrder': 'การเรียงตัวอักษร', 'cardbox.studyCount': 'จำนวนคำที่ทบทวน', 'cardbox.start': '▶ เริ่มทบทวน',
+      'cardbox.anagramCycleInterval': 'Cycle Interval (คำที่ข้าม/ผิดจะวนกลับมาอีกกี่คำ)',
       'cardbox.selectedCount': 'เลือกแล้ว 0 คำ', 'cardbox.studySelected': '▶ ทบทวนคำที่เลือก',
       'cardbox.searchLabel': '🔍 ค้นหาคำใน Cardbox', 'cardbox.sortLabel': 'เรียงลำดับ',
       'cardbox.sortRecent': 'เพิ่มล่าสุดก่อน', 'cardbox.sortRoundsDesc': 'จำนวนรอบเรียน: มาก→น้อย',
@@ -84,10 +99,11 @@
       'settings.importWords': '⬆ นำเข้ารายการคำศัพท์ของฉัน (.txt)', 'settings.includeCustom': 'รวมคำที่นำเข้าเองตอนสุ่ม/ค้นหา',
       'settings.studySession': 'เซสชันทบทวน (Cardbox)',
       'settings.studySessionSub': 'ปรับพฤติกรรมระหว่างทำ Quiz ในเซสชันทบทวน',
-      'settings.autoAdvance': 'ไปคำต่อไปอัตโนมัติเมื่อตอบถูกครบ',
-      'settings.autoAdvanceHint': 'เมื่อเปิด: หลังตอบถูกครบทุกคำ ระบบจะไปคำถัดไปให้เองโดยไม่ต้องกด Enter ซ้ำ',
       'settings.showHooks': 'แสดง Hook (Front/Back) ของคำ',
-      'settings.showHooksHint': 'เมื่อเปิด: ทุกที่ที่แสดงคำศัพท์จะโชว์ตัวอักษรที่เติมหน้า/หลังคำแล้วได้เป็นคำใหม่ทันที'
+      'settings.showHooksHint': 'เมื่อเปิด: ทุกที่ที่แสดงคำศัพท์จะโชว์ตัวอักษรที่เติมหน้า/หลังคำแล้วได้เป็นคำใหม่ทันที',
+      'settings.anagramAutoReshuffle': 'สลับตัวอักษร Anagram อัตโนมัติหลังตอบ',
+      'settings.anagramAutoReshuffleHint': 'เมื่อเปิด: หลังตอบครบ/ข้ามคำใน Anagram แล้ว ระหว่างรอไปคำถัดไป ตัวอักษรจะสลับที่ใหม่ให้เองทุกกี่วินาทีตามที่ตั้ง',
+      'settings.anagramReshuffleSeconds': 'สลับทุกกี่วินาที'
     },
     en: {
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 Generate', 'tab.quiz': '🎯 Quiz',
@@ -104,6 +120,7 @@
       'quiz.sub': 'Randomize a fresh batch (default 50), select the words you want to learn, then Save to Cardbox.',
       'cardbox.title': 'My Cards (Cardbox)', 'cardbox.studyMode': 'Study mode',
       'cardbox.anagramOrder': 'Letter order', 'cardbox.studyCount': 'Words to review', 'cardbox.start': '▶ Start review',
+      'cardbox.anagramCycleInterval': 'Cycle interval (cards before a skipped/wrong word repeats)',
       'cardbox.selectedCount': '0 selected', 'cardbox.studySelected': '▶ Study selected',
       'cardbox.searchLabel': '🔍 Search in Cardbox', 'cardbox.sortLabel': 'Sort by',
       'cardbox.sortRecent': 'Recently added', 'cardbox.sortRoundsDesc': 'Study rounds: high→low',
@@ -138,10 +155,11 @@
       'settings.importWords': '⬆ Import my word list (.txt)', 'settings.includeCustom': 'Include imported words in randomize/search',
       'settings.studySession': 'Study session (Cardbox)',
       'settings.studySessionSub': 'Adjust behavior while taking Quizzes in a review session.',
-      'settings.autoAdvance': 'Auto-advance to next word once fully correct',
-      'settings.autoAdvanceHint': 'When on: after all required words are found, the app moves to the next card automatically without needing another Enter press.',
       'settings.showHooks': 'Show word hooks (front/back)',
-      'settings.showHooksHint': 'When on: everywhere a word is shown, letters that extend it into a new word (front or back) are displayed right away.'
+      'settings.showHooksHint': 'When on: everywhere a word is shown, letters that extend it into a new word (front or back) are displayed right away.',
+      'settings.anagramAutoReshuffle': 'Auto-reshuffle Anagram tiles after answering',
+      'settings.anagramAutoReshuffleHint': 'When on: after finishing or skipping an Anagram card, while waiting to move to the next one, the letter tiles reshuffle every N seconds.',
+      'settings.anagramReshuffleSeconds': 'Reshuffle every (seconds)'
     }
   };
 
@@ -161,8 +179,9 @@
     dueTimePreset: '24h', // 1h,5h,12h,24h,1d,2d,5d,10d,30d,custom
     dueTimeCustomValue: 3, dueTimeCustomUnit: 'd',
     fontFamily: 'inter', fontScale: 1,
-    autoAdvance: true, autoAdvanceDelay: 900,
-    showHooks: true
+    showHooks: true,
+    anagramCycleInterval: 3,
+    anagramAutoReshuffle: false, anagramReshuffleSeconds: 3
   };
 
   function loadSettings() {
@@ -385,14 +404,6 @@
       });
     });
 
-    // auto-advance toggle for Cardbox study sessions
-    const autoAdvanceToggle = document.getElementById('autoAdvanceToggle');
-    autoAdvanceToggle.checked = !!settings.autoAdvance;
-    autoAdvanceToggle.addEventListener('change', function () {
-      settings.autoAdvance = autoAdvanceToggle.checked;
-      saveSettings();
-    });
-
     // show-hooks toggle (front/back hooks displayed inline wherever a word shows)
     const showHooksToggle = document.getElementById('showHooksToggle');
     showHooksToggle.checked = settings.showHooks !== false;
@@ -403,6 +414,25 @@
       // immediately without requiring navigation.
       if (document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
       if (document.getElementById('tab-cardbox').classList.contains('active')) renderCardboxTab();
+    });
+
+    // anagram auto-reshuffle: while an Anagram card is unsolved, the tile
+    // rack reshuffles itself on a timer instead of staying static.
+    const anagramAutoReshuffleToggle = document.getElementById('anagramAutoReshuffleToggle');
+    const anagramReshuffleSecondsInput = document.getElementById('anagramReshuffleSeconds');
+    anagramAutoReshuffleToggle.checked = !!settings.anagramAutoReshuffle;
+    anagramReshuffleSecondsInput.value = settings.anagramReshuffleSeconds || 3;
+    anagramAutoReshuffleToggle.addEventListener('change', function () {
+      settings.anagramAutoReshuffle = anagramAutoReshuffleToggle.checked;
+      saveSettings();
+    });
+    anagramReshuffleSecondsInput.addEventListener('change', function (e) {
+      let v = parseInt(e.target.value, 10);
+      if (isNaN(v) || v < 1) v = 1;
+      v = Math.min(v, 30);
+      e.target.value = v;
+      settings.anagramReshuffleSeconds = v;
+      saveSettings();
     });
   }
 
@@ -1175,7 +1205,7 @@
     const now = Date.now();
     return {
       word: word, addedAt: now, status: 'new',
-      correct: 0, incorrect: 0, lastReviewed: null,
+      correct: 0, incorrect: 0, skipped: 0, lastReviewed: null, lastCorrectAt: null,
       interval: 0, ease: 2.5, reps: 0, due: now + currentDueOffsetMs()
     };
   }
@@ -1205,20 +1235,25 @@
     if (card.reps == null) card.reps = 0;
     if (card.interval == null) card.interval = 0;
     if (card.due == null) card.due = Date.now();
+    if (card.skipped == null) card.skipped = 0;
+    if (card.lastCorrectAt === undefined) card.lastCorrectAt = null;
     return card;
   }
 
   // simplified SM-2 style spaced repetition
-  function updateCardResult(word, isCorrect, hintUsed) {
+  function updateCardResult(word, isCorrect, hintUsed, isSkipped) {
     const box = loadCardbox();
     const card = box.find(function (c) { return c.word === word; });
-    if (!card) return;
+    if (!card) return null;
     patchLegacyCard(card);
 
-    if (isCorrect) card.correct++; else card.incorrect++;
+    if (isCorrect) card.correct++;
+    else card.incorrect++;
+    if (isSkipped) card.skipped++;
     card.lastReviewed = Date.now();
 
     if (isCorrect) {
+      card.lastCorrectAt = card.lastReviewed;
       if (card.reps === 0) card.interval = 1;
       else if (card.reps === 1) card.interval = 3;
       else card.interval = Math.max(1, Math.round(card.interval * card.ease));
@@ -1231,7 +1266,11 @@
     } else {
       card.reps = 0;
       card.interval = 1;
-      card.ease = Math.max(1.3, card.ease - 0.2);
+      // Giving up (skip) means the word wasn't attempted at all, which is
+      // a weaker signal than a genuine wrong guess — nudge ease down a
+      // little harder so a skipped word resurfaces sooner than a word the
+      // learner actually tried and got wrong.
+      card.ease = Math.max(1.3, card.ease - (isSkipped ? 0.3 : 0.2));
     }
     card.due = Date.now() + card.interval * DAY_MS;
 
@@ -1240,6 +1279,7 @@
     else card.status = 'new';
 
     saveCardbox(box);
+    return card;
   }
 
   function statusLabel(status) {
@@ -1276,7 +1316,7 @@
           initBrowseChips();
           runBrowseSearch();
         }
-        if (btn.classList.contains('burger-tab-btn')) closeBurgerMenu();
+        scrollActiveTabIntoView(btn);
       });
     });
   }
@@ -1286,38 +1326,10 @@
     if (label) label.textContent = btn.textContent.trim();
   }
 
-  // ---------- burger (hamburger) menu ----------
-
-  function openBurgerMenu() {
-    document.getElementById('burgerMenu').classList.add('open');
-    document.getElementById('burgerOverlay').classList.add('open');
-    document.getElementById('burgerBtn').classList.add('open');
-    document.getElementById('burgerMenu').setAttribute('aria-hidden', 'false');
-    document.getElementById('burgerBtn').setAttribute('aria-expanded', 'true');
-  }
-
-  function closeBurgerMenu() {
-    document.getElementById('burgerMenu').classList.remove('open');
-    document.getElementById('burgerOverlay').classList.remove('open');
-    document.getElementById('burgerBtn').classList.remove('open');
-    document.getElementById('burgerMenu').setAttribute('aria-hidden', 'true');
-    document.getElementById('burgerBtn').setAttribute('aria-expanded', 'false');
-  }
-
-  function initBurgerMenu() {
-    const burgerBtn = document.getElementById('burgerBtn');
-    const overlay = document.getElementById('burgerOverlay');
-    const closeBtn = document.getElementById('burgerCloseBtn');
-    if (!burgerBtn) return;
-    burgerBtn.addEventListener('click', function () {
-      if (document.getElementById('burgerMenu').classList.contains('open')) closeBurgerMenu();
-      else openBurgerMenu();
-    });
-    overlay.addEventListener('click', closeBurgerMenu);
-    closeBtn.addEventListener('click', closeBurgerMenu);
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeBurgerMenu();
-    });
+  function scrollActiveTabIntoView(btn) {
+    if (btn && btn.scrollIntoView) {
+      btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
   }
 
   // ---------- Generator tab ----------
@@ -1426,31 +1438,134 @@
     showToast('ดาวน์โหลด ' + type.toUpperCase() + ' แล้ว');
   }
 
+  // ---------- LeXpert-style PDF export ----------
+  // Mimics the classic LeXpert "Probable/General Words" list layouts.
+  // Two independent options control the layout:
+  //  - includeAnagrams: group words that share an alphagram under one
+  //    alphagram label (e.g. "AABEINRT ATABRINE S" / "RABATINE S").
+  //    Off = a plain one-word-per-line list, sorted alphabetically.
+  //  - includeHooks: show front hooks (space then concatenated letters
+  //    before the word, e.g. "P REOBTAIN") and back hooks (concatenated
+  //    letters right after the word, e.g. "BARITONE S").
+
+  function lexpertDateLabel() {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const d = new Date();
+    const yy = String(d.getFullYear() % 100).padStart(2, '0');
+    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + yy;
+  }
+
+  function buildLexpertGroups(words, includeAnagrams, includeHooks) {
+    function hooksFor(w) {
+      if (!includeHooks) return { front: '', back: '' };
+      const hooks = getHooks(w);
+      return { front: hooks.front.join(''), back: hooks.back.join('') };
+    }
+
+    if (!includeAnagrams) {
+      // Plain list: one alphagram-less "group" per word, sorted alphabetically.
+      const sorted = words.slice().sort();
+      return sorted.map(function (w) {
+        const h = hooksFor(w);
+        return { key: '', lines: [{ front: h.front, word: w, back: h.back }] };
+      });
+    }
+
+    const byKey = {};
+    words.forEach(function (w) {
+      const key = sortLetters(w);
+      (byKey[key] || (byKey[key] = [])).push(w);
+    });
+    const keys = Object.keys(byKey).sort();
+    return keys.map(function (key) {
+      const groupWords = byKey[key].slice().sort();
+      return {
+        key: key,
+        lines: groupWords.map(function (w) {
+          const h = hooksFor(w);
+          return { front: h.front, word: w, back: h.back };
+        })
+      };
+    });
+  }
+
   async function exportPDF() {
     if (!genState.words.length) { showToast('กรุณาสุ่มคำศัพท์ก่อน export'); return; }
     showToast('กำลังสร้าง PDF...');
-    const target = document.getElementById('exportCapture');
-    const canvas = await html2canvas(target, { backgroundColor: '#16241f', scale: 2 });
+
+    const includeAnagrams = !!document.getElementById('exportIncludeAnagrams').checked;
+    const includeHooks = !!document.getElementById('exportIncludeHooks').checked;
+
     const jsPDFCtor = window.jspdf.jsPDF;
     const pdf = new jsPDFCtor('p', 'pt', 'a4');
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
-    const margin = 20;
-    const imgW = pageW - margin * 2;
-    const imgH = canvas.height * imgW / canvas.width;
-    const imgData = canvas.toDataURL('image/png');
+    const margin = 40;
+    const lineH = 13;
+    const fontSize = 10;
+    const keyColW = includeAnagrams ? 62 : 0;  // width reserved for the alphagram column
+    const hookColW = includeHooks ? 20 : 0;    // width reserved for the front-hook column
 
-    let heightLeft = imgH;
-    let position = margin;
-    pdf.addImage(imgData, 'PNG', margin, position, imgW, imgH);
-    heightLeft -= (pageH - margin * 2);
-    while (heightLeft > 0) {
-      position = heightLeft - imgH + margin;
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', margin, position, imgW, imgH);
-      heightLeft -= (pageH - margin * 2);
+    pdf.setFont('courier', 'normal');
+    pdf.setFontSize(fontSize);
+
+    const groups = buildLexpertGroups(genState.words, includeAnagrams, includeHooks);
+    const lens = genState.words.map(function (w) { return w.length; });
+    const minLen = Math.min.apply(null, lens);
+    const maxLen = Math.max.apply(null, lens);
+    const lenLabel = minLen === maxLen ? (minLen + 'Letter') : (minLen + '-' + maxLen + 'Letter');
+    const styleLabel = includeAnagrams ? 'Probable' : 'General';
+    const listTitle = 'Untitled (' + lenLabel + '.' + styleLabel + '.All)';
+    const dateLabel = lexpertDateLabel();
+
+    let page = 1;
+    let y = margin;
+
+    function drawFooter(pageNum) {
+      pdf.setFontSize(8);
+      pdf.text('CSW24 Word Lab - generated word list', margin, pageH - 18);
+      pdf.setFontSize(fontSize);
     }
-    pdf.save('csw24-wordlist.pdf');
+
+    function drawHeader() {
+      pdf.setFontSize(9);
+      pdf.text(dateLabel + '  ' + listTitle, margin, margin - 14);
+      const pageLabel = 'Page ' + page + '/{total_pages_count}';
+      pdf.text(pageLabel, pageW - margin - pdf.getTextWidth('Page ' + page + '/00'), margin - 14);
+      pdf.setFontSize(fontSize);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, margin - 8, pageW - margin, margin - 8);
+    }
+
+    function newPage() {
+      drawFooter(page);
+      pdf.addPage();
+      page++;
+      y = margin;
+      drawHeader();
+    }
+
+    drawHeader();
+
+    groups.forEach(function (group) {
+      group.lines.forEach(function (line, i) {
+        if (y > pageH - margin - lineH) newPage();
+        if (includeAnagrams) {
+          const keyText = i === 0 ? group.key : '';
+          pdf.text(keyText, margin, y);
+        }
+        const frontX = margin + keyColW;
+        if (line.front) pdf.text(line.front, frontX + hookColW - pdf.getTextWidth(line.front), y);
+        const wordX = margin + keyColW + hookColW + (includeAnagrams || includeHooks ? 4 : 0);
+        pdf.text(line.word, wordX, y);
+        if (line.back) pdf.text(' ' + line.back, wordX + pdf.getTextWidth(line.word), y);
+        y += lineH;
+      });
+    });
+
+    drawFooter(page);
+    pdf.putTotalPages('{total_pages_count}');
+    pdf.save('csw24-wordlist-lexpert.pdf');
     showToast('ดาวน์โหลด PDF แล้ว');
   }
 
@@ -1751,7 +1866,8 @@
 
       const mode = document.getElementById('studyMode').value;
       const anagramOrder = document.getElementById('anagramOrder').value;
-      startStudySession(queue, mode, anagramOrder);
+      const cycleInterval = parseInt(document.getElementById('anagramCycleInterval').value, 10);
+      startStudySession(queue, mode, anagramOrder, cycleInterval);
     });
 
     document.getElementById('anagramReviewSelectedBtn').addEventListener('click', function () {
@@ -1764,9 +1880,23 @@
 
   function initCardboxTab() {
     document.getElementById('studyMode').addEventListener('change', function (e) {
-      document.getElementById('anagramOrderField').style.display = e.target.value === 'anagram' ? '' : 'none';
+      const isAnagram = e.target.value === 'anagram';
+      document.getElementById('anagramOrderField').style.display = isAnagram ? '' : 'none';
+      document.getElementById('anagramCycleField').style.display = isAnagram ? '' : 'none';
     });
     document.getElementById('anagramOrderField').style.display = 'none';
+    document.getElementById('anagramCycleField').style.display = 'none';
+
+    const cycleInput = document.getElementById('anagramCycleInterval');
+    cycleInput.value = settings.anagramCycleInterval;
+    cycleInput.addEventListener('change', function (e) {
+      let v = parseInt(e.target.value, 10);
+      if (isNaN(v) || v < 0) v = 0;
+      v = Math.min(v, 20);
+      e.target.value = v;
+      settings.anagramCycleInterval = v;
+      saveSettings();
+    });
 
     document.getElementById('studyMinLen').addEventListener('change', function (e) { e.target.dataset.touched = '1'; });
     document.getElementById('studyMaxLen').addEventListener('change', function (e) { e.target.dataset.touched = '1'; });
@@ -1796,7 +1926,8 @@
       n = Math.max(1, Math.min(n, pool.length));
 
       const queue = dueOnly ? pool.slice(0, n) : shuffle(pool).slice(0, n);
-      startStudySession(queue, mode, anagramOrder);
+      const cycleInterval = parseInt(document.getElementById('anagramCycleInterval').value, 10);
+      startStudySession(queue, mode, anagramOrder, cycleInterval);
     });
 
     document.getElementById('startAnagramReviewBtn').addEventListener('click', function () {
@@ -1897,13 +2028,28 @@
 
   // ---------- Study session ----------
 
-  const session = { queue: [], index: 0, mode: 'flashcard', anagramOrder: 'alpha', correct: 0, incorrect: 0, flipped: false, hintLevel: 0, hintUsed: false };
+  const session = { queue: [], index: 0, mode: 'flashcard', anagramOrder: 'alpha', cycleInterval: 3, correct: 0, incorrect: 0, flipped: false, hintLevel: 0, hintUsed: false, missed: [], reshuffleHandle: null };
+
+  function stopAnagramReshuffle() {
+    if (session.reshuffleHandle) { clearInterval(session.reshuffleHandle); session.reshuffleHandle = null; }
+  }
 
   // ---------- Anagram Review (passive, no typing/grading) ----------
 
   const review = { queue: [], index: 0, seconds: 5, timerHandle: null, playing: false };
 
   function startAnagramReview(cards, seconds) {
+    if (!cards.length) { showToast('กรุณาเลือกคำศัพท์อย่างน้อย 1 คำ'); return; }
+    // Dedupe by alphagram: since each card already shows every anagram
+    // partner together, showing ALIENOR then AILERON then ALERION as
+    // separate cards would just repeat the same group 3 times.
+    const seenKeys = new Set();
+    cards = cards.filter(function (w) {
+      const key = sortLetters(w);
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    });
     if (!cards.length) { showToast('กรุณาเลือกคำศัพท์อย่างน้อย 1 คำ'); return; }
     review.queue = cards;
     review.index = 0;
@@ -2045,7 +2191,14 @@
     if (e.key === 'Enter') {
       const nextBtn = document.getElementById('anagramNextBtn') ||
         document.getElementById('recallNextBtn') || document.getElementById('sessionFinishBtn');
-      if (nextBtn) { e.preventDefault(); nextBtn.click(); return; }
+      // Skip the global "jump to Next" shortcut when the Next button is
+      // hidden (e.g. Instant Learn is active) — that button element can
+      // still be in the DOM with display:none, and letting this fire would
+      // silently advance the session out from under an in-progress drill.
+      // Also skip if the focused control is Instant Learn's own form —
+      // that form has its own Enter/submit handling.
+      const inInstantLearn = document.getElementById('ilInput') === document.activeElement;
+      if (nextBtn && nextBtn.offsetParent !== null && !inInstantLearn) { e.preventDefault(); nextBtn.click(); return; }
     }
     if (session.mode === 'flashcard') {
       if (!session.flipped && (e.key === 'Enter' || e.code === 'Space')) {
@@ -2063,15 +2216,34 @@
     }
   }
 
-  function startStudySession(cards, mode, anagramOrder) {
+  // In anagram mode, cards that share the same alphagram (e.g. ALIENOR /
+  // AILERON / ALERION) should appear as a single card rather than one
+  // card per word, since answering one is really the same "find the
+  // anagram set" task. Keep the first-seen card of each alphagram group.
+  function dedupeByAlphagram(cards) {
+    const seen = new Set();
+    const result = [];
+    for (let i = 0; i < cards.length; i++) {
+      const key = sortLetters(cards[i].word);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(cards[i]);
+    }
+    return result;
+  }
+
+  function startStudySession(cards, mode, anagramOrder, cycleInterval) {
+    if (mode === 'anagram') cards = dedupeByAlphagram(cards);
     session.queue = cards;
     session.index = 0;
     session.mode = mode;
     session.anagramOrder = anagramOrder;
+    session.cycleInterval = cycleInterval != null ? cycleInterval : settings.anagramCycleInterval;
     session.correct = 0;
     session.incorrect = 0;
     session.hintLevel = 0;
     session.hintUsed = false;
+    session.missed = [];
     document.getElementById('cardboxSetup').style.display = 'none';
     document.getElementById('cardboxList').style.display = 'none';
     document.getElementById('studySession').classList.add('open');
@@ -2080,6 +2252,7 @@
   }
 
   function endStudySession() {
+    stopAnagramReshuffle();
     document.removeEventListener('keydown', sessionKeyHandler);
     document.getElementById('studySession').classList.remove('open');
     document.getElementById('cardboxSetup').style.display = '';
@@ -2097,13 +2270,22 @@
     document.getElementById('sessionBarFill').style.width = pct + '%';
   }
 
-  function recordAnswer(word, isCorrect, hintUsed) {
-    updateCardResult(word, isCorrect, hintUsed);
+  function recordAnswer(word, isCorrect, hintUsed, isSkipped) {
+    const card = updateCardResult(word, isCorrect, hintUsed, isSkipped);
     logWordEncounter(word, 'cardbox');
-    if (isCorrect) session.correct++; else session.incorrect++;
+    if (isCorrect) {
+      session.correct++;
+    } else {
+      session.incorrect++;
+      // Zyzzyva-style: keep a de-duped list of every word missed this
+      // session so the end summary can show it for a quick review pass.
+      if (session.missed.indexOf(word) === -1) session.missed.push(word);
+    }
+    return card;
   }
 
   function nextCard() {
+    stopAnagramReshuffle();
     session.index++;
     session.flipped = false;
     session.hintLevel = 0;
@@ -2116,17 +2298,43 @@
     const area = document.getElementById('sessionArea');
 
     if (session.index >= session.queue.length) {
+      const total = session.queue.length;
+      const pct = total ? Math.round((session.correct / total) * 100) : 0;
+      const missedWords = session.missed.slice().sort();
+      const missedHTML = missedWords.length
+        ? '<div class="session-missed-block">' +
+            '<div class="session-missed-title">❌ คำที่พลาด (' + missedWords.length + ' คำ):</div>' +
+            '<div class="anagram-partners">' +
+              missedWords.map(function (w) { return '<span class="anagram-chip">' + w + '</span>'; }).join('') +
+            '</div>' +
+          '</div>'
+        : '<p class="session-missed-none">🎉 ไม่มีคำที่พลาดเลย ตอบถูกครบทุกคำ!</p>';
+
       area.innerHTML =
         '<div class="session-summary">' +
           '<div class="session-prompt-label">จบเซสชันทบทวนแล้ว</div>' +
-          '<div class="big-stat">' + session.correct + ' / ' + session.queue.length + '</div>' +
-          '<p>ตอบถูก ' + session.correct + ' คำ · ตอบผิด ' + session.incorrect + ' คำ</p>' +
-          '<div class="session-controls"><button class="btn btn-primary" id="sessionFinishBtn">เสร็จสิ้น</button></div>' +
+          '<div class="big-stat">' + pct + '%</div>' +
+          '<p>ตอบถูก ' + session.correct + ' / ' + total + ' คำ · ตอบผิด ' + session.incorrect + ' คำ</p>' +
+          missedHTML +
+          '<div class="session-controls">' +
+            (missedWords.length ? '<button class="btn btn-outline" id="sessionStudyMissedBtn">🔁 ทบทวนเฉพาะคำที่พลาด</button>' : '') +
+            '<button class="btn btn-primary" id="sessionFinishBtn">เสร็จสิ้น</button>' +
+          '</div>' +
         '</div>';
       document.getElementById('sessionFinishBtn').addEventListener('click', endStudySession);
+      const studyMissedBtn = document.getElementById('sessionStudyMissedBtn');
+      if (studyMissedBtn) {
+        studyMissedBtn.addEventListener('click', function () {
+          const box = loadCardbox();
+          const missedSet = new Set(missedWords);
+          const missedCards = box.filter(function (c) { return missedSet.has(c.word); });
+          if (!missedCards.length) { showToast('ไม่พบคำที่พลาดใน Cardbox'); return; }
+          startStudySession(missedCards, session.mode, session.anagramOrder, session.cycleInterval);
+        });
+      }
       if (window.Achievements) {
         window.Achievements.record('session_complete', {
-          total: session.queue.length, correct: session.correct, incorrect: session.incorrect
+          total: total, correct: session.correct, incorrect: session.incorrect
         });
       }
       return;
@@ -2187,7 +2395,7 @@
         '<div class="session-prompt-label">Anagram · เรียงตัวอักษรให้เป็นคำศัพท์' +
           (validGroup.length > 1 ? ' (มี ' + validGroup.length + ' คำตอบ ต้องหาให้ครบ)' : '') +
         '</div>' +
-        tileRowHTML(letters, 'big') +
+        '<div id="anagramTileRow">' + tileRowHTML(letters, 'big') + '</div>' +
         (validGroup.length > 1 ? '<div class="anagram-found-progress" id="anagramFoundProgress">พบแล้ว 0 / ' + validGroup.length + ' คำ</div>' : '') +
         (validGroup.length > 1 ? '<div class="anagram-partners" id="anagramFoundList"></div>' : '') +
         '<form class="session-answer-form" id="anagramForm">' +
@@ -2195,13 +2403,21 @@
         '</form>' +
         '<div class="session-controls">' +
           '<button type="button" class="btn btn-outline btn-sm" id="anagramHintBtn">💡 Hint</button>' +
+          '<button type="button" class="btn btn-outline btn-sm" id="anagramSkipBtn">⏭ ข้าม / ยอมแพ้</button>' +
         '</div>' +
         '<div class="field-hint" id="anagramHintText"></div>' +
         '<div class="session-feedback" id="anagramFeedback"></div>' +
+        '<div class="session-word-stats" id="anagramWordStats" style="display:none"></div>' +
         '<div class="session-controls" id="anagramNextWrap" style="display:none">' +
+          '<button class="btn btn-outline" id="anagramInstantLearnBtn">⚡ Instant Learn</button>' +
           '<button class="btn btn-teal" id="anagramNextBtn">ต่อไป (Enter) →</button>' +
         '</div>' +
+        '<div id="instantLearnArea"></div>' +
       '</div>';
+
+    function stopReshuffle() {
+      stopAnagramReshuffle();
+    }
 
     const form = document.getElementById('anagramForm');
     const input = document.getElementById('anagramInput');
@@ -2244,23 +2460,173 @@
       }
     });
 
-    function finishCard() {
+    const skipBtn = document.getElementById('anagramSkipBtn');
+    skipBtn.addEventListener('click', function () {
+      // Give-up: reveal every valid answer, mark the card wrong (not just
+      // "no hint used" — giving up is treated the same as an incorrect
+      // attempt for grading/spaced-repetition purposes), and let the
+      // learner move on instead of getting stuck on a word they can't get.
+      input.value = '';
+      input.disabled = true;
+      feedback.textContent = '⏭ ข้ามคำนี้ — เฉลย: ' + validGroup.slice().sort().join(', ');
+      feedback.className = 'session-feedback wrong';
+      found.clear();
+      finishCard(true);
+    });
+
+    function renderWordStats(card, isSkipped, allCorrect) {
+      const statsEl = document.getElementById('anagramWordStats');
+      if (!statsEl || !card) return;
+      const seen = card.correct + card.incorrect;
+      const lastCorrectText = card.lastCorrectAt ? formatDueDate(card.lastCorrectAt) : 'ยังไม่เคยตอบถูก';
+      const interval = Math.max(0, session.cycleInterval != null ? session.cycleInterval : settings.anagramCycleInterval);
+      const cycleNote = !allCorrect
+        ? '<div class="word-stats-row">🔄 คำนี้จะวนกลับมาอีกครั้งใน ' + interval + ' คำถัดไป (Cycle Interval)</div>'
+        : '';
+      statsEl.style.display = '';
+      statsEl.innerHTML =
+        '<div class="word-stats-row">🔁 เจอคำนี้ครั้งที่ ' + seen + ' · ✓ ตอบถูกครั้งที่ ' + card.correct +
+          (card.skipped ? ' · ⏭ ข้ามไปแล้ว ' + card.skipped + ' ครั้ง' : '') +
+        '</div>' +
+        cycleNote +
+        '<div class="word-stats-row">🕐 ตอบถูกล่าสุด: ' + lastCorrectText + '</div>' +
+        '<div class="word-stats-row word-stats-due">📅 ทบทวนครั้งถัดไป: ' + formatDueDate(card.due) + '</div>';
+    }
+
+    function cycleBackIfNeeded(allCorrect) {
+      // A wrong or skipped word doesn't just vanish for the rest of the
+      // session — it's reinserted a configurable number of cards later
+      // so the learner sees it again while it's still fresh, instead of
+      // only meeting it again on the next scheduled spaced-repetition day.
+      if (allCorrect) return;
+      const interval = Math.max(0, session.cycleInterval != null ? session.cycleInterval : settings.anagramCycleInterval);
+      const currentCard = session.queue[session.index];
+      let insertAt = session.index + 1 + interval;
+      if (insertAt > session.queue.length) insertAt = session.queue.length;
+      session.queue.splice(insertAt, 0, currentCard);
+    }
+
+    function finishCard(isSkipped) {
+      stopReshuffle();
       input.disabled = true;
       hintBtn.disabled = true;
+      skipBtn.disabled = true;
       const allCorrect = found.size === validGroup.length;
-      recordAnswer(word, allCorrect, session.hintUsed);
+      const card = recordAnswer(word, allCorrect, session.hintUsed, isSkipped);
+      cycleBackIfNeeded(allCorrect);
+      renderWordStats(card, isSkipped, allCorrect);
 
-      if (settings.autoAdvance && allCorrect) {
-        // Auto-advance: skip the manual "Next" button/Enter entirely and
-        // move on after a short pause so the learner still sees the
-        // "all correct" feedback before the card changes.
-        feedback.textContent += '  ⏳';
-        setTimeout(nextCard, settings.autoAdvanceDelay || 900);
-        return;
+      // Post-answer reshuffle: once the card is done (correct, wrong, or
+      // skipped) and we're just waiting to move to the next card, keep
+      // re-scrambling the tile rack for fun/visual flair during that wait.
+      // Stopped the instant we actually advance.
+      if (settings.anagramAutoReshuffle) {
+        const tileRowEl = document.getElementById('anagramTileRow');
+        const intervalMs = Math.max(1, settings.anagramReshuffleSeconds || 3) * 1000;
+        session.reshuffleHandle = setInterval(function () {
+          if (!tileRowEl || !document.body.contains(tileRowEl)) { stopAnagramReshuffle(); return; }
+          tileRowEl.innerHTML = tileRowHTML(shuffle(word.split('')).join(''), 'big');
+        }, intervalMs);
       }
 
       document.getElementById('anagramNextWrap').style.display = '';
       document.getElementById('anagramNextBtn').addEventListener('click', nextCard);
+      document.getElementById('anagramInstantLearnBtn').addEventListener('click', function () {
+        startInstantLearn(validGroup);
+      });
+    }
+
+    // ---------- Instant Learn (post-card, ungraded typing drill) ----------
+    // Shows the full answer for a moment, then has the learner retype it —
+    // either a fixed 5 reps or "until I've got it" (learner ends it
+    // manually) — purely for memorization. Never touches stats, cardbox
+    // scheduling, or session.correct/incorrect.
+    function startInstantLearn(words) {
+      stopReshuffle();
+      document.getElementById('anagramNextWrap').style.display = 'none';
+      const wrap = document.getElementById('instantLearnArea');
+
+      wrap.innerHTML =
+        '<div class="instant-learn-block">' +
+          '<div class="session-prompt-label">⚡ Instant Learn · ดูคำให้จำ แล้วพิมพ์ซ้ำ (ไม่บันทึกสถิติ)</div>' +
+          '<div class="anagram-partners">' +
+            words.slice().sort().map(function (w) { return '<span class="anagram-chip">' + w + '</span>'; }).join('') +
+          '</div>' +
+          '<div class="field" style="margin-top:0.8rem">' +
+            '<label>โหมดพิมพ์ซ้ำ</label>' +
+            '<div class="btn-row">' +
+              '<button type="button" class="btn btn-outline btn-sm il-mode-btn active" data-mode="count">พิมพ์ 5 ครั้ง</button>' +
+              '<button type="button" class="btn btn-outline btn-sm il-mode-btn" data-mode="free">พิมพ์จนกว่าจะจำได้</button>' +
+            '</div>' +
+          '</div>' +
+          '<div id="instantLearnDrill" style="margin-top:0.9rem"></div>' +
+        '</div>';
+
+      const drillEl = document.getElementById('instantLearnDrill');
+      let mode = 'count';
+
+      wrap.querySelectorAll('.il-mode-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          wrap.querySelectorAll('.il-mode-btn').forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          mode = btn.dataset.mode;
+          runDrill();
+        });
+      });
+
+      function runDrill() {
+        let repIndex = 0;
+        const targetReps = 5; // fixed default rep count for "count" mode
+
+        function renderRep() {
+          const currentTarget = words[repIndex % words.length];
+          const countLabel = mode === 'count' ? ' (' + (repIndex + 1) + '/' + targetReps + ')' : ' (พิมพ์ไปแล้ว ' + repIndex + ' ครั้ง)';
+          drillEl.innerHTML =
+            '<div class="session-prompt-label">พิมพ์คำนี้อีกครั้ง' + countLabel + '</div>' +
+            tileRowHTML(currentTarget, 'big') +
+            '<form class="session-answer-form" id="ilForm">' +
+              '<input type="text" id="ilInput" autocomplete="off" placeholder="พิมพ์คำด้านบนให้ตรงกัน" autofocus>' +
+            '</form>' +
+            '<div class="session-feedback" id="ilFeedback"></div>' +
+            (mode === 'free' ? '<div class="session-controls"><button type="button" class="btn btn-outline btn-sm" id="ilDoneBtn">✅ จำได้แล้ว จบ Instant Learn</button></div>' : '');
+
+          const ilForm = document.getElementById('ilForm');
+          const ilInput = document.getElementById('ilInput');
+          const ilFeedback = document.getElementById('ilFeedback');
+          ilInput.focus();
+
+          const doneBtn = document.getElementById('ilDoneBtn');
+          if (doneBtn) doneBtn.addEventListener('click', endInstantLearn);
+
+          ilForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const guess = ilInput.value.trim().toUpperCase();
+            if (!guess) return;
+            if (guess === currentTarget) {
+              ilFeedback.textContent = '✓ ถูกต้อง!';
+              ilFeedback.className = 'session-feedback correct';
+              repIndex++;
+              if (mode === 'count' && repIndex >= targetReps) {
+                setTimeout(endInstantLearn, 500);
+                return;
+              }
+              setTimeout(renderRep, 400);
+            } else {
+              ilFeedback.textContent = '✗ ยังไม่ตรง ลองอีกครั้ง';
+              ilFeedback.className = 'session-feedback wrong';
+              ilInput.value = '';
+            }
+          });
+        }
+        renderRep();
+      }
+
+      function endInstantLearn() {
+        wrap.innerHTML = '<p class="session-missed-none">⚡ จบ Instant Learn แล้ว</p>';
+        document.getElementById('anagramNextWrap').style.display = '';
+      }
+
+      runDrill();
     }
 
     // Live-checks whatever is currently typed, letter by letter — no Enter
@@ -4057,7 +4423,6 @@
     applyFontSettings();
     loadCustomWords();
     initTabs();
-    initBurgerMenu();
     applyI18n();
     initSettingsTab();
     initGenerator();
