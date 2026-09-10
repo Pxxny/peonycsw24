@@ -26,7 +26,7 @@
   <div class="toolbar-scroll">
     <button class="tab-btn toolbar-tab-btn" data-tab="play" data-i18n="tab.play"><span class="toolbar-icon">♟️</span><span class="toolbar-label">Play</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="dashboard" data-i18n="tab.dashboard"><span class="toolbar-icon">📊</span><span class="toolbar-label">Dashboard</span></button>
-    <button class="tab-btn toolbar-tab-btn" data-tab="learn" data-i18n="tab.learn"><span class="toolbar-icon">🎓</span><span class="toolbar-label">Learn</span></button>
+    <button class="tab-btn toolbar-tab-btn toolbar-tab-hidden" data-tab="learn" data-i18n="tab.learn"><span class="toolbar-icon">🎓</span><span class="toolbar-label">Learn</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="browse" data-i18n="tab.browse"><span class="toolbar-icon">📖</span><span class="toolbar-label">คลังคำศัพท์</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="builder" data-i18n="tab.builder"><span class="toolbar-icon">🧩</span><span class="toolbar-label">Word Builder</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="cardbox" data-i18n="tab.cardbox"><span class="toolbar-icon">🗂️</span><span class="toolbar-label">Cardbox</span></button>
@@ -35,6 +35,7 @@
     <button class="tab-btn toolbar-tab-btn" data-tab="quiz" data-i18n="tab.quiz"><span class="toolbar-icon">🎯</span><span class="toolbar-label">แบบทดสอบ</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="minigame" data-i18n="tab.minigame"><span class="toolbar-icon">🕹️</span><span class="toolbar-label">Minigame</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="achievements" data-i18n="tab.achievements"><span class="toolbar-icon">🏆</span><span class="toolbar-label">Achievement</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="stats" data-i18n="tab.stats"><span class="toolbar-icon">📈</span><span class="toolbar-label">Stats</span></button>
     <button class="tab-btn toolbar-tab-btn" id="settingsTabBtn" data-tab="settings" data-i18n="tab.settings"><span class="toolbar-icon">⚙️</span><span class="toolbar-label">Setting</span></button>
   </div>
 </nav>
@@ -592,10 +593,52 @@
       </div>
 
       <div class="btn-row">
-        <button class="btn btn-teal btn-hero" id="dashLearnBtn" data-i18n="dash.learnBtn">🎓 Learn</button>
+        <button class="btn btn-teal btn-hero" id="dashLearnBtn">🎓 Learn</button>
       </div>
+
+      <div class="dash-action-grid">
+        <button type="button" class="dash-action-btn dash-action-review" id="dashReviewBtn">
+          <span class="dash-action-icon">⏰</span>
+          <span class="dash-action-title">REVIEW</span>
+          <span class="dash-action-detail" id="dashReviewDetail">ถึงกำหนดแล้ว 0 คำ · ~0 นาที</span>
+        </button>
+        <button type="button" class="dash-action-btn" id="dashTimeBtn">
+          <span class="dash-action-icon">⏱️</span>
+          <span class="dash-action-title">เวลาเรียน</span>
+          <span class="dash-action-detail" id="dashTimeDetail">วันนี้ 0 นาที · ทั้งหมด 0 นาที</span>
+        </button>
+        <button type="button" class="dash-action-btn" id="dashGoalBtn">
+          <span class="dash-action-icon">🎯</span>
+          <span class="dash-action-title">Daily Goal</span>
+          <span class="dash-action-detail" id="dashGoalDetail">ถึงกำหนดวันนี้ 0 คำ · Anagram 0</span>
+        </button>
+      </div>
+
       <div class="btn-row">
         <button class="btn btn-danger btn-sm" id="resetBtn" data-i18n="dash.reset">♻ Reset ความคืบหน้าทั้งหมด</button>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="dashGoalModal" hidden>
+      <div class="modal-box">
+        <h2>🎯 Daily Goal</h2>
+        <div class="goal-date-nav">
+          <button type="button" class="btn btn-outline btn-sm" id="dashGoalPrevDay">◀</button>
+          <span id="dashGoalDateLabel">วันนี้</span>
+          <button type="button" class="btn btn-outline btn-sm" id="dashGoalNextDay">▶</button>
+        </div>
+        <p class="panel-sub">เป้าหมายวันนั้นอยากได้ประมาณไหน?</p>
+        <div class="chip-row" id="dashGoalTypeRow">
+          <button type="button" class="mode-chip" data-goal="everyday">📅 ทำทุกวัน</button>
+          <button type="button" class="mode-chip" data-goal="formula">🧮 จำสูตร</button>
+          <button type="button" class="mode-chip" data-goal="stem">🌱 จำ Stem</button>
+          <button type="button" class="mode-chip" data-goal="serious">🔥 จริงจัง</button>
+        </div>
+        <div class="stat-grid" id="dashGoalStatGrid"></div>
+        <div id="dashGoalResult"></div>
+        <div class="modal-close-row">
+          <button type="button" class="btn btn-outline btn-sm" id="dashGoalCloseBtn">ปิด</button>
+        </div>
       </div>
     </div>
 
@@ -785,6 +828,34 @@
       <p class="panel-sub" data-i18n="ach.sub">ปลดล็อกเหรียญตราจากการเรียนและเล่นมินิเกม ข้อมูลเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</p>
       <p class="field-hint" id="achievementSummary"></p>
       <div class="badge-grid" id="achievementGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============== STATS TAB ============== -->
+  <section id="tab-stats" class="tab-panel">
+    <div class="panel-card">
+      <h2>📈 Stats</h2>
+      <p class="panel-sub">สถิติคำศัพท์จากประวัติการเล่น/เรียนทั้งหมดในเบราว์เซอร์นี้</p>
+    </div>
+    <div class="panel-card">
+      <h2>🔥 คำที่เจอบ่อยที่สุด</h2>
+      <div id="statsSeenList"></div>
+    </div>
+    <div class="panel-card">
+      <h2>✅ คำที่ถูกบ่อยที่สุด</h2>
+      <div id="statsCorrectList"></div>
+    </div>
+    <div class="panel-card">
+      <h2>❌ คำที่ผิดบ่อยที่สุด</h2>
+      <div id="statsIncorrectList"></div>
+    </div>
+    <div class="panel-card">
+      <h2>🎓 คำที่เรียนบ่อยที่สุด</h2>
+      <div id="statsLearnList"></div>
+    </div>
+    <div class="panel-card">
+      <h2>⌨️ คำที่พิมพ์บ่อยที่สุด</h2>
+      <div id="statsTypingList"></div>
     </div>
   </section>
 
