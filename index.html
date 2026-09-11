@@ -630,6 +630,11 @@
           <span class="dash-action-title">Daily Goal</span>
           <span class="dash-action-detail" id="dashGoalDetail">ถึงกำหนดวันนี้ 0 คำ · Anagram 0</span>
         </button>
+        <button type="button" class="dash-action-btn" id="dashChallengeBtn">
+          <span class="dash-action-icon">🏆</span>
+          <span class="dash-action-title">Daily Challenge</span>
+          <span class="dash-action-detail">การฝึกทำ Challenge จะทำให้เก่งขึ้น</span>
+        </button>
       </div>
 
       <div class="btn-row">
@@ -1034,6 +1039,32 @@
     <div id="lldList" class="learn-level-detail-list"></div>
     <div class="wd-actions">
       <button type="button" class="btn btn-primary" id="lldStartBtn">▶ เริ่ม</button>
+    </div>
+  </div>
+</div>
+
+<div id="dueEditOverlay" class="wd-overlay" style="display:none">
+  <div class="wd-card" style="max-width:420px">
+    <div class="wd-head">
+      <span id="dueEditWord" class="wd-word" style="font-size:1.1rem"></span>
+      <button type="button" class="btn btn-outline btn-sm" id="dueEditCloseBtn" data-i18n="common.close">✕ ปิด</button>
+    </div>
+    <p class="field-hint" data-i18n="dueEdit.hint">ปรับวันที่ทบทวนครั้งถัดไปของคำนี้เอง (ไม่กระทบคำอื่น)</p>
+    <p class="field-hint" id="dueEditCurrent"></p>
+    <div class="due-edit-presets" id="dueEditPresets">
+      <button type="button" class="btn btn-outline btn-sm" data-days="0" data-i18n="dueEdit.presetToday">วันนี้</button>
+      <button type="button" class="btn btn-outline btn-sm" data-days="1" data-i18n="dueEdit.presetTomorrow">พรุ่งนี้</button>
+      <button type="button" class="btn btn-outline btn-sm" data-days="3" data-i18n="dueEdit.preset3d">+3 วัน</button>
+      <button type="button" class="btn btn-outline btn-sm" data-days="7" data-i18n="dueEdit.preset1w">+1 สัปดาห์</button>
+      <button type="button" class="btn btn-outline btn-sm" data-days="14" data-i18n="dueEdit.preset2w">+2 สัปดาห์</button>
+      <button type="button" class="btn btn-outline btn-sm" data-days="30" data-i18n="dueEdit.preset1m">+1 เดือน</button>
+    </div>
+    <div class="field" style="margin-top:0.8rem">
+      <label for="dueEditCustom" data-i18n="dueEdit.customLabel">หรือกำหนดวัน-เวลาเอง</label>
+      <input type="datetime-local" id="dueEditCustom">
+    </div>
+    <div class="wd-actions">
+      <button type="button" class="btn btn-primary" id="dueEditSaveBtn" data-i18n="dueEdit.save">💾 บันทึก</button>
     </div>
   </div>
 </div>
