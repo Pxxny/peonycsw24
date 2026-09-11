@@ -556,6 +556,12 @@ main {
 
 #cardboxSelectRow, #browseSelectRow { margin-top: 0.6rem; flex-wrap: wrap; gap: 0.9rem; }
 
+#cardboxGroupsList { display: flex; flex-direction: column; gap: 0.5rem; }
+.group-row { flex-wrap: wrap; }
+.group-row-name { font-weight: 700; color: var(--cream); }
+.group-row-meta { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.group-row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
 .status-pill {
   font-size: 0.7rem;
   font-weight: 700;
@@ -567,6 +573,8 @@ main {
 .status-new { background: #3a4a42; color: #b9d4c6; }
 .status-learning { background: var(--brass); color: var(--ink); }
 .status-mastered { background: var(--teal); color: #06201b; }
+.status-leech { background: #7a2b2b; color: #ffd7d2; }
+.card-row.is-leech { box-shadow: inset 3px 0 0 #c1453f; }
 
 .card-row-meta { font-family: var(--font-mono); font-size: 0.76rem; color: #8fae9f; display:flex; gap:0.6rem; align-items:center; }
 
