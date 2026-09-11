@@ -69,6 +69,15 @@
       'common.randomize': '🎲 สุ่มคำศัพท์', 'common.selectAll': 'เลือกทั้งหมด', 'common.saveToCardbox': '💾 Save to Cardbox',
       'common.close': '✕ ปิด',
       'learnLevelDetail.nextReview': 'ทบทวนครั้งถัดไป',
+      'dueEdit.title': 'ปรับวันทบทวนคำนี้เอง',
+      'dueEdit.hint': 'ปรับวันที่ทบทวนครั้งถัดไปของคำนี้เอง (ไม่กระทบคำอื่น)',
+      'dueEdit.currentLabel': 'ตอนนี้กำหนดไว้',
+      'dueEdit.presetToday': 'วันนี้', 'dueEdit.presetTomorrow': 'พรุ่งนี้',
+      'dueEdit.preset3d': '+3 วัน', 'dueEdit.preset1w': '+1 สัปดาห์',
+      'dueEdit.preset2w': '+2 สัปดาห์', 'dueEdit.preset1m': '+1 เดือน',
+      'dueEdit.customLabel': 'หรือกำหนดวัน-เวลาเอง',
+      'dueEdit.save': '💾 บันทึก',
+      'dueEdit.saved': '📅 ปรับวันทบทวนของ "{word}" เป็น {date} แล้ว',
       'quiz.title': 'แบบทดสอบ — เลือกคำเก็บใน Cardbox',
       'quiz.sub': 'สุ่มคำศัพท์ชุดใหม่ (ค่าเริ่มต้น 50 คำ) เลือกคำที่ถูกใจอยากจำ แล้วกด Save to Cardbox เพื่อเก็บไว้ทบทวน',
       'cardbox.addTitle': '➕ เพิ่มคำศัพท์เข้า Cardbox', 'cardbox.addLabel': 'คำศัพท์ (บรรทัดละคำ)',
@@ -94,7 +103,7 @@
       'cardbox.reviewSecondsLabel': 'วินาที', 'cardbox.reviewExit': '↩ ออกจาก Review',
       'cardbox.reviewStartStudy': '▶ เริ่มเรียนคำชุดนี้',
       'cardboxGroups.title': '📦 Group คำศัพท์ (บันทึกไว้หลายชุด)',
-      'cardboxGroups.sub': 'ติ๊กเลือกคำที่ต้องการในรายการ Cardbox ด้านบนก่อน แล้วกดปุ่มนี้เพื่อคัดลอกเฉพาะคำที่เลือกไว้เก็บเป็น "Group" (ไม่ลบของเดิม) ตั้งชื่อได้ พอเรียนชุดนี้เสร็จแล้วอยากเปลี่ยนไปชุดใหม่ก็เพิ่ม Group ไว้ก่อน แล้วค่อยโหลดกลับมาทีหลังได้',
+      'cardboxGroups.sub': 'ติ๊กเลือกคำที่ต้องการในรายการ Cardbox ด้านบนก่อน แล้วกดปุ่มนี้เพื่อบันทึกรายชื่อคำที่เลือกไว้เป็น "Group" (ไม่ลบของเดิมใน Cardbox) ตั้งชื่อได้ พอต้องการกลับมาติ๊กเลือกชุดคำเดิมอีกครั้ง กด "โหลดเข้า Cardbox" ระบบจะติ๊กเลือกคำในรายการ Cardbox ให้ตรงกับตอนที่บันทึกไว้ (คำไหนถูกลบออกจาก Cardbox ไปแล้วจะข้าม)',
       'cardboxGroups.addBtn': '➕ เพิ่ม Group จากคำที่เลือกไว้',
       'cardboxGroups.namePrompt': 'ตั้งชื่อ Group (เว้นว่างได้ ระบบจะตั้งชื่อให้อัตโนมัติ)',
       'cardboxGroups.emptyCardbox': 'Cardbox ว่างอยู่ ไม่มีอะไรให้บันทึกเป็น Group',
@@ -105,14 +114,11 @@
       'cardboxGroups.load': '▶ โหลดเข้า Cardbox',
       'cardboxGroups.rename': '✏️ เปลี่ยนชื่อ',
       'cardboxGroups.delete': '🗑️ ลบ',
-      'cardboxGroups.loadConfirmReplace': 'Cardbox ปัจจุบันมี {cur} คำ ต้องการโหลด Group "{name}" ({n} คำ) เข้ามาแบบไหน?\n\nกด OK เพื่อ "รวมเข้ากับของเดิม" (คำซ้ำจะข้าม)\nกด Cancel เพื่อยกเลิก',
-      'cardboxGroups.loadMergeDone': '📦 โหลด Group "{name}" แล้ว — เพิ่ม {added} คำใหม่ (ข้ามคำซ้ำ {skipped} คำ)',
-      'cardboxGroups.loadReplaceDone': '📦 โหลด Group "{name}" แล้ว — แทนที่ Cardbox ด้วย {n} คำ',
+      'cardboxGroups.loadSelectDone': '✅ ติ๊กเลือกคำใน Group "{name}" แล้ว ({n} คำ)',
+      'cardboxGroups.loadSelectDoneMissing': '✅ ติ๊กเลือกคำใน Group "{name}" แล้ว ({n} คำ, ข้าม {missing} คำที่ไม่มีใน Cardbox แล้ว)',
       'cardboxGroups.deleteConfirm': 'ต้องการลบ Group "{name}" ใช่หรือไม่? (ลบแล้วกู้คืนไม่ได้)',
       'cardboxGroups.deleted': '🗑️ ลบ Group "{name}" แล้ว',
       'cardboxGroups.renamePrompt': 'ตั้งชื่อใหม่ให้ Group',
-      'cardboxGroups.loadChoiceMerge': 'รวมเข้ากับของเดิม',
-      'cardboxGroups.loadChoiceReplace': 'แทนที่ Cardbox ทั้งหมด',
       'cardboxLeech.badge': 'Leech', 'cardboxLeech.badgeTitle': 'ตอบผิด/ข้ามติดกัน {n} ครั้ง',
       'cardboxLeech.sortLeechDesc': '🐛 Leech ก่อน (ผิดติดกันมาก→น้อย)',
       'cardboxLeech.filterOnly': '🐛 แสดงเฉพาะคำที่ติด Leech',
@@ -170,6 +176,15 @@
       'common.randomize': '🎲 Randomize', 'common.selectAll': 'Select all', 'common.saveToCardbox': '💾 Save to Cardbox',
       'common.close': '✕ Close',
       'learnLevelDetail.nextReview': 'Next review',
+      'dueEdit.title': 'Edit this word\u2019s review date',
+      'dueEdit.hint': 'Manually move this word\u2019s next review date (other words are unaffected)',
+      'dueEdit.currentLabel': 'Currently set to',
+      'dueEdit.presetToday': 'Today', 'dueEdit.presetTomorrow': 'Tomorrow',
+      'dueEdit.preset3d': '+3 days', 'dueEdit.preset1w': '+1 week',
+      'dueEdit.preset2w': '+2 weeks', 'dueEdit.preset1m': '+1 month',
+      'dueEdit.customLabel': 'Or set an exact date/time',
+      'dueEdit.save': '💾 Save',
+      'dueEdit.saved': '📅 Moved "{word}"\u2019s review date to {date}',
       'quiz.title': 'Quiz — pick words to save to Cardbox',
       'quiz.sub': 'Randomize a fresh batch (default 50), select the words you want to learn, then Save to Cardbox.',
       'cardbox.addTitle': '➕ Add words to Cardbox', 'cardbox.addLabel': 'Words (one per line)',
@@ -195,7 +210,7 @@
       'cardbox.reviewSecondsLabel': 'seconds', 'cardbox.reviewExit': '↩ Exit Review',
       'cardbox.reviewStartStudy': '▶ Start studying this set',
       'cardboxGroups.title': '📦 Word Groups (save multiple sets)',
-      'cardboxGroups.sub': 'Tick the words you want in the Cardbox list above, then use this to copy just the selected words into a "Group" (a copy — nothing gets deleted). Name it, then once you\u2019re done with this set and want to switch to a new one, add a Group first, and load it back anytime later.',
+      'cardboxGroups.sub': 'Tick the words you want in the Cardbox list above, then use this to save the selected words as a named "Group" (nothing in your Cardbox is deleted). Later, hit "Load into Cardbox" to re-tick that same set of words in the Cardbox list (any word no longer in your Cardbox is skipped).',
       'cardboxGroups.addBtn': '➕ Add Group from selected words',
       'cardboxGroups.namePrompt': 'Name this Group (leave blank for an auto-generated name)',
       'cardboxGroups.emptyCardbox': 'Cardbox is empty — nothing to save as a Group',
@@ -206,14 +221,11 @@
       'cardboxGroups.load': '▶ Load into Cardbox',
       'cardboxGroups.rename': '✏️ Rename',
       'cardboxGroups.delete': '🗑️ Delete',
-      'cardboxGroups.loadConfirmReplace': 'Your current Cardbox has {cur} word(s). How do you want to load Group "{name}" ({n} words)?\n\nOK = merge into the current Cardbox (duplicates skipped)\nCancel = cancel',
-      'cardboxGroups.loadMergeDone': '📦 Loaded Group "{name}" — added {added} new word(s) (skipped {skipped} duplicate(s))',
-      'cardboxGroups.loadReplaceDone': '📦 Loaded Group "{name}" — replaced Cardbox with {n} word(s)',
+      'cardboxGroups.loadSelectDone': '✅ Selected Group "{name}" in Cardbox ({n} words)',
+      'cardboxGroups.loadSelectDoneMissing': '✅ Selected Group "{name}" in Cardbox ({n} words, skipped {missing} no longer in Cardbox)',
       'cardboxGroups.deleteConfirm': 'Delete Group "{name}"? This cannot be undone.',
       'cardboxGroups.deleted': '🗑️ Deleted Group "{name}"',
       'cardboxGroups.renamePrompt': 'Rename this Group',
-      'cardboxGroups.loadChoiceMerge': 'Merge into current',
-      'cardboxGroups.loadChoiceReplace': 'Replace Cardbox entirely',
       'cardboxLeech.badge': 'Leech', 'cardboxLeech.badgeTitle': 'Missed/skipped {n} times in a row',
       'cardboxLeech.sortLeechDesc': '🐛 Leeches first (most→least consecutive misses)',
       'cardboxLeech.filterOnly': '🐛 Show only leeches',
@@ -1554,10 +1566,11 @@
     saveCardbox(box);
   }
 
-  // ---------- cardbox groups (saved snapshots of the whole Cardbox) ----------
-  // A "group" is a named copy of the Cardbox at a point in time (cards +
-  // their SRS progress included) so a learner can archive a finished set
-  // before starting a new one, and load it back later without losing either.
+  // ---------- cardbox groups (saved word-selection sets) ----------
+  // A "group" is a named snapshot of which Cardbox words were ticked at
+  // save time. It does NOT add/remove/replace any cards — "Load into
+  // Cardbox" just re-ticks those same words in the Cardbox list so the
+  // learner can pick the set back up (e.g. to study just that group).
 
   let _cardboxGroupsCache = null;
   function loadCardboxGroups() {
@@ -1617,31 +1630,6 @@
   function deleteCardboxGroup(groupId) {
     const groups = loadCardboxGroups().filter(function (g) { return g.id !== groupId; });
     saveCardboxGroups(groups);
-  }
-
-  // Loads a saved group into the current Cardbox. mode 'merge' adds only the
-  // words not already present (duplicates skipped, existing progress kept as
-  // is); mode 'replace' overwrites the Cardbox entirely with the group's cards.
-  function loadCardboxGroupInto(groupId, mode) {
-    const groups = loadCardboxGroups();
-    const group = groups.find(function (g) { return g.id === groupId; });
-    if (!group) return null;
-    const box = loadCardbox();
-    if (mode === 'replace') {
-      const cards = JSON.parse(JSON.stringify(group.cards)).map(patchLegacyCard);
-      saveCardbox(cards);
-      return { added: cards.length, skipped: 0, total: cards.length };
-    }
-    const existing = new Set(box.map(function (c) { return c.word; }));
-    let added = 0, skipped = 0;
-    group.cards.forEach(function (c) {
-      if (existing.has(c.word)) { skipped++; return; }
-      box.push(patchLegacyCard(JSON.parse(JSON.stringify(c))));
-      existing.add(c.word);
-      added++;
-    });
-    saveCardbox(box);
-    return { added: added, skipped: skipped, total: box.length };
   }
 
   function patchLegacyCard(card) {
@@ -1717,6 +1705,23 @@
     return 'คำใหม่';
   }
 
+  // Manually sets a card's next-review date (a simplified, per-word override
+  // on top of SM-2). Re-derives `interval` from the new due date (days from
+  // now) so a later correct/incorrect answer still grows/shrinks sensibly
+  // from wherever the learner moved it, rather than jumping back to the old
+  // schedule. Ease and reps are left untouched — this only moves the date.
+  function setCardDueDate(word, dueMs) {
+    const box = loadCardbox();
+    const card = box.find(function (c) { return c.word === word; });
+    if (!card) return null;
+    patchLegacyCard(card);
+    card.due = dueMs;
+    const daysFromNow = Math.max(1, Math.round((dueMs - Date.now()) / DAY_MS));
+    card.interval = daysFromNow;
+    saveCardbox(box);
+    return card;
+  }
+
   // ---------- tab navigation ----------
 
   let browseInitialized = false;
@@ -1729,26 +1734,34 @@
       updateCurrentTabLabel(defaultBtn);
     }
     btns.forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        btns.forEach(function (b) { b.classList.remove('active'); });
-        document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
-        btn.classList.add('active');
-        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-        updateCurrentTabLabel(btn);
-        if (btn.dataset.tab === 'cardbox') renderCardboxTab();
-        if (btn.dataset.tab === 'dashboard') renderDashboard();
-        if (btn.dataset.tab === 'settings') { renderDashboard(); }
-        if (btn.dataset.tab === 'achievements' && window.Achievements) window.Achievements.renderTab();
-        if (btn.dataset.tab === 'stats') renderStatsTab();
-        if (btn.dataset.tab === 'play' && window.PlayGame) window.PlayGame.init();
-        if (btn.dataset.tab === 'browse' && !browseInitialized) {
-          browseInitialized = true;
-          initBrowseChips();
-          runBrowseSearch();
-        }
-        scrollActiveTabIntoView(btn);
-      });
+      btn.addEventListener('click', function () { activateTab(btn.dataset.tab); });
     });
+  }
+
+  // Programmatic tab switch, shared by the tab-bar click handler and any
+  // code (e.g. Learn's Review button) that needs to jump to a tab and run
+  // its usual on-activate side effects without the user clicking it.
+  function activateTab(tabName) {
+    const btn = document.querySelector('.tab-btn[data-tab="' + tabName + '"]');
+    const panel = document.getElementById('tab-' + tabName);
+    if (!btn || !panel) return;
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    panel.classList.add('active');
+    updateCurrentTabLabel(btn);
+    if (tabName === 'cardbox') renderCardboxTab();
+    if (tabName === 'dashboard') renderDashboard();
+    if (tabName === 'settings') { renderDashboard(); }
+    if (tabName === 'achievements' && window.Achievements) window.Achievements.renderTab();
+    if (tabName === 'stats') renderStatsTab();
+    if (tabName === 'play' && window.PlayGame) window.PlayGame.init();
+    if (tabName === 'browse' && !browseInitialized) {
+      browseInitialized = true;
+      initBrowseChips();
+      runBrowseSearch();
+    }
+    scrollActiveTabIntoView(btn);
   }
 
   function updateCurrentTabLabel(btn) {
@@ -2189,6 +2202,83 @@
     return filtered;
   }
 
+  // ---------- Cardbox: per-word due date editor (simplified SM-2 override) ----------
+  // Lets the learner manually move one word's next-review date without
+  // touching any other card's schedule. Presets nudge from "now"; the
+  // datetime-local input allows an exact custom date/time.
+
+  let dueEditWord = null;
+
+  function localDatetimeInputValue(ms) {
+    const d = new Date(ms);
+    const pad = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+      'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function openDueEdit(word) {
+    const card = loadCardbox().find(function (c) { return c.word === word; });
+    if (!card) return;
+    dueEditWord = word;
+    document.getElementById('dueEditWord').textContent = word;
+    document.getElementById('dueEditCurrent').textContent =
+      t('dueEdit.currentLabel') + ': ' + formatDueDate(card.due);
+    document.getElementById('dueEditCustom').value = localDatetimeInputValue(card.due || Date.now());
+    document.getElementById('dueEditOverlay').style.display = 'flex';
+  }
+
+  function closeDueEdit() {
+    dueEditWord = null;
+    document.getElementById('dueEditOverlay').style.display = 'none';
+  }
+
+  function applyCardDueUpdate(newDueMs) {
+    if (!dueEditWord) return;
+    const card = setCardDueDate(dueEditWord, newDueMs);
+    if (!card) return;
+    renderCardboxTab();
+    // If the Learn level-detail list is open behind this overlay, refresh
+    // its rows too so the new due date shows without needing to reopen it.
+    const lldList = document.getElementById('lldList');
+    if (lldList && lldList.querySelector('[data-word="' + dueEditWord + '"]')) {
+      const byWord = learnCardboxByWord();
+      lldList.querySelectorAll('.lld-row').forEach(function (row) {
+        const btn = row.querySelector('.lld-due-edit-btn');
+        if (btn && btn.dataset.word === dueEditWord) {
+          row.outerHTML = lldRowHTML(dueEditWord, byWord[dueEditWord]);
+        }
+      });
+    }
+    showToast(t('dueEdit.saved').replace('{word}', dueEditWord).replace('{date}', formatDueDate(card.due)));
+    closeDueEdit();
+  }
+
+  function initDueEditOverlay() {
+    const overlay = document.getElementById('dueEditOverlay');
+    if (!overlay) return;
+
+    document.getElementById('dueEditCloseBtn').addEventListener('click', closeDueEdit);
+    overlay.addEventListener('click', function (e) {
+      if (e.target.id === 'dueEditOverlay') closeDueEdit();
+    });
+
+    document.getElementById('dueEditPresets').addEventListener('click', function (e) {
+      const btn = e.target.closest('button[data-days]');
+      if (!btn) return;
+      const days = parseInt(btn.dataset.days, 10);
+      const newDue = Date.now() + days * DAY_MS;
+      document.getElementById('dueEditCustom').value = localDatetimeInputValue(newDue);
+    });
+
+    document.getElementById('dueEditSaveBtn').addEventListener('click', function () {
+      const val = document.getElementById('dueEditCustom').value;
+      if (!val) return;
+      const ms = new Date(val).getTime();
+      if (isNaN(ms)) return;
+      applyCardDueUpdate(ms);
+    });
+  }
+
   function cardboxRowHTML(c, now) {
     const isDue = (c.due || 0) <= now;
     const checked = cardboxRenderState.selected.has(c.word) ? ' checked' : '';
@@ -2201,6 +2291,7 @@
           (isDue ? '<span class="status-pill status-learning">⏰ ถึงกำหนด</span>' : '') +
           '<span class="status-pill status-' + c.status + '">' + statusLabel(c.status) + '</span>' +
           '<span>✓' + c.correct + ' ✗' + c.incorrect + '</span>' +
+          '<button class="due-edit-btn" data-word="' + c.word + '" title="' + t('dueEdit.title') + '">📅 ' + formatDueDate(c.due) + '</button>' +
           '<button class="remove-card-btn" data-word="' + c.word + '" title="ลบออกจาก Cardbox">✕</button>' +
         '</div>' +
       '</div>'
@@ -2229,6 +2320,9 @@
     const listEl = document.getElementById('cardboxList');
     // Single delegated listener for remove buttons + select checkboxes, current and future.
     listEl.addEventListener('click', function (e) {
+      const dueBtn = e.target.closest('.due-edit-btn');
+      if (dueBtn) { openDueEdit(dueBtn.dataset.word); return; }
+
       const btn = e.target.closest('.remove-card-btn');
       if (!btn) return;
       const word = btn.dataset.word;
@@ -2709,9 +2803,13 @@
 
   // ---------- Anagram Review (passive, no typing/grading) ----------
 
-  const review = { queue: [], index: 0, seconds: 5, timerHandle: null, playing: false };
+  const review = { queue: [], index: 0, seconds: 5, timerHandle: null, playing: false, originTab: 'cardbox', onExit: null };
 
-  function startAnagramReview(cards, seconds) {
+  // originTab/onExit let other tabs (e.g. Learn's level-intro Review button)
+  // borrow the Cardbox tab's Anagram Review panel without losing their own
+  // place: endAnagramReview() switches back to whichever tab launched it
+  // instead of always landing on Cardbox.
+  function startAnagramReview(cards, seconds, opts) {
     if (!cards.length) { showToast('กรุณาเลือกคำศัพท์อย่างน้อย 1 คำ'); return; }
     // Dedupe by alphagram: since each card already shows every anagram
     // partner together, showing ALIENOR then AILERON then ALERION as
@@ -2724,11 +2822,15 @@
       return true;
     });
     if (!cards.length) { showToast('กรุณาเลือกคำศัพท์อย่างน้อย 1 คำ'); return; }
+    opts = opts || {};
     review.queue = cards;
     review.index = 0;
     review.seconds = Math.max(1, seconds || 5);
     review.playing = false;
+    review.originTab = opts.originTab || 'cardbox';
+    review.onExit = typeof opts.onExit === 'function' ? opts.onExit : null;
     if (review.timerHandle) { clearInterval(review.timerHandle); review.timerHandle = null; }
+    if (review.originTab !== 'cardbox') activateTab('cardbox');
     document.getElementById('reviewSeconds').value = review.seconds;
     document.getElementById('cardboxSetup').style.display = 'none';
     document.getElementById('cardboxList').style.display = 'none';
@@ -2743,6 +2845,14 @@
     document.getElementById('anagramReview').classList.remove('open');
     document.getElementById('cardboxSetup').style.display = '';
     document.getElementById('cardboxList').style.display = '';
+    const originTab = review.originTab;
+    const onExit = review.onExit;
+    review.originTab = 'cardbox';
+    review.onExit = null;
+    if (originTab !== 'cardbox') {
+      activateTab(originTab);
+      if (onExit) onExit();
+    }
   }
 
   function reviewStop() {
@@ -3228,7 +3338,7 @@
           '<div class="field" style="margin-top:0.8rem">' +
             '<label>โหมดพิมพ์ซ้ำ</label>' +
             '<div class="btn-row">' +
-              '<button type="button" class="btn btn-outline btn-sm il-mode-btn active" data-mode="count">พิมพ์ 5 ครั้ง</button>' +
+              '<button type="button" class="btn btn-outline btn-sm il-mode-btn active" data-mode="count">พิมพ์ 5 รอบ</button>' +
               '<button type="button" class="btn btn-outline btn-sm il-mode-btn" data-mode="free">พิมพ์จนกว่าจะจำได้</button>' +
             '</div>' +
           '</div>' +
@@ -3248,14 +3358,32 @@
       });
 
       function runDrill() {
-        let repIndex = 0;
-        const targetReps = 5; // fixed default rep count for "count" mode
+        let round = 0; // a round = typing every word in the group once
+        const targetRounds = 5; // fixed default round count for "count" mode
+        let order = [];
+        let posInRound = 0;
+
+        function shuffle(arr) {
+          const a = arr.slice();
+          for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+          }
+          return a;
+        }
+
+        function startRound() {
+          order = words.length > 1 ? shuffle(words) : words.slice();
+          posInRound = 0;
+        }
+        startRound();
 
         function renderRep() {
-          const currentTarget = words[repIndex % words.length];
-          const countLabel = mode === 'count' ? ' (' + (repIndex + 1) + '/' + targetReps + ')' : ' (พิมพ์ไปแล้ว ' + repIndex + ' ครั้ง)';
+          const currentTarget = order[posInRound];
+          const roundLabel = mode === 'count' ? ' (รอบ ' + (round + 1) + '/' + targetRounds + ')' : ' (จบไปแล้ว ' + round + ' รอบ)';
+          const wordLabel = words.length > 1 ? ' · คำที่ ' + (posInRound + 1) + '/' + words.length : '';
           drillEl.innerHTML =
-            '<div class="session-prompt-label">พิมพ์คำนี้อีกครั้ง' + countLabel + '</div>' +
+            '<div class="session-prompt-label">พิมพ์คำนี้อีกครั้ง' + roundLabel + wordLabel + '</div>' +
             tileRowHTML(currentTarget, 'big') +
             '<form class="session-answer-form" id="ilForm">' +
               '<input type="text" id="ilInput" autocomplete="off" placeholder="พิมพ์คำด้านบนให้ตรงกัน" autofocus>' +
@@ -3278,10 +3406,15 @@
             if (guess === currentTarget) {
               ilFeedback.textContent = '✓ ถูกต้อง!';
               ilFeedback.className = 'session-feedback correct';
-              repIndex++;
-              if (mode === 'count' && repIndex >= targetReps) {
-                setTimeout(endInstantLearn, 500);
-                return;
+              posInRound++;
+              if (posInRound >= order.length) {
+                // completed every word in this round
+                round++;
+                if (mode === 'count' && round >= targetRounds) {
+                  setTimeout(endInstantLearn, 500);
+                  return;
+                }
+                startRound();
               }
               setTimeout(renderRep, 400);
             } else {
@@ -3600,6 +3733,13 @@
         if (e.target.id === 'learnLevelDetailOverlay') closeLearnLevelDetail();
       });
     }
+    const lldList = document.getElementById('lldList');
+    if (lldList) {
+      lldList.addEventListener('click', function (e) {
+        const dueBtn = e.target.closest('.lld-due-edit-btn');
+        if (dueBtn) openDueEdit(dueBtn.dataset.word);
+      });
+    }
   }
 
   function renderLearnContent() {
@@ -3748,7 +3888,9 @@
       '<div class="lld-row' + (isLeech ? ' is-leech' : '') + '">' +
         '<span class="lld-word">' + word + (isLeech ? ' 🐛' : '') + '</span>' +
         '<span class="lld-stats">✓ ' + correct + '&nbsp;&nbsp;✗ ' + incorrect + '</span>' +
-        '<span class="lld-due">' + t('learnLevelDetail.nextReview') + ': ' + dueStr + '</span>' +
+        (c
+          ? '<button class="due-edit-btn lld-due-edit-btn" data-word="' + word + '" title="' + t('dueEdit.title') + '">📅 ' + dueStr + '</button>'
+          : '<span class="lld-due">' + t('learnLevelDetail.nextReview') + ': ' + dueStr + '</span>') +
       '</div>'
     );
   }
@@ -3859,11 +4001,27 @@
       html += '<p class="panel-sub">' + learnSession.length + 'L · ' + info.words.length + ' คำ</p>';
     }
     html += '<div class="session-controls"><button class="btn btn-primary" id="learnLevelGoBtn">▶ เริ่ม</button>' +
+      '<button class="btn btn-outline" id="learnLevelReviewBtn">📖 Review</button>' +
       '<button class="btn btn-outline" id="learnLevelBackBtn">↩ กลับ</button></div>';
     html += '</div>';
     area.innerHTML = html;
     document.getElementById('learnLevelGoBtn').addEventListener('click', renderLearnCard);
     document.getElementById('learnLevelBackBtn').addEventListener('click', endLearnLevel);
+    // Same passive browse-through-the-cards Review used by Cardbox, so the
+    // learner can preview this level's words (and their anagram partners)
+    // before committing to the typing drill. Reuses the Cardbox review
+    // panel, then returns to this same level-intro screen on exit.
+    document.getElementById('learnLevelReviewBtn').addEventListener('click', function () {
+      const L = learnSession.length, levelIndex = learnSession.levelIndex;
+      startAnagramReview(info.words.slice(), parseInt(document.getElementById('reviewSeconds') ? document.getElementById('reviewSeconds').value : 5, 10) || 5, {
+        originTab: 'learn',
+        onExit: function () {
+          document.getElementById('learnContentCard').style.display = 'none';
+          document.getElementById('learnSessionCard').style.display = '';
+          startLearnLevel(L, levelIndex);
+        }
+      });
+    });
   }
 
   function renderLearnCard() {
@@ -3992,9 +4150,28 @@
     if (skipBtn) skipBtn.disabled = true;
     if (input) input.disabled = true;
 
-    recordAnswer(word, allCorrect, learnSession.hintUsed, isSkipped);
-    logLearnAnswer(word, learnSession.length, allCorrect);
-    logWordEncounter(word, 'learn');
+    // The learner had to type every word in validGroup (all anagram
+    // solutions for this rack) to pass the card, so every one of those
+    // words should get full credit — not just the queue's primary `word`.
+    // Otherwise partner words never accumulate `correct` (they stay stuck
+    // at "new"/0% in Cardbox and level-progress stats), even though the
+    // learner clearly recalled them.
+    const wordsToCredit = (validGroup && validGroup.length) ? validGroup : [word];
+    if (isSkipped) {
+      // A skip only "fails" the word actually shown/given up on; partner
+      // words the learner never got a chance to type shouldn't be marked
+      // wrong.
+      recordAnswer(word, false, learnSession.hintUsed, true);
+      logLearnAnswer(word, learnSession.length, false);
+      logWordEncounter(word, 'learn');
+    } else {
+      addWordsToCardbox(wordsToCredit);
+      wordsToCredit.forEach(function (w) {
+        recordAnswer(w, allCorrect, learnSession.hintUsed, false);
+        logLearnAnswer(w, w.length, allCorrect);
+        logWordEncounter(w, 'learn');
+      });
+    }
     if (allCorrect) learnSession.correct++; else learnSession.incorrect++;
     learnSession.results.push(allCorrect);
 
@@ -4048,7 +4225,7 @@
         '<div class="field" style="margin-top:0.8rem">' +
           '<label>โหมดพิมพ์ซ้ำ</label>' +
           '<div class="btn-row">' +
-            '<button type="button" class="btn btn-outline btn-sm il-mode-btn active" data-mode="count">พิมพ์ 5 ครั้ง</button>' +
+            '<button type="button" class="btn btn-outline btn-sm il-mode-btn active" data-mode="count">พิมพ์ 5 รอบ</button>' +
             '<button type="button" class="btn btn-outline btn-sm il-mode-btn" data-mode="free">พิมพ์จนกว่าจะจำได้</button>' +
           '</div>' +
         '</div>' +
@@ -4068,14 +4245,32 @@
     });
 
     function runDrill() {
-      let repIndex = 0;
-      const targetReps = 5;
+      let round = 0; // a round = typing every word in the group once
+      const targetRounds = 5;
+      let order = [];
+      let posInRound = 0;
+
+      function shuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+        }
+        return a;
+      }
+
+      function startRound() {
+        order = words.length > 1 ? shuffle(words) : words.slice();
+        posInRound = 0;
+      }
+      startRound();
 
       function renderRep() {
-        const currentTarget = words[repIndex % words.length];
-        const countLabel = mode === 'count' ? ' (' + (repIndex + 1) + '/' + targetReps + ')' : ' (พิมพ์ไปแล้ว ' + repIndex + ' ครั้ง)';
+        const currentTarget = order[posInRound];
+        const roundLabel = mode === 'count' ? ' (รอบ ' + (round + 1) + '/' + targetRounds + ')' : ' (จบไปแล้ว ' + round + ' รอบ)';
+        const wordLabel = words.length > 1 ? ' · คำที่ ' + (posInRound + 1) + '/' + words.length : '';
         drillEl.innerHTML =
-          '<div class="session-prompt-label">พิมพ์คำนี้อีกครั้ง' + countLabel + '</div>' +
+          '<div class="session-prompt-label">พิมพ์คำนี้อีกครั้ง' + roundLabel + wordLabel + '</div>' +
           tileRowHTML(currentTarget, 'big') +
           '<form class="session-answer-form" id="learnIlForm">' +
             '<input type="text" id="learnIlInput" autocomplete="off" placeholder="พิมพ์คำด้านบนให้ตรงกัน" autofocus>' +
@@ -4098,10 +4293,15 @@
           if (guess === currentTarget) {
             ilFeedback.textContent = '✓ ถูกต้อง!';
             ilFeedback.className = 'session-feedback correct';
-            repIndex++;
-            if (mode === 'count' && repIndex >= targetReps) {
-              setTimeout(endInstantLearn, 500);
-              return;
+            posInRound++;
+            if (posInRound >= order.length) {
+              // completed every word in this round
+              round++;
+              if (mode === 'count' && round >= targetRounds) {
+                setTimeout(endInstantLearn, 500);
+                return;
+              }
+              startRound();
             }
             setTimeout(renderRep, 400);
           } else {
@@ -4789,28 +4989,28 @@
       const deleteBtn = e.target.closest('.group-delete-btn');
 
       if (loadBtn) {
+        // "Load into Cardbox" re-ticks (selects) this group's words in the
+        // Cardbox list — it does NOT add/replace any cards. Words from the
+        // group that no longer exist in the current Cardbox are skipped.
         const groupId = loadBtn.dataset.groupId;
         const groups = loadCardboxGroups();
         const group = groups.find(function (g) { return g.id === groupId; });
         if (!group) return;
-        const curCount = loadCardbox().length;
-        let mode = 'merge';
-        if (curCount > 0) {
-          const msg = t('cardboxGroups.loadConfirmReplace')
-            .replace('{cur}', curCount).replace('{name}', group.name).replace('{n}', group.cards.length);
-          const ok = window.confirm(msg);
-          if (!ok) return;
-          mode = 'merge';
-        }
-        const result = loadCardboxGroupInto(groupId, mode);
-        if (!result) return;
+        const box = loadCardbox();
+        const present = new Set(box.map(function (c) { return c.word; }));
+        let selected = 0, missing = 0;
+        cardboxRenderState.selected.clear();
+        group.cards.forEach(function (c) {
+          if (present.has(c.word)) { cardboxRenderState.selected.add(c.word); selected++; }
+          else missing++;
+        });
+        saveCardboxSelection();
         renderCardboxTab();
-        renderDashboard();
-        if (mode === 'replace') {
-          showToast(t('cardboxGroups.loadReplaceDone').replace('{name}', group.name).replace('{n}', result.total));
+        if (missing > 0) {
+          showToast(t('cardboxGroups.loadSelectDoneMissing')
+            .replace('{name}', group.name).replace('{n}', selected).replace('{missing}', missing));
         } else {
-          showToast(t('cardboxGroups.loadMergeDone')
-            .replace('{name}', group.name).replace('{added}', result.added).replace('{skipped}', result.skipped));
+          showToast(t('cardboxGroups.loadSelectDone').replace('{name}', group.name).replace('{n}', selected));
         }
         return;
       }
@@ -6300,6 +6500,7 @@
     initImportExport();
     initCardboxImportExport();
     initCardboxGroups();
+    initDueEditOverlay();
     initWordBuilder();
     initTypingGame();
     initTgTypedPanel();
