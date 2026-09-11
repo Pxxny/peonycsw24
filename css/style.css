@@ -576,12 +576,21 @@ main {
 .status-leech { background: #7a2b2b; color: #ffd7d2; }
 .card-row.is-leech { box-shadow: inset 3px 0 0 #c1453f; }
 
-.card-row-meta { font-family: var(--font-mono); font-size: 0.76rem; color: #8fae9f; display:flex; gap:0.6rem; align-items:center; }
+.card-row-meta { font-family: var(--font-mono); font-size: 0.76rem; color: #8fae9f; display:flex; gap:0.6rem; align-items:center; flex-wrap: wrap; }
 
 .remove-card-btn {
   background: none; border: none; color: #7f9a8d; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0.2rem 0.4rem;
 }
 .remove-card-btn:hover { color: var(--clay); }
+
+.due-edit-btn {
+  background: none; border: 1px solid var(--rail); border-radius: 6px; color: #b9d4c6; cursor: pointer;
+  font-family: var(--font-mono); font-size: 0.72rem; line-height: 1; padding: 0.3rem 0.5rem;
+}
+.due-edit-btn:hover { border-color: var(--brass); color: var(--brass); }
+
+.due-edit-presets { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+.due-edit-presets .btn.is-active { border-color: var(--brass); color: var(--brass); }
 
 .empty-state {
   text-align: center;
