@@ -22,6 +22,7 @@
   const TILE_BAG_TOTAL = 100;
 
   const CARDBOX_KEY = 'csw24_cardbox_v1';  const CARDBOX_SELECTION_KEY = 'csw24_cardbox_selection_v1';
+  const CARDBOX_GROUPS_KEY = 'csw24_cardbox_groups_v1';
   const CUSTOM_KEY = 'csw24_custom_words_v1';
   const SETTINGS_KEY = 'csw24_settings_v1';
   const UNFAM_KEY = 'csw24_unfamiliar_v1';
@@ -90,6 +91,33 @@
       'cardbox.anagramReviewStart': '📖 Anagram Review', 'cardbox.anagramReviewSelected': '📖 Anagram Review คำที่เลือก',
       'cardbox.reviewSecondsLabel': 'วินาที', 'cardbox.reviewExit': '↩ ออกจาก Review',
       'cardbox.reviewStartStudy': '▶ เริ่มเรียนคำชุดนี้',
+      'cardboxGroups.title': '📦 Group คำศัพท์ (บันทึกไว้หลายชุด)',
+      'cardboxGroups.sub': 'เก็บ Cardbox ชุดปัจจุบันไว้เป็น "Group" (คัดลอก ไม่ลบของเดิม) ตั้งชื่อได้ พอเรียน Set นี้เสร็จแล้วอยากเปลี่ยนไปชุดใหม่ก็เพิ่ม Group ไว้ก่อน แล้วค่อยโหลดกลับมาทีหลังได้',
+      'cardboxGroups.addBtn': '➕ เพิ่ม Group จาก Cardbox ปัจจุบัน',
+      'cardboxGroups.namePrompt': 'ตั้งชื่อ Group (เว้นว่างได้ ระบบจะตั้งชื่อให้อัตโนมัติ)',
+      'cardboxGroups.emptyCardbox': 'Cardbox ว่างอยู่ ไม่มีอะไรให้บันทึกเป็น Group',
+      'cardboxGroups.saved': '📦 บันทึก Group "{name}" แล้ว ({n} คำ)',
+      'cardboxGroups.empty': 'ยังไม่มี Group ที่บันทึกไว้',
+      'cardboxGroups.wordCount': '{n} คำ',
+      'cardboxGroups.load': '▶ โหลดเข้า Cardbox',
+      'cardboxGroups.rename': '✏️ เปลี่ยนชื่อ',
+      'cardboxGroups.delete': '🗑️ ลบ',
+      'cardboxGroups.loadConfirmReplace': 'Cardbox ปัจจุบันมี {cur} คำ ต้องการโหลด Group "{name}" ({n} คำ) เข้ามาแบบไหน?\n\nกด OK เพื่อ "รวมเข้ากับของเดิม" (คำซ้ำจะข้าม)\nกด Cancel เพื่อยกเลิก',
+      'cardboxGroups.loadMergeDone': '📦 โหลด Group "{name}" แล้ว — เพิ่ม {added} คำใหม่ (ข้ามคำซ้ำ {skipped} คำ)',
+      'cardboxGroups.loadReplaceDone': '📦 โหลด Group "{name}" แล้ว — แทนที่ Cardbox ด้วย {n} คำ',
+      'cardboxGroups.deleteConfirm': 'ต้องการลบ Group "{name}" ใช่หรือไม่? (ลบแล้วกู้คืนไม่ได้)',
+      'cardboxGroups.deleted': '🗑️ ลบ Group "{name}" แล้ว',
+      'cardboxGroups.renamePrompt': 'ตั้งชื่อใหม่ให้ Group',
+      'cardboxGroups.loadChoiceMerge': 'รวมเข้ากับของเดิม',
+      'cardboxGroups.loadChoiceReplace': 'แทนที่ Cardbox ทั้งหมด',
+      'cardboxLeech.badge': 'Leech', 'cardboxLeech.badgeTitle': 'ตอบผิด/ข้ามติดกัน {n} ครั้ง',
+      'cardboxLeech.sortLeechDesc': '🐛 Leech ก่อน (ผิดติดกันมาก→น้อย)',
+      'cardboxLeech.filterOnly': '🐛 แสดงเฉพาะคำที่ติด Leech',
+      'cardboxLeech.studyBtn': '🐛 ฝึกเฉพาะคำที่ติด Leech',
+      'cardboxLeech.countHint': 'มี {n} คำที่ติด Leech อยู่ตอนนี้',
+      'cardboxLeech.noneToast': 'ตอนนี้ไม่มีคำที่ติด Leech เลย 🎉',
+      'cardboxLeech.thresholdLabel': '🐛 ผิดติดกันกี่ครั้งให้ติด Leech',
+      'cardboxLeech.thresholdHint': 'ถ้าตอบผิด (หรือข้าม) คำเดิมติดกันครบตามจำนวนนี้ คำนั้นจะถูก flag เป็น "Leech" ให้แยกไปฝึกเฉพาะได้ง่ายขึ้น — ตอบถูกครั้งเดียวจะปลด flag ทันที',
       'browse.title': 'คลังคำศัพท์ทั้งหมด', 'browse.search': '🔍 ค้นหา (Enter)', 'browse.clear': 'ล้างตัวกรอง', 'browse.sortLabel': 'เรียงลำดับ',
       'browse.wordSearchLabel': '🔍 ค้นหาคำศัพท์', 'browse.selectedCount': 'เลือกแล้ว 0 คำ', 'browse.saveSelected': '💾 บันทึกที่เลือกลง Cardbox',
       'builder.title': '🧩 Word Builder',
@@ -161,6 +189,33 @@
       'cardbox.anagramReviewStart': '📖 Anagram Review', 'cardbox.anagramReviewSelected': '📖 Anagram Review selected',
       'cardbox.reviewSecondsLabel': 'seconds', 'cardbox.reviewExit': '↩ Exit Review',
       'cardbox.reviewStartStudy': '▶ Start studying this set',
+      'cardboxGroups.title': '📦 Word Groups (save multiple sets)',
+      'cardboxGroups.sub': 'Save the current Cardbox as a "Group" (a copy — nothing gets deleted). Name it, then once you\u2019re done with this set and want to switch to a new one, add a Group first, and load it back anytime later.',
+      'cardboxGroups.addBtn': '➕ Add Group from current Cardbox',
+      'cardboxGroups.namePrompt': 'Name this Group (leave blank for an auto-generated name)',
+      'cardboxGroups.emptyCardbox': 'Cardbox is empty — nothing to save as a Group',
+      'cardboxGroups.saved': '📦 Saved Group "{name}" ({n} words)',
+      'cardboxGroups.empty': 'No Groups saved yet',
+      'cardboxGroups.wordCount': '{n} words',
+      'cardboxGroups.load': '▶ Load into Cardbox',
+      'cardboxGroups.rename': '✏️ Rename',
+      'cardboxGroups.delete': '🗑️ Delete',
+      'cardboxGroups.loadConfirmReplace': 'Your current Cardbox has {cur} word(s). How do you want to load Group "{name}" ({n} words)?\n\nOK = merge into the current Cardbox (duplicates skipped)\nCancel = cancel',
+      'cardboxGroups.loadMergeDone': '📦 Loaded Group "{name}" — added {added} new word(s) (skipped {skipped} duplicate(s))',
+      'cardboxGroups.loadReplaceDone': '📦 Loaded Group "{name}" — replaced Cardbox with {n} word(s)',
+      'cardboxGroups.deleteConfirm': 'Delete Group "{name}"? This cannot be undone.',
+      'cardboxGroups.deleted': '🗑️ Deleted Group "{name}"',
+      'cardboxGroups.renamePrompt': 'Rename this Group',
+      'cardboxGroups.loadChoiceMerge': 'Merge into current',
+      'cardboxGroups.loadChoiceReplace': 'Replace Cardbox entirely',
+      'cardboxLeech.badge': 'Leech', 'cardboxLeech.badgeTitle': 'Missed/skipped {n} times in a row',
+      'cardboxLeech.sortLeechDesc': '🐛 Leeches first (most→least consecutive misses)',
+      'cardboxLeech.filterOnly': '🐛 Show only leeches',
+      'cardboxLeech.studyBtn': '🐛 Drill leeches only',
+      'cardboxLeech.countHint': '{n} word(s) currently flagged as leeches',
+      'cardboxLeech.noneToast': 'No leeches right now — nice! 🎉',
+      'cardboxLeech.thresholdLabel': '🐛 Consecutive misses before a word becomes a leech',
+      'cardboxLeech.thresholdHint': 'If a word is answered wrong (or skipped) this many times in a row, it gets flagged as a "Leech" so you can drill it separately. One correct answer clears the flag immediately.',
       'browse.title': 'Full word dictionary', 'browse.search': '🔍 Search (Enter)', 'browse.clear': 'Clear filters', 'browse.sortLabel': 'Sort by',
       'browse.wordSearchLabel': '🔍 Search for a word', 'browse.selectedCount': '0 selected', 'browse.saveSelected': '💾 Save selected to Cardbox',
       'builder.title': '🧩 Word Builder',
@@ -213,7 +268,8 @@
     fontFamily: 'inter', fontScale: 1,
     showHooks: true,
     anagramCycleInterval: 3,
-    anagramAutoReshuffle: false, anagramReshuffleSeconds: 3
+    anagramAutoReshuffle: false, anagramReshuffleSeconds: 3,
+    leechThreshold: 4
   };
 
   function loadSettings() {
@@ -334,6 +390,8 @@
         applyI18n();
         renderPresetChips();
         renderDashboard();
+        renderCardboxTab();
+        renderCardboxGroups();
       });
     });
     refreshLangChips();
@@ -464,6 +522,19 @@
       v = Math.min(v, 30);
       e.target.value = v;
       settings.anagramReshuffleSeconds = v;
+      saveSettings();
+    });
+
+    // leech threshold: how many consecutive misses on one card before it
+    // gets flagged as a "leech" (see updateCardResult).
+    const leechThresholdInput = document.getElementById('leechThresholdInput');
+    leechThresholdInput.value = settings.leechThreshold || 4;
+    leechThresholdInput.addEventListener('change', function (e) {
+      let v = parseInt(e.target.value, 10);
+      if (isNaN(v) || v < 2) v = 2;
+      v = Math.min(v, 20);
+      e.target.value = v;
+      settings.leechThreshold = v;
       saveSettings();
     });
   }
@@ -1452,7 +1523,8 @@
     return {
       word: word, addedAt: now, status: 'new',
       correct: 0, incorrect: 0, skipped: 0, lastReviewed: null, lastCorrectAt: null,
-      interval: 0, ease: 2.5, reps: 0, due: now + currentDueOffsetMs()
+      interval: 0, ease: 2.5, reps: 0, due: now + currentDueOffsetMs(),
+      streak: 0, leech: false
     };
   }
 
@@ -1476,6 +1548,95 @@
     saveCardbox(box);
   }
 
+  // ---------- cardbox groups (saved snapshots of the whole Cardbox) ----------
+  // A "group" is a named copy of the Cardbox at a point in time (cards +
+  // their SRS progress included) so a learner can archive a finished set
+  // before starting a new one, and load it back later without losing either.
+
+  let _cardboxGroupsCache = null;
+  function loadCardboxGroups() {
+    if (_cardboxGroupsCache) return _cardboxGroupsCache;
+    try {
+      const raw = localStorage.getItem(CARDBOX_GROUPS_KEY);
+      _cardboxGroupsCache = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      _cardboxGroupsCache = [];
+    }
+    return _cardboxGroupsCache;
+  }
+
+  function saveCardboxGroups(list) {
+    _cardboxGroupsCache = list;
+    localStorage.setItem(CARDBOX_GROUPS_KEY, JSON.stringify(list));
+  }
+
+  function nextAutoGroupName() {
+    const groups = loadCardboxGroups();
+    const today = new Date().toISOString().slice(0, 10);
+    let n = 1;
+    let name = 'Group ' + today;
+    const existing = new Set(groups.map(function (g) { return g.name; }));
+    while (existing.has(name)) { n++; name = 'Group ' + today + ' (' + n + ')'; }
+    return name;
+  }
+
+  // Copies the current Cardbox (cards + SRS progress) into a new named group.
+  // Does NOT touch the current Cardbox. Returns the created group, or null if
+  // the Cardbox was empty.
+  function addCardboxGroup(name) {
+    const box = loadCardbox();
+    if (!box.length) return null;
+    const groups = loadCardboxGroups();
+    const group = {
+      id: 'grp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      name: (name && name.trim()) ? name.trim() : nextAutoGroupName(),
+      createdAt: Date.now(),
+      cards: JSON.parse(JSON.stringify(box))
+    };
+    groups.unshift(group);
+    saveCardboxGroups(groups);
+    return group;
+  }
+
+  function renameCardboxGroup(groupId, newName) {
+    const groups = loadCardboxGroups();
+    const group = groups.find(function (g) { return g.id === groupId; });
+    if (!group || !newName || !newName.trim()) return false;
+    group.name = newName.trim();
+    saveCardboxGroups(groups);
+    return true;
+  }
+
+  function deleteCardboxGroup(groupId) {
+    const groups = loadCardboxGroups().filter(function (g) { return g.id !== groupId; });
+    saveCardboxGroups(groups);
+  }
+
+  // Loads a saved group into the current Cardbox. mode 'merge' adds only the
+  // words not already present (duplicates skipped, existing progress kept as
+  // is); mode 'replace' overwrites the Cardbox entirely with the group's cards.
+  function loadCardboxGroupInto(groupId, mode) {
+    const groups = loadCardboxGroups();
+    const group = groups.find(function (g) { return g.id === groupId; });
+    if (!group) return null;
+    const box = loadCardbox();
+    if (mode === 'replace') {
+      const cards = JSON.parse(JSON.stringify(group.cards)).map(patchLegacyCard);
+      saveCardbox(cards);
+      return { added: cards.length, skipped: 0, total: cards.length };
+    }
+    const existing = new Set(box.map(function (c) { return c.word; }));
+    let added = 0, skipped = 0;
+    group.cards.forEach(function (c) {
+      if (existing.has(c.word)) { skipped++; return; }
+      box.push(patchLegacyCard(JSON.parse(JSON.stringify(c))));
+      existing.add(c.word);
+      added++;
+    });
+    saveCardbox(box);
+    return { added: added, skipped: skipped, total: box.length };
+  }
+
   function patchLegacyCard(card) {
     if (card.ease == null) card.ease = 2.5;
     if (card.reps == null) card.reps = 0;
@@ -1483,6 +1644,8 @@
     if (card.due == null) card.due = Date.now();
     if (card.skipped == null) card.skipped = 0;
     if (card.lastCorrectAt === undefined) card.lastCorrectAt = null;
+    if (card.streak == null) card.streak = 0;
+    if (card.leech == null) card.leech = false;
     return card;
   }
 
@@ -1497,6 +1660,19 @@
     else card.incorrect++;
     if (isSkipped) card.skipped++;
     card.lastReviewed = Date.now();
+
+    // Leech detection: a "leech" is a word the learner keeps getting wrong
+    // over and over, in a row — it tracks a *consecutive*-miss streak (not
+    // total misses), separate from the SM-2 ease/interval math below, so a
+    // word that's wrong 5 times scattered across weeks isn't a leech, but
+    // one that's wrong N times in a row is. One correct answer clears it.
+    if (isCorrect) {
+      card.streak = 0;
+      card.leech = false;
+    } else {
+      card.streak = (card.streak || 0) + 1;
+      if (card.streak >= (settings.leechThreshold || 4)) card.leech = true;
+    }
 
     if (isCorrect) {
       card.lastCorrectAt = card.lastReviewed;
@@ -1896,6 +2072,12 @@
     document.getElementById('cardboxDueCount').textContent =
       box.length ? dueCount + ' คำถึงกำหนดทบทวนตอนนี้' : '';
 
+    const leechCount = box.filter(function (c) { return c.leech; }).length;
+    const leechRow = document.getElementById('leechStudyRow');
+    if (leechRow) leechRow.style.display = leechCount ? '' : 'none';
+    const leechHint = document.getElementById('leechCountHint');
+    if (leechHint) leechHint.textContent = leechCount ? t('cardboxLeech.countHint').replace('{n}', leechCount) : '';
+
     // Filter by search query (if any) + sort by the chosen order, reset pagination to the top.
     cardboxRenderState.sorted = cardboxFilteredSorted(box);
     cardboxRenderState.shown = 0;
@@ -1943,7 +2125,7 @@
   // Cardbox list is paginated like the Word Browser (PAGE_SIZE per page) and
   // uses a single delegated click listener instead of one per row, so large
   // cardboxes (hundreds/thousands of cards) don't lag the UI.
-  const cardboxRenderState = { sorted: [], shown: 0, selected: loadCardboxSelection(), search: '', sort: 'recent' };
+  const cardboxRenderState = { sorted: [], shown: 0, selected: loadCardboxSelection(), search: '', sort: 'recent', leechOnly: false };
 
   // Persists the set of ticked words to localStorage so an accidental
   // refresh/reload doesn't lose which words the learner had picked out —
@@ -1972,6 +2154,10 @@
     if (sort === 'prob-asc') return function (a, b) { return wordProbabilityNormalizedPct(a.word) - wordProbabilityNormalizedPct(b.word); };
     if (sort === 'play-desc') return function (a, b) { return wordPlayability(b.word) - wordPlayability(a.word); };
     if (sort === 'play-asc') return function (a, b) { return wordPlayability(a.word) - wordPlayability(b.word); };
+    if (sort === 'leech-desc') return function (a, b) {
+      if ((b.leech ? 1 : 0) !== (a.leech ? 1 : 0)) return (b.leech ? 1 : 0) - (a.leech ? 1 : 0);
+      return (b.streak || 0) - (a.streak || 0);
+    };
     return function (a, b) { return b.addedAt - a.addedAt; };
   }
 
@@ -1991,6 +2177,7 @@
     } else {
       filtered = q ? box.filter(function (c) { return c.word.indexOf(q) !== -1; }) : box.slice();
     }
+    if (cardboxRenderState.leechOnly) filtered = filtered.filter(function (c) { return c.leech; });
     filtered.sort(cardboxSortCompare(cardboxRenderState.sort));
     return filtered;
   }
@@ -1999,10 +2186,11 @@
     const isDue = (c.due || 0) <= now;
     const checked = cardboxRenderState.selected.has(c.word) ? ' checked' : '';
     return (
-      '<div class="card-row">' +
+      '<div class="card-row' + (c.leech ? ' is-leech' : '') + '">' +
         '<label class="card-row-select"><input type="checkbox" class="cardbox-check" data-word="' + c.word + '"' + checked + '></label>' +
         '<div>' + tileRowHTML(c.word, 'small') + '</div>' +
         '<div class="card-row-meta">' +
+          (c.leech ? '<span class="status-pill status-leech" title="' + t('cardboxLeech.badgeTitle').replace('{n}', c.streak) + '">🐛 ' + t('cardboxLeech.badge') + '</span>' : '') +
           (isDue ? '<span class="status-pill status-learning">⏰ ถึงกำหนด</span>' : '') +
           '<span class="status-pill status-' + c.status + '">' + statusLabel(c.status) + '</span>' +
           '<span>✓' + c.correct + ' ✗' + c.incorrect + '</span>' +
@@ -2102,6 +2290,20 @@
     document.getElementById('cardboxSortSelect').addEventListener('change', function (e) {
       cardboxRenderState.sort = e.target.value;
       renderCardboxTab();
+    });
+
+    document.getElementById('cardboxLeechOnly').addEventListener('change', function (e) {
+      cardboxRenderState.leechOnly = e.target.checked;
+      renderCardboxTab();
+    });
+
+    document.getElementById('startLeechStudyBtn').addEventListener('click', function () {
+      const leeches = loadCardbox().filter(function (c) { return c.leech; });
+      if (!leeches.length) { showToast(t('cardboxLeech.noneToast')); return; }
+      const mode = document.getElementById('studyMode').value;
+      const anagramOrder = document.getElementById('anagramOrder').value;
+      const cycleInterval = parseInt(document.getElementById('anagramCycleInterval').value, 10);
+      startStudySession(shuffle(leeches.slice()), mode, anagramOrder, cycleInterval);
     });
 
     document.getElementById('studySelectedBtn').addEventListener('click', function () {
@@ -4452,6 +4654,119 @@
     });
   }
 
+  // ---------- Cardbox groups tab (save/load named snapshots) ----------
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function cardboxGroupRowHTML(g) {
+    const dateStr = formatDueDate(g.createdAt);
+    return (
+      '<div class="card-row group-row" data-group-id="' + g.id + '">' +
+        '<div>' +
+          '<div class="group-row-name">' + escapeHtml(g.name) + '</div>' +
+          '<div class="field-hint">' + dateStr + '</div>' +
+        '</div>' +
+        '<div class="group-row-meta">' +
+          '<span class="status-pill status-new">' + t('cardboxGroups.wordCount').replace('{n}', g.cards.length) + '</span>' +
+          '<div class="group-row-actions">' +
+            '<button class="btn btn-primary btn-sm group-load-btn" data-group-id="' + g.id + '">' + t('cardboxGroups.load') + '</button>' +
+            '<button class="btn btn-outline btn-sm group-rename-btn" data-group-id="' + g.id + '">' + t('cardboxGroups.rename') + '</button>' +
+            '<button class="btn btn-outline btn-sm group-delete-btn" data-group-id="' + g.id + '">' + t('cardboxGroups.delete') + '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function renderCardboxGroups() {
+    const listEl = document.getElementById('cardboxGroupsList');
+    if (!listEl) return;
+    const groups = loadCardboxGroups();
+    if (!groups.length) {
+      listEl.innerHTML = '<div class="empty-state">' + t('cardboxGroups.empty') + '</div>';
+      return;
+    }
+    listEl.innerHTML = groups.map(cardboxGroupRowHTML).join('');
+  }
+
+  function initCardboxGroups() {
+    const addBtn = document.getElementById('addCardboxGroupBtn');
+    const listEl = document.getElementById('cardboxGroupsList');
+    if (!addBtn || !listEl) return;
+
+    addBtn.addEventListener('click', function () {
+      const box = loadCardbox();
+      if (!box.length) { showToast(t('cardboxGroups.emptyCardbox')); return; }
+      const name = window.prompt(t('cardboxGroups.namePrompt'), '');
+      if (name === null) return; // user cancelled
+      const group = addCardboxGroup(name);
+      if (!group) { showToast(t('cardboxGroups.emptyCardbox')); return; }
+      renderCardboxGroups();
+      showToast(t('cardboxGroups.saved').replace('{name}', group.name).replace('{n}', group.cards.length));
+    });
+
+    listEl.addEventListener('click', function (e) {
+      const loadBtn = e.target.closest('.group-load-btn');
+      const renameBtn = e.target.closest('.group-rename-btn');
+      const deleteBtn = e.target.closest('.group-delete-btn');
+
+      if (loadBtn) {
+        const groupId = loadBtn.dataset.groupId;
+        const groups = loadCardboxGroups();
+        const group = groups.find(function (g) { return g.id === groupId; });
+        if (!group) return;
+        const curCount = loadCardbox().length;
+        let mode = 'merge';
+        if (curCount > 0) {
+          const msg = t('cardboxGroups.loadConfirmReplace')
+            .replace('{cur}', curCount).replace('{name}', group.name).replace('{n}', group.cards.length);
+          const ok = window.confirm(msg);
+          if (!ok) return;
+          mode = 'merge';
+        }
+        const result = loadCardboxGroupInto(groupId, mode);
+        if (!result) return;
+        renderCardboxTab();
+        renderDashboard();
+        if (mode === 'replace') {
+          showToast(t('cardboxGroups.loadReplaceDone').replace('{name}', group.name).replace('{n}', result.total));
+        } else {
+          showToast(t('cardboxGroups.loadMergeDone')
+            .replace('{name}', group.name).replace('{added}', result.added).replace('{skipped}', result.skipped));
+        }
+        return;
+      }
+
+      if (renameBtn) {
+        const groupId = renameBtn.dataset.groupId;
+        const groups = loadCardboxGroups();
+        const group = groups.find(function (g) { return g.id === groupId; });
+        if (!group) return;
+        const newName = window.prompt(t('cardboxGroups.renamePrompt'), group.name);
+        if (newName === null) return;
+        if (renameCardboxGroup(groupId, newName)) renderCardboxGroups();
+        return;
+      }
+
+      if (deleteBtn) {
+        const groupId = deleteBtn.dataset.groupId;
+        const groups = loadCardboxGroups();
+        const group = groups.find(function (g) { return g.id === groupId; });
+        if (!group) return;
+        const ok = window.confirm(t('cardboxGroups.deleteConfirm').replace('{name}', group.name));
+        if (!ok) return;
+        deleteCardboxGroup(groupId);
+        renderCardboxGroups();
+        showToast(t('cardboxGroups.deleted').replace('{name}', group.name));
+        return;
+      }
+    });
+  }
+
   // ---------- Word browser tab ----------
 
   const browseState = { activeLength: 'all', results: [], shown: 0, sort: 'alpha', selected: new Set(), limit: 0 };
@@ -5910,6 +6225,7 @@
     initDueTimeControls();
     initImportExport();
     initCardboxImportExport();
+    initCardboxGroups();
     initWordBuilder();
     initTypingGame();
     initTgTypedPanel();
@@ -5926,6 +6242,7 @@
       window.Achievements.renderTab();
     }
     renderCardboxTab();
+    renderCardboxGroups();
     renderDashboard();
   });
 })();
