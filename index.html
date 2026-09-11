@@ -230,8 +230,17 @@
             <option value="prob-asc" data-i18n="cardbox.sortProbAsc">Probability: น้อยไปมาก</option>
             <option value="play-desc" data-i18n="cardbox.sortPlayDesc">Playability: มากไปน้อย</option>
             <option value="play-asc" data-i18n="cardbox.sortPlayAsc">Playability: น้อยไปมาก</option>
+            <option value="leech-desc" data-i18n="cardboxLeech.sortLeechDesc">🐛 Leech ก่อน (ผิดติดกันมาก→น้อย)</option>
           </select>
         </div>
+        <div class="field" style="align-self:flex-end">
+          <label class="checkbox-field"><input type="checkbox" id="cardboxLeechOnly"> <span data-i18n="cardboxLeech.filterOnly">🐛 แสดงเฉพาะคำที่ติด Leech</span></label>
+        </div>
+      </div>
+
+      <div class="btn-row" id="leechStudyRow" style="display:none">
+        <button class="btn btn-outline btn-sm" id="startLeechStudyBtn" data-i18n="cardboxLeech.studyBtn">🐛 ฝึกเฉพาะคำที่ติด Leech</button>
+        <span class="field-hint" id="leechCountHint"></span>
       </div>
 
       <div class="btn-row" id="cardboxSelectRow" style="align-items:center">
@@ -286,6 +295,15 @@
         <input type="file" id="importCardboxInput" accept=".json" class="file-input-hidden">
       </div>
       <p class="field-hint">💡 Import จะลบ Cardbox ปัจจุบันทิ้งก่อน — แนะนำให้ Export เก็บไว้ก่อนเสมอถ้ายังไม่อยากเสียชุดที่กำลังเรียนอยู่</p>
+    </div>
+
+    <div class="panel-card">
+      <h2 style="font-size:1.05rem" data-i18n="cardboxGroups.title">📦 Group คำศัพท์ (บันทึกไว้หลายชุด)</h2>
+      <p class="panel-sub" style="margin-bottom:0.7rem" data-i18n="cardboxGroups.sub">เก็บ Cardbox ชุดปัจจุบันไว้เป็น "Group" (คัดลอก ไม่ลบของเดิม) ตั้งชื่อได้ พอเรียน Set นี้เสร็จแล้วอยากเปลี่ยนไปชุดใหม่ก็เพิ่ม Group ไว้ก่อน แล้วค่อยโหลดกลับมาทีหลังได้</p>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm" id="addCardboxGroupBtn" data-i18n="cardboxGroups.addBtn">➕ เพิ่ม Group จาก Cardbox ปัจจุบัน</button>
+      </div>
+      <div id="cardboxGroupsList" style="margin-top:0.7rem"></div>
     </div>
 
     <div class="panel-card" id="studySession">
@@ -922,6 +940,11 @@
         <label for="anagramReshuffleSeconds" data-i18n="settings.anagramReshuffleSeconds">สลับทุกกี่วินาที</label>
         <input type="number" id="anagramReshuffleSeconds" min="1" max="30" value="3">
       </div>
+      <div class="field" style="margin-top:0.9rem;max-width:14rem">
+        <label for="leechThresholdInput" data-i18n="cardboxLeech.thresholdLabel">🐛 ผิดติดกันกี่ครั้งให้ติด Leech</label>
+        <input type="number" id="leechThresholdInput" min="2" max="20" value="4">
+      </div>
+      <p class="field-hint" data-i18n="cardboxLeech.thresholdHint">ถ้าตอบผิด (หรือข้าม) คำเดิมติดกันครบตามจำนวนนี้ คำนั้นจะถูก flag เป็น "Leech" ให้แยกไปฝึกเฉพาะได้ง่ายขึ้น — ตอบถูกครั้งเดียวจะปลด flag ทันที</p>
     </div>
 
     <div class="panel-card">
