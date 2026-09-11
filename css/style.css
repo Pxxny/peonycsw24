@@ -630,6 +630,29 @@ main {
 .marathon-round-bar { transition: width .1s linear; }
 .marathon-round-bar.marathon-bar-urgent { background: #d64545; }
 
+.rm-track { display: flex; align-items: center; gap: 2px; margin-bottom: 1rem; overflow-x: auto; padding: 4px 2px; }
+.rm-track-node {
+  flex: 0 0 auto; min-width: 40px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700;
+  background: var(--board-2); border: 1px solid var(--rail); color: #8fae9f;
+}
+.rm-track-node.rm-done { background: var(--teal); color: #06231a; border-color: var(--teal); }
+.rm-track-node.rm-current { background: var(--brass); color: #2a1d06; border-color: var(--brass); }
+.rm-track-node.rm-checkpoint { border-style: dashed; }
+.rm-track-node.rm-checkpoint::after { content: '🚩'; margin-left: 3px; font-size: 0.7rem; }
+.rm-track-connector { flex: 1 1 12px; min-width: 8px; height: 2px; background: var(--rail); }
+
+.rm-clock {
+  font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: var(--brass);
+}
+.rm-checkpoint-card {
+  text-align: center; padding: 1.4rem 1rem;
+}
+.rm-checkpoint-card .big-stat { color: var(--teal); }
+.rm-rest-bar { height: 8px; background: var(--board-2); border-radius: 4px; overflow: hidden; margin: 0.9rem 0; }
+.rm-rest-bar-fill { height: 100%; background: var(--teal); transition: width .1s linear; }
+
 .session-card {
   background: var(--board-2);
   border: 1px solid var(--rail);
@@ -1066,6 +1089,59 @@ main {
   margin: 0.5rem 0;
   letter-spacing: 0.2em;
 }
+
+/* ---------- additions: Learn tab — Extra drills (JQXZ / Dump Vowels / Dump Consonants) ---------- */
+
+.learn-extra-cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.learn-extra-cat-card {
+  background: var(--board-2);
+  border: 1px solid var(--rail);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+}
+.learn-extra-cat-card:hover { border-color: var(--brass); }
+
+.learn-extra-cat-title {
+  font-weight: 700;
+  color: var(--cream);
+  margin-bottom: 0.2rem;
+}
+
+.learn-extra-cat-sub {
+  font-size: 0.8rem;
+  color: #8fae9f;
+}
+
+.learn-extra-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.learn-extra-title {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--cream);
+}
+
+.chip-row-lg .length-chip small {
+  font-size: 0.65rem;
+  opacity: 0.75;
+  font-weight: 500;
+}
+
+.chip-row-lg .length-chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.chip-row-lg .length-chip:disabled:hover { border-color: var(--rail); }
 
 /* ---------- additions: typing minigame letter states ---------- */
 
