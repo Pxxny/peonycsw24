@@ -94,10 +94,11 @@
       'cardbox.reviewSecondsLabel': 'วินาที', 'cardbox.reviewExit': '↩ ออกจาก Review',
       'cardbox.reviewStartStudy': '▶ เริ่มเรียนคำชุดนี้',
       'cardboxGroups.title': '📦 Group คำศัพท์ (บันทึกไว้หลายชุด)',
-      'cardboxGroups.sub': 'เก็บ Cardbox ชุดปัจจุบันไว้เป็น "Group" (คัดลอก ไม่ลบของเดิม) ตั้งชื่อได้ พอเรียน Set นี้เสร็จแล้วอยากเปลี่ยนไปชุดใหม่ก็เพิ่ม Group ไว้ก่อน แล้วค่อยโหลดกลับมาทีหลังได้',
-      'cardboxGroups.addBtn': '➕ เพิ่ม Group จาก Cardbox ปัจจุบัน',
+      'cardboxGroups.sub': 'ติ๊กเลือกคำที่ต้องการในรายการ Cardbox ด้านบนก่อน แล้วกดปุ่มนี้เพื่อคัดลอกเฉพาะคำที่เลือกไว้เก็บเป็น "Group" (ไม่ลบของเดิม) ตั้งชื่อได้ พอเรียนชุดนี้เสร็จแล้วอยากเปลี่ยนไปชุดใหม่ก็เพิ่ม Group ไว้ก่อน แล้วค่อยโหลดกลับมาทีหลังได้',
+      'cardboxGroups.addBtn': '➕ เพิ่ม Group จากคำที่เลือกไว้',
       'cardboxGroups.namePrompt': 'ตั้งชื่อ Group (เว้นว่างได้ ระบบจะตั้งชื่อให้อัตโนมัติ)',
       'cardboxGroups.emptyCardbox': 'Cardbox ว่างอยู่ ไม่มีอะไรให้บันทึกเป็น Group',
+      'cardboxGroups.noSelection': 'ยังไม่ได้ติ๊กเลือกคำเลย — เลือกคำที่ต้องการในรายการ Cardbox ก่อน',
       'cardboxGroups.saved': '📦 บันทึก Group "{name}" แล้ว ({n} คำ)',
       'cardboxGroups.empty': 'ยังไม่มี Group ที่บันทึกไว้',
       'cardboxGroups.wordCount': '{n} คำ',
@@ -194,10 +195,11 @@
       'cardbox.reviewSecondsLabel': 'seconds', 'cardbox.reviewExit': '↩ Exit Review',
       'cardbox.reviewStartStudy': '▶ Start studying this set',
       'cardboxGroups.title': '📦 Word Groups (save multiple sets)',
-      'cardboxGroups.sub': 'Save the current Cardbox as a "Group" (a copy — nothing gets deleted). Name it, then once you\u2019re done with this set and want to switch to a new one, add a Group first, and load it back anytime later.',
-      'cardboxGroups.addBtn': '➕ Add Group from current Cardbox',
+      'cardboxGroups.sub': 'Tick the words you want in the Cardbox list above, then use this to copy just the selected words into a "Group" (a copy — nothing gets deleted). Name it, then once you\u2019re done with this set and want to switch to a new one, add a Group first, and load it back anytime later.',
+      'cardboxGroups.addBtn': '➕ Add Group from selected words',
       'cardboxGroups.namePrompt': 'Name this Group (leave blank for an auto-generated name)',
       'cardboxGroups.emptyCardbox': 'Cardbox is empty — nothing to save as a Group',
+      'cardboxGroups.noSelection': 'No words selected — tick the words you want in the Cardbox list first',
       'cardboxGroups.saved': '📦 Saved Group "{name}" ({n} words)',
       'cardboxGroups.empty': 'No Groups saved yet',
       'cardboxGroups.wordCount': '{n} words',
@@ -1584,18 +1586,19 @@
     return name;
   }
 
-  // Copies the current Cardbox (cards + SRS progress) into a new named group.
-  // Does NOT touch the current Cardbox. Returns the created group, or null if
-  // the Cardbox was empty.
-  function addCardboxGroup(name) {
-    const box = loadCardbox();
-    if (!box.length) return null;
+  // Copies the given cards (cards + SRS progress) into a new named group.
+  // Does NOT touch the current Cardbox. `cards` should be the subset the
+  // learner picked (falls back to the whole Cardbox if omitted). Returns
+  // the created group, or null if there was nothing to save.
+  function addCardboxGroup(name, cards) {
+    const source = cards || loadCardbox();
+    if (!source.length) return null;
     const groups = loadCardboxGroups();
     const group = {
       id: 'grp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
       name: (name && name.trim()) ? name.trim() : nextAutoGroupName(),
       createdAt: Date.now(),
-      cards: JSON.parse(JSON.stringify(box))
+      cards: JSON.parse(JSON.stringify(source))
     };
     groups.unshift(group);
     saveCardboxGroups(groups);
@@ -4768,11 +4771,14 @@
 
     addBtn.addEventListener('click', function () {
       const box = loadCardbox();
-      if (!box.length) { showToast(t('cardboxGroups.emptyCardbox')); return; }
+      const selectedWords = cardboxRenderState.selected;
+      if (!selectedWords.size) { showToast(t('cardboxGroups.noSelection')); return; }
+      const selectedCards = box.filter(function (c) { return selectedWords.has(c.word); });
+      if (!selectedCards.length) { showToast(t('cardboxGroups.noSelection')); return; }
       const name = window.prompt(t('cardboxGroups.namePrompt'), '');
       if (name === null) return; // user cancelled
-      const group = addCardboxGroup(name);
-      if (!group) { showToast(t('cardboxGroups.emptyCardbox')); return; }
+      const group = addCardboxGroup(name, selectedCards);
+      if (!group) { showToast(t('cardboxGroups.noSelection')); return; }
       renderCardboxGroups();
       showToast(t('cardboxGroups.saved').replace('{name}', group.name).replace('{n}', group.cards.length));
     });
