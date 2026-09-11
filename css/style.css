@@ -929,7 +929,9 @@ main {
   border: 1px solid var(--rail);
   border-radius: 10px;
   padding: 0.6rem 0.8rem;
+  cursor: pointer;
 }
+.learn-level-row:hover { border-color: var(--brass); }
 
 .learn-level-row.learn-level-boss {
   border-color: var(--brass-deep);
@@ -989,6 +991,32 @@ main {
   font-size: 0.8rem;
   color: #8fae9f;
 }
+
+/* ---------- additions: Learn tab — level detail overlay (word list) ---------- */
+
+.learn-level-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 55vh;
+  overflow-y: auto;
+  margin: 0.8rem 0;
+}
+.lld-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  background: var(--board-2);
+  border: 1px solid var(--rail);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+}
+.lld-row.is-leech { box-shadow: inset 3px 0 0 #c1453f; }
+.lld-word { font-family: var(--font-mono); font-weight: 700; min-width: 5.5rem; }
+.lld-stats { display: flex; gap: 0.5rem; align-items: center; color: #b9d4c6; font-family: var(--font-mono); font-size: 0.78rem; }
+.lld-due { margin-left: auto; font-size: 0.74rem; color: #8fae9f; text-align: right; }
 
 /* ---------- additions: Learn tab — in-session level progress dots ---------- */
 
