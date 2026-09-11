@@ -465,7 +465,47 @@
         <button class="btn btn-outline" id="gameTabRacks" data-i18n="mini.racks">🁢 Random Racks</button>
         <button class="btn btn-outline" id="gameTabAlpha" data-i18n="mini.alpha">🔀 Alphagram Blitz</button>
         <button class="btn btn-outline" id="gameTabMarathon" data-i18n="mini.marathon">⚡ Time Attack Marathon</button>
+        <button class="btn btn-outline" id="gameTabRealMarathon" data-i18n="mini.realmarathon">🏃 Marathon</button>
       </div>
+    </div>
+
+    <div class="panel-card" id="realMarathonGamePanel" style="display:none">
+      <h2>🏃 Marathon</h2>
+      <p class="panel-sub">ไต่ระดับความยาวคำตั้งแต่ 5L ถึง 12L แบบมาราธอนจริง — จับเวลารวมทั้งเกม ไม่จำกัดเวลาต่อคำ ระหว่างทางมีจุด Checkpoint ให้พัก 30 วินาทีเป็นระยะ</p>
+      <div id="realMarathonSetup">
+        <div class="control-row">
+          <div class="field"><label for="rmStartLen">เริ่มที่ความยาว (L)</label>
+            <select id="rmStartLen">
+              <option value="5">5L</option><option value="6">6L</option><option value="7">7L</option>
+              <option value="8" selected>8L</option><option value="9">9L</option><option value="10">10L</option>
+              <option value="11">11L</option>
+            </select>
+          </div>
+          <div class="field"><label for="rmEndLen">จบที่ความยาว (L)</label>
+            <select id="rmEndLen">
+              <option value="6">6L</option><option value="7">7L</option><option value="8">8L</option>
+              <option value="9">9L</option><option value="10">10L</option><option value="11">11L</option>
+              <option value="12" selected>12L</option>
+            </select>
+          </div>
+        </div>
+        <div class="control-row">
+          <div class="field"><label for="rmWordsPerLevel">จำนวนคำต่อระดับความยาว</label><input type="number" id="rmWordsPerLevel" min="1" max="50" value="5"></div>
+          <div class="field"><label for="rmCheckpointEvery">พัก (Checkpoint) ทุกๆ กี่ระดับ</label>
+            <select id="rmCheckpointEvery">
+              <option value="0">ไม่ต้องพัก</option>
+              <option value="1">ทุก 1 ระดับ</option>
+              <option value="2" selected>ทุก 2 ระดับ</option>
+              <option value="3">ทุก 3 ระดับ</option>
+            </select>
+          </div>
+        </div>
+        <span class="field-hint">ตัวอย่าง: เริ่ม 8L จบ 12L ต่อระดับ 5 คำ พัก ทุก 2 ระดับ = ตอบคำ 8L,8L,...(5คำ) → 9L → พัก 30 วิ → 10L → 11L → พัก 30 วิ → 12L → เข้าเส้นชัย</span>
+        <div class="control-row">
+          <button class="btn btn-primary" id="rmStartBtn">▶ เริ่มวิ่ง Marathon</button>
+        </div>
+      </div>
+      <div id="realMarathonPlay" style="display:none"></div>
     </div>
 
     <div class="panel-card" id="marathonGamePanel" style="display:none">
