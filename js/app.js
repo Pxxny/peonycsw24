@@ -134,7 +134,7 @@
       'builder.rackLabel': 'ตัวอักษร (Rack)', 'builder.build': '🧩 หาคำศัพท์',
       'builder.sortLenDesc': 'ความยาว: มากไปน้อย', 'builder.sortLenAsc': 'ความยาว: น้อยไปมาก',
       'mini.title': '🕹️ Minigame', 'mini.typing': '⌨️ พิมพ์ศัพท์ Random', 'mini.racks': '🁢 Random Racks',
-      'mini.alpha': '🔀 Alphagram Blitz', 'mini.marathon': '⚡ Time Attack Marathon',
+      'mini.alpha': '🔀 Alphagram Blitz', 'mini.marathon': '⚡ Time Attack Marathon', 'mini.realmarathon': '🏃 Marathon',
       'mini.startGame': '▶ เริ่มเกม', 'mini.newRack': '▶ สุ่ม Rack ใหม่',
       'dash.title': 'Dashboard', 'dash.sub': 'ภาพรวมความคืบหน้าในการเรียนคำศัพท์ของคุณ ข้อมูลทั้งหมดเก็บไว้ในเบราว์เซอร์นี้เท่านั้น',
       'dash.mastered': 'เชี่ยวชาญ', 'dash.reset': '♻ Reset ความคืบหน้าทั้งหมด',
@@ -241,7 +241,7 @@
       'builder.rackLabel': 'Letters (Rack)', 'builder.build': '🧩 Find words',
       'builder.sortLenDesc': 'Length: high→low', 'builder.sortLenAsc': 'Length: low→high',
       'mini.title': '🕹️ Minigame', 'mini.typing': '⌨️ Random Word Typing', 'mini.racks': '🁢 Random Racks',
-      'mini.alpha': '🔀 Alphagram Blitz', 'mini.marathon': '⚡ Time Attack Marathon',
+      'mini.alpha': '🔀 Alphagram Blitz', 'mini.marathon': '⚡ Time Attack Marathon', 'mini.realmarathon': '🏃 Marathon',
       'mini.startGame': '▶ Start game', 'mini.newRack': '▶ New rack',
       'dash.title': 'Dashboard', 'dash.sub': 'Overview of your word-learning progress. All data is stored in this browser only.',
       'dash.mastered': 'Mastered', 'dash.reset': '♻ Reset all progress',
@@ -3754,7 +3754,7 @@
     }
     if (L === 'extra') {
       card.style.display = '';
-      content.innerHTML = '<p class="panel-sub" data-i18n="learn.extraSoon">🚧 Extra — เร็วๆ นี้</p>';
+      renderLearnExtraMenu(content);
       return;
     }
     card.style.display = '';
@@ -4029,7 +4029,7 @@
     const area = document.getElementById('learnSessionArea');
 
     if (learnSession.index >= learnSession.queue.length) {
-      renderLearnLevelSummary();
+      renderLearnSummaryDispatch();
       return;
     }
 
@@ -4351,6 +4351,294 @@
         startLearnLevel(learnSession.length, learnSession.levelIndex + 1);
       });
     }
+    if (window.Achievements) {
+      window.Achievements.record('session_complete', {
+        total: total, correct: learnSession.correct, incorrect: learnSession.incorrect
+      });
+    }
+  }
+
+  // ---------- Learn: Extra drills (JQXZ, Dump Vowels, Dump Consonants) ----------
+  //
+  // Separate from the regular Level/Boss system above — these are themed
+  // word pools (letter-focused) rather than the full alphabetical level
+  // ladder, so they get their own lightweight menu + session flow that
+  // reuses the same anagram-typing card UI pattern as renderLearnCard.
+
+  const LEARN_EXTRA_VOWELS = ['A', 'E', 'I', 'O', 'U'];
+  const LEARN_EXTRA_CONSONANTS = ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'];
+  const LEARN_EXTRA_JQXZ_LENGTHS = [3, 4, 5, 6];
+  const LEARN_EXTRA_DUMP_LENGTHS = [2, 3, 4, 5, 6];
+
+  const learnExtraState = { view: 'menu', category: null, letter: null, length: null };
+  const _learnExtraPoolCache = {};
+
+  function learnExtraJqxzWords(L) {
+    const key = 'jqxz:' + L;
+    if (_learnExtraPoolCache[key]) return _learnExtraPoolCache[key];
+    const pool = (lengthPool(L) || []).filter(function (w) { return /[JQXZ]/.test(w); });
+    pool.sort(function (a, b) { return a.localeCompare(b); });
+    _learnExtraPoolCache[key] = pool;
+    return pool;
+  }
+
+  // "Dump vowel V" — words whose only vowel letter (A/E/I/O/U) is V itself
+  // (may repeat), so learners drill the shape of words built around one
+  // vowel without other vowels muddying the pattern.
+  function learnExtraDumpVowelWords(letter, L) {
+    const key = 'dv:' + letter + ':' + L;
+    if (_learnExtraPoolCache[key]) return _learnExtraPoolCache[key];
+    const pool = (lengthPool(L) || []).filter(function (w) {
+      let hasLetter = false;
+      for (let i = 0; i < w.length; i++) {
+        const ch = w[i];
+        if (LEARN_EXTRA_VOWELS.indexOf(ch) !== -1) {
+          if (ch !== letter) return false;
+          hasLetter = true;
+        }
+      }
+      return hasLetter;
+    });
+    pool.sort(function (a, b) { return a.localeCompare(b); });
+    _learnExtraPoolCache[key] = pool;
+    return pool;
+  }
+
+  // "Dump consonant C" — every word of this length that contains C at
+  // least once (simple presence filter; consonants are common enough that
+  // an "only this consonant" filter like the vowel version would be too
+  // thin at longer lengths).
+  function learnExtraDumpConsonantWords(letter, L) {
+    const key = 'dc:' + letter + ':' + L;
+    if (_learnExtraPoolCache[key]) return _learnExtraPoolCache[key];
+    const pool = (lengthPool(L) || []).filter(function (w) { return w.indexOf(letter) !== -1; });
+    pool.sort(function (a, b) { return a.localeCompare(b); });
+    _learnExtraPoolCache[key] = pool;
+    return pool;
+  }
+
+  function learnExtraCategoryLabel(cat) {
+    if (cat === 'jqxz') return 'JQXZ';
+    if (cat === 'vowel') return 'Dump Vowels';
+    if (cat === 'consonant') return 'Dump พยัญชนะ';
+    return cat;
+  }
+
+  function renderLearnExtraMenu(content) {
+    learnExtraState.view = 'menu';
+    let html = '<p class="panel-sub">เลือกหมวดแบบฝึกหัด Extra</p>';
+    html += '<div class="learn-extra-cat-list">';
+    html += learnExtraCatCardHTML('jqxz', '🔤 JQXZ', 'คำที่มีตัวอักษร J, Q, X หรือ Z — ความยาว 3L–6L');
+    html += learnExtraCatCardHTML('vowel', '🅰️ Dump Vowels', 'ฝึกคำที่มีสระตัวเดียวกันซ้ำ (A, E, I, O, U) — ความยาว 2L–6L');
+    html += learnExtraCatCardHTML('consonant', '🔠 Dump พยัญชนะ', 'ฝึกคำตามพยัญชนะที่เลือก — ความยาว 2L–6L');
+    html += '</div>';
+    content.innerHTML = html;
+
+    content.querySelectorAll('.learn-extra-cat-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        renderLearnExtraPicker(content, card.dataset.cat);
+      });
+    });
+  }
+
+  function learnExtraCatCardHTML(cat, title, sub) {
+    return '<div class="learn-extra-cat-card" data-cat="' + cat + '">' +
+      '<div class="learn-extra-cat-title">' + title + '</div>' +
+      '<div class="learn-extra-cat-sub">' + sub + '</div>' +
+    '</div>';
+  }
+
+  function renderLearnExtraPicker(content, cat) {
+    learnExtraState.view = 'picker';
+    learnExtraState.category = cat;
+    learnExtraState.letter = null;
+
+    let html = '<div class="learn-extra-header">' +
+      '<button type="button" class="btn btn-outline btn-sm" id="learnExtraBackBtn">← กลับ</button>' +
+      '<h3 class="learn-extra-title">' + learnExtraCategoryLabel(cat) + '</h3>' +
+    '</div>';
+
+    if (cat === 'jqxz') {
+      html += '<p class="panel-sub">เลือกความยาวคำ</p>';
+      html += '<div class="chip-row chip-row-lg" id="learnExtraLenChips">';
+      LEARN_EXTRA_JQXZ_LENGTHS.forEach(function (L) {
+        const n = learnExtraJqxzWords(L).length;
+        html += '<button type="button" class="length-chip" data-len="' + L + '">' + L + 'L<br><small>' + n + '</small></button>';
+      });
+      html += '</div>';
+      content.innerHTML = html;
+      content.querySelectorAll('#learnExtraLenChips .length-chip').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const L = parseInt(btn.dataset.len, 10);
+          const words = learnExtraJqxzWords(L);
+          startLearnExtraSession(words, L, 'JQXZ · ' + L + 'L');
+        });
+      });
+    } else {
+      const letters = cat === 'vowel' ? LEARN_EXTRA_VOWELS : LEARN_EXTRA_CONSONANTS;
+      const lengths = LEARN_EXTRA_DUMP_LENGTHS;
+      html += '<p class="panel-sub">1) เลือกตัวอักษร</p>';
+      html += '<div class="chip-row chip-row-lg" id="learnExtraLetterChips">';
+      letters.forEach(function (letter) {
+        html += '<button type="button" class="length-chip" data-letter="' + letter + '">' + letter + '</button>';
+      });
+      html += '</div>';
+      html += '<p class="panel-sub" style="margin-top:1rem">2) เลือกความยาวคำ</p>';
+      html += '<div class="chip-row chip-row-lg" id="learnExtraLenChips">';
+      lengths.forEach(function (L) {
+        html += '<button type="button" class="length-chip" data-len="' + L + '" disabled>' + L + 'L</button>';
+      });
+      html += '</div>';
+      html += '<div id="learnExtraLenHint" class="field-hint"></div>';
+      content.innerHTML = html;
+
+      const letterBtns = content.querySelectorAll('#learnExtraLetterChips .length-chip');
+      const lenBtns = content.querySelectorAll('#learnExtraLenChips .length-chip');
+      const hintEl = document.getElementById('learnExtraLenHint');
+
+      function poolFor(letter, L) {
+        return cat === 'vowel' ? learnExtraDumpVowelWords(letter, L) : learnExtraDumpConsonantWords(letter, L);
+      }
+
+      function refreshLenCounts() {
+        const letter = learnExtraState.letter;
+        lenBtns.forEach(function (btn) {
+          const L = parseInt(btn.dataset.len, 10);
+          if (!letter) {
+            btn.disabled = true;
+            btn.innerHTML = L + 'L';
+            return;
+          }
+          const n = poolFor(letter, L).length;
+          btn.disabled = n === 0;
+          btn.innerHTML = L + 'L<br><small>' + n + '</small>';
+        });
+        hintEl.textContent = letter ? '' : 'เลือกตัวอักษรก่อน';
+      }
+      refreshLenCounts();
+
+      letterBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          letterBtns.forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          learnExtraState.letter = btn.dataset.letter;
+          refreshLenCounts();
+        });
+      });
+      lenBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (btn.disabled) return;
+          const L = parseInt(btn.dataset.len, 10);
+          const letter = learnExtraState.letter;
+          if (!letter) return;
+          const words = poolFor(letter, L);
+          const label = (cat === 'vowel' ? 'Dump Vowel ' : 'Dump ') + letter + ' · ' + L + 'L';
+          startLearnExtraSession(words, L, label);
+        });
+      });
+    }
+
+    document.getElementById('learnExtraBackBtn').addEventListener('click', function () {
+      renderLearnExtraMenu(content);
+    });
+  }
+
+  // Extra sessions reuse learnSession/renderLearnCard's per-word anagram
+  // drill, but the queue is a themed word pool rather than a fixed
+  // 10-word level, so it gets its own intro/summary instead of the
+  // Level/Boss ones (which assume learnSession.levelIndex is meaningful).
+  function startLearnExtraSession(words, L, label) {
+    if (!words || !words.length) { showToast('ไม่พบคำในหมวดนี้'); return; }
+    const capped = words.length > 40 ? shuffle(words).slice(0, 40) : words.slice();
+    addWordsToCardbox(capped);
+
+    learnSession.length = L;
+    learnSession.levelIndex = null;
+    learnSession.info = { kind: 'extra', label: label, words: capped };
+    learnSession.queue = capped;
+    learnSession.index = 0;
+    learnSession.correct = 0;
+    learnSession.incorrect = 0;
+    learnSession.results = [];
+
+    document.getElementById('learnContentCard').style.display = 'none';
+    document.getElementById('learnSessionCard').style.display = '';
+    renderLearnExtraIntro();
+  }
+
+  function renderLearnExtraIntro() {
+    updateLearnProgressBar();
+    const area = document.getElementById('learnSessionArea');
+    const info = learnSession.info;
+    let html = '<div class="learn-level-intro">' +
+      '<div class="learn-level-intro-badge">✨ Extra</div>' +
+      '<p class="panel-sub">' + info.label + ' — ' + info.words.length + ' คำ' + (info.words.length > 40 ? ' (สุ่ม 40 จากทั้งหมด)' : '') + '</p>' +
+      '<div class="session-controls"><button class="btn btn-primary" id="learnLevelGoBtn">▶ เริ่ม</button>' +
+      '<button class="btn btn-outline" id="learnLevelReviewBtn">📖 Review</button>' +
+      '<button class="btn btn-outline" id="learnLevelBackBtn">↩ กลับ</button></div>' +
+    '</div>';
+    area.innerHTML = html;
+    document.getElementById('learnLevelGoBtn').addEventListener('click', renderLearnCard);
+    document.getElementById('learnLevelBackBtn').addEventListener('click', endLearnExtraSession);
+    document.getElementById('learnLevelReviewBtn').addEventListener('click', function () {
+      const words = info.words.slice();
+      startAnagramReview(words, parseInt(document.getElementById('reviewSeconds') ? document.getElementById('reviewSeconds').value : 5, 10) || 5, {
+        originTab: 'learn',
+        onExit: function () {
+          document.getElementById('learnContentCard').style.display = 'none';
+          document.getElementById('learnSessionCard').style.display = '';
+          renderLearnExtraIntro();
+        }
+      });
+    });
+  }
+
+  function endLearnExtraSession() {
+    document.getElementById('learnSessionCard').style.display = 'none';
+    document.getElementById('learnContentCard').style.display = '';
+    learnState.activeLength = 'extra';
+    renderLearnContent();
+    // Return to the picker for the category/letter just practiced instead
+    // of dropping back to the top-level Extra menu.
+    const content = document.getElementById('learnContent');
+    if (content && learnExtraState.category) {
+      renderLearnExtraPicker(content, learnExtraState.category);
+    }
+  }
+
+  // renderLearnCard() (defined above) already branches its end-of-queue
+  // case to renderLearnLevelSummary(); extend that branch point for
+  // 'extra' sessions by wrapping the summary renderer.
+  const _renderLearnLevelSummaryBase = renderLearnLevelSummary;
+  function renderLearnSummaryDispatch() {
+    if (learnSession.info && learnSession.info.kind === 'extra') {
+      renderLearnExtraSummary();
+    } else {
+      _renderLearnLevelSummaryBase();
+    }
+  }
+
+  function renderLearnExtraSummary() {
+    const total = learnSession.queue.length;
+    const pct = total ? Math.round((learnSession.correct / total) * 100) : 0;
+    const stars = pct >= 90 ? '⭐⭐⭐' : pct >= 70 ? '⭐⭐' : pct >= 40 ? '⭐' : '·';
+    const info = learnSession.info;
+    const area = document.getElementById('learnSessionArea');
+    area.innerHTML =
+      '<div class="session-summary">' +
+        '<div class="session-prompt-label">✨ จบ ' + info.label + ' แล้ว</div>' +
+        '<div class="learn-summary-stars">' + stars + '</div>' +
+        '<div class="big-stat">' + pct + '%</div>' +
+        '<p>ตอบถูก ' + learnSession.correct + ' / ' + total + ' คำ · ตอบผิด ' + learnSession.incorrect + ' คำ</p>' +
+        '<div class="session-controls">' +
+          '<button class="btn btn-outline" id="learnExtraBackToListBtn">↩ กลับไปหน้าเลือก</button>' +
+          '<button class="btn btn-primary" id="learnExtraRetryBtn">🔁 ฝึกซ้ำหมวดนี้</button>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('learnExtraBackToListBtn').addEventListener('click', endLearnExtraSession);
+    document.getElementById('learnExtraRetryBtn').addEventListener('click', function () {
+      startLearnExtraSession(info.words, learnSession.length, info.label);
+    });
     if (window.Achievements) {
       window.Achievements.record('session_complete', {
         total: total, correct: learnSession.correct, incorrect: learnSession.incorrect
@@ -6437,6 +6725,276 @@
     });
   }
 
+  // ---------- Minigame: Marathon (real distance-style, by word length) ----------
+  // Inspired by the Thai national team's "7L / 7 hours" training marathon.
+  // Here "L" = word length, not distance. Player climbs from a starting
+  // word length up to a finishing word length (5L-12L range), answering a
+  // configurable number of words per length level, with an overall running
+  // clock (no per-word time limit) and automatic 30s rest Checkpoints every
+  // N levels — just like real marathon rest/water stations.
+
+  const RM_CHECKPOINT_REST_MS = 30000;
+
+  const rm = {
+    startLen: 8, endLen: 12, wordsPerLevel: 5, checkpointEvery: 2,
+    levels: [],        // [{len, isCheckpointAfter}]
+    levelIndex: 0,      // which level we're currently on
+    wordIndexInLevel: 0,
+    current: null,      // {display, accepted, revealWord}
+    correct: 0, incorrect: 0, totalWords: 0, wordsDone: 0,
+    startTime: 0, elapsedBeforePause: 0, running: false,
+    resting: false, restDeadline: 0, restTimerHandle: null,
+    clockTimerHandle: null,
+    finished: false
+  };
+
+  function rmBuildLevels() {
+    const levels = [];
+    for (let L = rm.startLen; L <= rm.endLen; L++) levels.push(L);
+    return levels;
+  }
+
+  function rmIsCheckpointAfterLevel(levelPos) {
+    // levelPos is 1-based position within the run (1 = first level)
+    if (!rm.checkpointEvery) return false;
+    const isLast = levelPos === rm.levels.length;
+    if (isLast) return false; // no rest after the finish line
+    return levelPos % rm.checkpointEvery === 0;
+  }
+
+  function rmBuildWordRound(len) {
+    const pool = lengthPool(len);
+    if (!pool.length) return null;
+    const word = pool[Math.floor(Math.random() * pool.length)];
+    const key = sortLetters(word);
+    const accepted = new Set();
+    for (let i = 0; i < pool.length; i++) {
+      if (sortLetters(pool[i]) === key) accepted.add(pool[i]);
+    }
+    return { display: key, accepted: accepted, revealWord: word };
+  }
+
+  function rmFormatClock(ms) {
+    if (ms < 0) ms = 0;
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function rmElapsedMs() {
+    if (!rm.running) return rm.elapsedBeforePause;
+    return rm.elapsedBeforePause + (Date.now() - rm.startTime);
+  }
+
+  function rmStart() {
+    rm.startLen = parseInt(document.getElementById('rmStartLen').value, 10) || 8;
+    rm.endLen = parseInt(document.getElementById('rmEndLen').value, 10) || 12;
+    if (rm.endLen < rm.startLen) rm.endLen = rm.startLen;
+    rm.wordsPerLevel = Math.max(1, Math.min(parseInt(document.getElementById('rmWordsPerLevel').value, 10) || 5, 50));
+    rm.checkpointEvery = parseInt(document.getElementById('rmCheckpointEvery').value, 10) || 0;
+
+    rm.levels = rmBuildLevels();
+    rm.levelIndex = 0;
+    rm.wordIndexInLevel = 0;
+    rm.correct = 0;
+    rm.incorrect = 0;
+    rm.wordsDone = 0;
+    rm.totalWords = rm.levels.length * rm.wordsPerLevel;
+    rm.elapsedBeforePause = 0;
+    rm.startTime = Date.now();
+    rm.running = true;
+    rm.resting = false;
+    rm.finished = false;
+
+    document.getElementById('realMarathonPlay').style.display = '';
+    if (rm.clockTimerHandle) clearInterval(rm.clockTimerHandle);
+    rm.clockTimerHandle = setInterval(rmTickClock, 250);
+    rmNextWord();
+  }
+
+  function rmTickClock() {
+    const label = document.getElementById('rmClockLabel');
+    if (label) label.textContent = rmFormatClock(rmElapsedMs());
+  }
+
+  function rmTrackHTML() {
+    let html = '<div class="rm-track">';
+    rm.levels.forEach(function (len, i) {
+      const cls = i < rm.levelIndex ? 'rm-done' : (i === rm.levelIndex ? 'rm-current' : '');
+      const levelPos = i + 1;
+      const isCp = rmIsCheckpointAfterLevel(levelPos);
+      html += '<div class="rm-track-node ' + cls + (isCp ? ' rm-checkpoint' : '') + '">' + len + 'L</div>';
+      if (i < rm.levels.length - 1) html += '<div class="rm-track-connector"></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function rmNextWord() {
+    if (rm.wordIndexInLevel >= rm.wordsPerLevel) {
+      const levelPos = rm.levelIndex + 1;
+      rm.levelIndex++;
+      rm.wordIndexInLevel = 0;
+      if (rm.levelIndex >= rm.levels.length) { rmFinish(); return; }
+      if (rmIsCheckpointAfterLevel(levelPos)) { rmStartCheckpoint(); return; }
+    }
+    const len = rm.levels[rm.levelIndex];
+    let round = null;
+    let guard = 0;
+    while (!round && guard < 15) { round = rmBuildWordRound(len); guard++; }
+    if (!round) {
+      showToast('ไม่พบคำศัพท์ความยาว ' + len + ' ตัวอักษร — ข้ามไประดับถัดไป');
+      rm.levelIndex++;
+      rm.wordIndexInLevel = 0;
+      if (rm.levelIndex >= rm.levels.length) { rmFinish(); return; }
+      rmNextWord();
+      return;
+    }
+    rm.current = round;
+    rmRenderPlay();
+  }
+
+  function rmStartCheckpoint() {
+    rm.resting = true;
+    rm.running = false;
+    rm.elapsedBeforePause = rmElapsedMs();
+    rm.restDeadline = Date.now() + RM_CHECKPOINT_REST_MS;
+    rmRenderCheckpoint();
+    if (rm.restTimerHandle) clearInterval(rm.restTimerHandle);
+    rm.restTimerHandle = setInterval(rmTickCheckpoint, 100);
+  }
+
+  function rmTickCheckpoint() {
+    const remaining = rm.restDeadline - Date.now();
+    const label = document.getElementById('rmRestTimeLeft');
+    if (label) label.textContent = Math.max(0, Math.ceil(remaining / 1000)) + ' วิ';
+    const fill = document.getElementById('rmRestBarFill');
+    if (fill) fill.style.width = Math.max(0, Math.min(100, (remaining / RM_CHECKPOINT_REST_MS) * 100)) + '%';
+    if (remaining <= 0) rmEndCheckpoint();
+  }
+
+  function rmEndCheckpoint() {
+    if (rm.restTimerHandle) { clearInterval(rm.restTimerHandle); rm.restTimerHandle = null; }
+    rm.resting = false;
+    rm.running = true;
+    rm.startTime = Date.now();
+    rmNextWord();
+  }
+
+  function rmRenderCheckpoint() {
+    const area = document.getElementById('realMarathonPlay');
+    const nextLen = rm.levels[rm.levelIndex];
+    area.innerHTML =
+      rmTrackHTML() +
+      '<div class="session-card rm-checkpoint-card">' +
+        '<div style="font-size:2rem">🚩💧</div>' +
+        '<div class="big-stat">Checkpoint</div>' +
+        '<div class="field-hint">พักดื่มน้ำสั้นๆ ก่อนไปต่อที่ระดับ ' + nextLen + 'L</div>' +
+        '<div class="rm-rest-bar"><div class="rm-rest-bar-fill" id="rmRestBarFill" style="width:100%"></div></div>' +
+        '<div class="rm-clock" id="rmRestTimeLeft">30 วิ</div>' +
+        '<div class="session-controls" style="margin-top:1rem">' +
+          '<button class="btn btn-outline btn-sm" id="rmSkipRestBtn">⏭ ข้ามพัก ออกวิ่งต่อเลย</button>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('rmSkipRestBtn').addEventListener('click', rmEndCheckpoint);
+  }
+
+  function rmRenderPlay() {
+    const area = document.getElementById('realMarathonPlay');
+    if (rm.finished) { rmRenderSummary(area); return; }
+
+    const item = rm.current;
+    const len = rm.levels[rm.levelIndex];
+    const progressLabel = 'ระยะ ' + len + 'L · คำที่ ' + (rm.wordIndexInLevel + 1) + '/' + rm.wordsPerLevel +
+      ' ในระดับนี้ · รวม ' + rm.wordsDone + '/' + rm.totalWords +
+      ' คำ · <span class="rm-clock" id="rmClockLabel">' + rmFormatClock(rmElapsedMs()) + '</span>';
+
+    area.innerHTML =
+      rmTrackHTML() +
+      '<div class="session-progress">' + progressLabel + '</div>' +
+      '<div class="session-card">' +
+        '<div class="session-prompt-label">🔀 เรียงตัวอักษรใหม่ให้เป็นคำศัพท์ความยาว ' + len + ' ตัวอักษร</div>' +
+        tileRowHTML(item.display, 'big') +
+        '<form class="session-answer-form" id="rmForm">' +
+          '<input type="text" id="rmInput" autocomplete="off" placeholder="พิมพ์คำแล้วกด Enter" autofocus>' +
+          '<button class="btn btn-primary" type="submit">ส่งคำตอบ</button>' +
+        '</form>' +
+        '<div class="session-controls">' +
+          '<button class="btn btn-outline" id="rmSkipBtn">⏭ ข้ามคำนี้</button>' +
+          '<button class="btn btn-danger btn-sm" id="rmEndBtn">⏹ จบ Marathon</button>' +
+        '</div>' +
+      '</div>';
+
+    const form = document.getElementById('rmForm');
+    const input = document.getElementById('rmInput');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const guess = input.value.trim().toUpperCase();
+      if (!guess || !rm.current) return;
+      if (rm.current.accepted.has(guess)) {
+        rm.correct++;
+        rm.wordsDone++;
+        rm.wordIndexInLevel++;
+        logWordEncounter(guess, 'marathon');
+        if (window.Achievements) window.Achievements.record('marathon_correct', { count: 1, streak: rm.correct });
+        showToast('✓ ถูกต้อง!');
+        rmNextWord();
+      } else {
+        rm.incorrect++;
+        showToast('✗ ไม่ถูกต้อง ลองอีกครั้ง');
+        input.value = '';
+        input.focus();
+      }
+    });
+
+    document.getElementById('rmSkipBtn').addEventListener('click', function () {
+      rm.wordsDone++;
+      rm.wordIndexInLevel++;
+      showToast('⏭ ข้าม — คำตอบ: ' + rm.current.revealWord);
+      rmNextWord();
+    });
+
+    document.getElementById('rmEndBtn').addEventListener('click', rmFinish);
+  }
+
+  function rmFinish() {
+    rm.finished = true;
+    rm.running = false;
+    if (rm.clockTimerHandle) { clearInterval(rm.clockTimerHandle); rm.clockTimerHandle = null; }
+    if (rm.restTimerHandle) { clearInterval(rm.restTimerHandle); rm.restTimerHandle = null; }
+    if (rm.levelIndex >= rm.levels.length && rm.levels.length > 0) {
+      if (window.Achievements) window.Achievements.record('marathon_complete', { rounds: rm.wordsDone, bestStreak: rm.correct });
+    }
+    rmRenderPlay();
+  }
+
+  function rmRenderSummary(area) {
+    const finishedFully = rm.levelIndex >= rm.levels.length;
+    area.innerHTML =
+      '<div class="session-summary">' +
+        '<div style="font-size:2.4rem">' + (finishedFully ? '🏁' : '⏹') + '</div>' +
+        '<div class="big-stat rm-clock">' + rmFormatClock(rmElapsedMs()) + '</div>' +
+        '<div class="field-hint" style="margin-bottom:1rem">' + (finishedFully ? 'เข้าเส้นชัย! ' : 'จบก่อนกำหนด — ') +
+          'ตอบถูก ' + rm.correct + ' คำ · พลาด/ข้าม ' + rm.incorrect + ' ครั้ง · ระยะ ' + rm.startLen + 'L–' + rm.endLen + 'L</div>' +
+        '<div class="session-controls" style="margin-top:1.2rem">' +
+          '<button class="btn btn-primary" id="rmPlayAgainBtn">🔁 วิ่งอีกรอบ</button>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('rmPlayAgainBtn').addEventListener('click', function () {
+      document.getElementById('realMarathonSetup').style.display = '';
+      document.getElementById('realMarathonPlay').style.display = 'none';
+    });
+  }
+
+  function initRealMarathonGame() {
+    document.getElementById('rmStartBtn').addEventListener('click', function () {
+      document.getElementById('realMarathonSetup').style.display = 'none';
+      rmStart();
+    });
+  }
+
   // ---------- Minigame sub-tab toggle ----------
 
   function initMinigameTabs() {
@@ -6444,12 +7002,14 @@
     const racksBtn = document.getElementById('gameTabRacks');
     const alphaBtn = document.getElementById('gameTabAlpha');
     const marathonBtn = document.getElementById('gameTabMarathon');
+    const realMarathonBtn = document.getElementById('gameTabRealMarathon');
     const typingPanel = document.getElementById('typingGamePanel');
     const racksPanel = document.getElementById('racksGamePanel');
     const alphaPanel = document.getElementById('alphaGamePanel');
     const marathonPanel = document.getElementById('marathonGamePanel');
-    const allBtns = [typingBtn, racksBtn, alphaBtn, marathonBtn];
-    const allPanels = [typingPanel, racksPanel, alphaPanel, marathonPanel];
+    const realMarathonPanel = document.getElementById('realMarathonGamePanel');
+    const allBtns = [typingBtn, racksBtn, alphaBtn, marathonBtn, realMarathonBtn];
+    const allPanels = [typingPanel, racksPanel, alphaPanel, marathonPanel, realMarathonPanel];
 
     function activate(activeBtn, activePanel) {
       allBtns.forEach(function (b) {
@@ -6463,6 +7023,7 @@
     racksBtn.addEventListener('click', function () { activate(racksBtn, racksPanel); });
     alphaBtn.addEventListener('click', function () { activate(alphaBtn, alphaPanel); });
     marathonBtn.addEventListener('click', function () { activate(marathonBtn, marathonPanel); });
+    realMarathonBtn.addEventListener('click', function () { activate(realMarathonBtn, realMarathonPanel); });
   }
 
   // ---------- global keyboard shortcuts ----------
@@ -6507,6 +7068,7 @@
     initRacksGame();
     initAlphaGame();
     initMarathonGame();
+    initRealMarathonGame();
     initMinigameTabs();
     initDashSuggested();
     initDashActions();
