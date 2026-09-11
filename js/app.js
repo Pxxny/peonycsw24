@@ -32,18 +32,18 @@
   const DAILY_GOAL_KEY = 'csw24_daily_goal_v1';
   const DAY_MS = 86400000;
 
-  // DD/MM/YY HH:MM:SS — used to show a Cardbox card's next-review time.
+  // DD/MM/YYYY HH:MM:SS — used to show a Cardbox card's next-review time.
   function formatDueDate(ms) {
     if (!ms) return '—';
     const d = new Date(ms);
     const pad = function (n) { return String(n).padStart(2, '0'); };
     const dd = pad(d.getDate());
     const mm = pad(d.getMonth() + 1);
-    const yy = pad(d.getFullYear() % 100);
+    const yyyy = d.getFullYear();
     const hh = pad(d.getHours());
     const mi = pad(d.getMinutes());
     const ss = pad(d.getSeconds());
-    return dd + '/' + mm + '/' + yy + ' ' + hh + ':' + mi + ':' + ss;
+    return dd + '/' + mm + '/' + yyyy + ' ' + hh + ':' + mi + ':' + ss;
   }
   const PAGE_SIZE = 150;
 
@@ -67,6 +67,8 @@
       'gen.sub': 'สุ่มคำจากพจนานุกรม CSW24 กำหนดความยาวตัวอักษร (ช่วง) และจำนวนคำที่ต้องการ พร้อมดู Anagram และคะแนนของแต่ละคำ',
       'common.minLen': 'ความยาวต่ำสุด', 'common.maxLen': 'ความยาวสูงสุด', 'common.wordCount': 'จำนวนคำ',
       'common.randomize': '🎲 สุ่มคำศัพท์', 'common.selectAll': 'เลือกทั้งหมด', 'common.saveToCardbox': '💾 Save to Cardbox',
+      'common.close': '✕ ปิด',
+      'learnLevelDetail.nextReview': 'ทบทวนครั้งถัดไป',
       'quiz.title': 'แบบทดสอบ — เลือกคำเก็บใน Cardbox',
       'quiz.sub': 'สุ่มคำศัพท์ชุดใหม่ (ค่าเริ่มต้น 50 คำ) เลือกคำที่ถูกใจอยากจำ แล้วกด Save to Cardbox เพื่อเก็บไว้ทบทวน',
       'cardbox.addTitle': '➕ เพิ่มคำศัพท์เข้า Cardbox', 'cardbox.addLabel': 'คำศัพท์ (บรรทัดละคำ)',
@@ -165,6 +167,8 @@
       'gen.sub': 'Randomize words from the CSW24 dictionary, set a length range and word count, view Anagrams and each word\u2019s score.',
       'common.minLen': 'Min length', 'common.maxLen': 'Max length', 'common.wordCount': 'Word count',
       'common.randomize': '🎲 Randomize', 'common.selectAll': 'Select all', 'common.saveToCardbox': '💾 Save to Cardbox',
+      'common.close': '✕ Close',
+      'learnLevelDetail.nextReview': 'Next review',
       'quiz.title': 'Quiz — pick words to save to Cardbox',
       'quiz.sub': 'Randomize a fresh batch (default 50), select the words you want to learn, then Save to Cardbox.',
       'cardbox.addTitle': '➕ Add words to Cardbox', 'cardbox.addLabel': 'Words (one per line)',
@@ -3584,6 +3588,15 @@
         if (learnTabBtn) learnTabBtn.click();
       });
     }
+
+    const lldOverlay = document.getElementById('learnLevelDetailOverlay');
+    const lldCloseBtn = document.getElementById('lldCloseBtn');
+    if (lldCloseBtn) lldCloseBtn.addEventListener('click', closeLearnLevelDetail);
+    if (lldOverlay) {
+      lldOverlay.addEventListener('click', function (e) {
+        if (e.target.id === 'learnLevelDetailOverlay') closeLearnLevelDetail();
+      });
+    }
   }
 
   function renderLearnContent() {
@@ -3682,7 +3695,7 @@
       const prog = learnLevelProgress(L, info.words, byWord);
       const pct = prog.total ? Math.round((prog.done / prog.total) * 100) : 0;
       const isBoss = info.kind === 'boss';
-      html += '<div class="learn-level-row' + (isBoss ? ' learn-level-boss' : '') + '">';
+      html += '<div class="learn-level-row' + (isBoss ? ' learn-level-boss' : '') + '" data-level="' + lv + '">';
       html += '<div class="learn-level-info">';
       if (isBoss) {
         html += '<span class="learn-level-badge boss">👑 Boss ' + info.bossNumber + '</span>';
@@ -3701,14 +3714,69 @@
     wrap.innerHTML = html;
 
     wrap.querySelectorAll('.learn-level-start').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
         startLearnLevel(L, parseInt(btn.dataset.level, 10));
+      });
+    });
+    wrap.querySelectorAll('.learn-level-row').forEach(function (row) {
+      row.addEventListener('click', function () {
+        openLearnLevelDetail(L, parseInt(row.dataset.level, 10));
       });
     });
     const prevBtn = document.getElementById('learnPagePrev');
     if (prevBtn) prevBtn.addEventListener('click', function () { renderLearnLevelPage(L, levelCount, page - 1, pageSize); });
     const nextBtn = document.getElementById('learnPageNext');
     if (nextBtn) nextBtn.addEventListener('click', function () { renderLearnLevelPage(L, levelCount, page + 1, pageSize); });
+  }
+
+  // ---------- Learn: level detail overlay ----------
+  // Tapping anywhere on a level row (other than the "▶ เริ่ม" button itself)
+  // opens this — a per-word breakdown of that level: how many times each
+  // word has been answered right/wrong, and when it's next due for review.
+
+  function lldRowHTML(word, card) {
+    const c = card || null;
+    const correct = c ? c.correct : 0;
+    const incorrect = c ? c.incorrect : 0;
+    const dueStr = c && c.due ? formatDueDate(c.due) : '—';
+    const isLeech = !!(c && c.leech);
+    return (
+      '<div class="lld-row' + (isLeech ? ' is-leech' : '') + '">' +
+        '<span class="lld-word">' + word + (isLeech ? ' 🐛' : '') + '</span>' +
+        '<span class="lld-stats">✓ ' + correct + '&nbsp;&nbsp;✗ ' + incorrect + '</span>' +
+        '<span class="lld-due">' + t('learnLevelDetail.nextReview') + ': ' + dueStr + '</span>' +
+      '</div>'
+    );
+  }
+
+  function openLearnLevelDetail(L, levelIndex) {
+    const info = learnLevelInfo(L, levelIndex);
+    if (!info || !info.words.length) return;
+    const byWord = learnCardboxByWord();
+    const isBoss = info.kind === 'boss';
+
+    document.getElementById('lldTitle').textContent = isBoss
+      ? '👑 Boss ' + info.bossNumber + ' — ' + L + 'L'
+      : 'Level ' + levelIndex + ' — ' + L + 'L';
+    document.getElementById('lldSub').textContent =
+      (isBoss ? ('ทบทวน Level ' + info.coversLevels[0] + '–' + info.coversLevels[1] + ' • ') : '') +
+      info.words.length + ' คำ: ' + info.words[0] + '–' + info.words[info.words.length - 1];
+
+    const listEl = document.getElementById('lldList');
+    listEl.innerHTML = info.words.map(function (w) { return lldRowHTML(w, byWord[w]); }).join('');
+
+    const startBtn = document.getElementById('lldStartBtn');
+    startBtn.onclick = function () {
+      closeLearnLevelDetail();
+      startLearnLevel(L, levelIndex);
+    };
+
+    document.getElementById('learnLevelDetailOverlay').style.display = 'flex';
+  }
+
+  function closeLearnLevelDetail() {
+    document.getElementById('learnLevelDetailOverlay').style.display = 'none';
   }
 
   // ---------- Learn: in-level session (Anagram drill wrapped in a level shell) ----------
