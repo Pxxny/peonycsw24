@@ -24,21 +24,74 @@
 
 <nav class="toolbar" id="toolbar" aria-label="เมนูหลัก">
   <div class="toolbar-scroll">
-    <button class="tab-btn toolbar-tab-btn" data-tab="play" data-i18n="tab.play"><span class="toolbar-icon">♟️</span><span class="toolbar-label">Play</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="dashboard" data-i18n="tab.dashboard"><span class="toolbar-icon">📊</span><span class="toolbar-label">Dashboard</span></button>
-    <button class="tab-btn toolbar-tab-btn toolbar-tab-hidden" data-tab="learn" data-i18n="tab.learn"><span class="toolbar-icon">🎓</span><span class="toolbar-label">Learn</span></button>
-    <button class="tab-btn toolbar-tab-btn" data-tab="browse" data-i18n="tab.browse"><span class="toolbar-icon">📖</span><span class="toolbar-label">คลังคำศัพท์</span></button>
-    <button class="tab-btn toolbar-tab-btn" data-tab="builder" data-i18n="tab.builder"><span class="toolbar-icon">🧩</span><span class="toolbar-label">Word Builder</span></button>
-    <button class="tab-btn toolbar-tab-btn" data-tab="cardbox" data-i18n="tab.cardbox"><span class="toolbar-icon">🗂️</span><span class="toolbar-label">Cardbox</span></button>
-    <button class="tab-btn toolbar-tab-btn" data-tab="addwords" data-i18n="tab.addwords"><span class="toolbar-icon">➕</span><span class="toolbar-label">เพิ่มคำศัพท์</span></button>
-    <button class="tab-btn toolbar-tab-btn" data-tab="generate" data-i18n="tab.generate"><span class="toolbar-icon">📝</span><span class="toolbar-label">สร้างคำศัพท์</span></button>
-    <button class="tab-btn toolbar-tab-btn" data-tab="quiz" data-i18n="tab.quiz"><span class="toolbar-icon">🎯</span><span class="toolbar-label">แบบทดสอบ</span></button>
-    <button class="tab-btn toolbar-tab-btn" data-tab="minigame" data-i18n="tab.minigame"><span class="toolbar-icon">🕹️</span><span class="toolbar-label">Minigame</span></button>
-    <button class="tab-btn toolbar-tab-btn" data-tab="achievements" data-i18n="tab.achievements"><span class="toolbar-icon">🏆</span><span class="toolbar-label">Achievement</span></button>
-    <button class="tab-btn toolbar-tab-btn" data-tab="stats" data-i18n="tab.stats"><span class="toolbar-icon">📈</span><span class="toolbar-label">Stats</span></button>
-    <button class="tab-btn toolbar-tab-btn" id="settingsTabBtn" data-tab="settings" data-i18n="tab.settings"><span class="toolbar-icon">⚙️</span><span class="toolbar-label">Setting</span></button>
+    <button class="tab-btn toolbar-tab-btn" data-tab="play" data-i18n="tab.play"><span class="toolbar-icon">♟️</span><span class="toolbar-label">Play</span></button>
+
+    <details class="nav-group" open>
+      <summary class="nav-group-label"><span class="nav-group-icon">🎓</span><span>เรียน &amp; ฝึกฝน</span></summary>
+      <div class="nav-group-items">
+        <button class="tab-btn toolbar-tab-btn toolbar-tab-hidden" data-tab="learn" data-i18n="tab.learn"><span class="toolbar-icon">🎓</span><span class="toolbar-label">Learn</span></button>
+        <button class="tab-btn toolbar-tab-btn" data-tab="cardbox" data-i18n="tab.cardbox"><span class="toolbar-icon">🗂️</span><span class="toolbar-label">Cardbox</span></button>
+        <button class="tab-btn toolbar-tab-btn" data-tab="minigame" data-i18n="tab.minigame"><span class="toolbar-icon">🕹️</span><span class="toolbar-label">Minigame</span></button>
+      </div>
+    </details>
+
+    <details class="nav-group" open>
+      <summary class="nav-group-label"><span class="nav-group-icon">📖</span><span>คำศัพท์</span></summary>
+      <div class="nav-group-items">
+        <button class="tab-btn toolbar-tab-btn" data-tab="browse" data-i18n="tab.browse"><span class="toolbar-icon">📖</span><span class="toolbar-label">คลังคำศัพท์</span></button>
+        <button class="tab-btn toolbar-tab-btn" data-tab="builder" data-i18n="tab.builder"><span class="toolbar-icon">🧩</span><span class="toolbar-label">Word Builder</span></button>
+        <button class="tab-btn toolbar-tab-btn" data-tab="addwords" data-i18n="tab.addwords"><span class="toolbar-icon">➕</span><span class="toolbar-label">เพิ่มคำศัพท์</span></button>
+        <button class="tab-btn toolbar-tab-btn" data-tab="generate" data-i18n="tab.generate"><span class="toolbar-icon">📝</span><span class="toolbar-label">สร้างคำศัพท์</span></button>
+        <button class="tab-btn toolbar-tab-btn" data-tab="quiz" data-i18n="tab.quiz"><span class="toolbar-icon">🎯</span><span class="toolbar-label">แบบทดสอบ</span></button>
+      </div>
+    </details>
+
+    <details class="nav-group" open>
+      <summary class="nav-group-label"><span class="nav-group-icon">🏆</span><span>ความคืบหน้า</span></summary>
+      <div class="nav-group-items">
+        <button class="tab-btn toolbar-tab-btn" data-tab="achievements" data-i18n="tab.achievements"><span class="toolbar-icon">🏆</span><span class="toolbar-label">Achievement</span></button>
+        <button class="tab-btn toolbar-tab-btn" data-tab="stats" data-i18n="tab.stats"><span class="toolbar-icon">📈</span><span class="toolbar-label">Stats</span></button>
+      </div>
+    </details>
+
+    <button class="tab-btn toolbar-tab-btn nav-settings-btn" id="settingsTabBtn" data-tab="settings" data-i18n="tab.settings"><span class="toolbar-icon">⚙️</span><span class="toolbar-label">Setting</span></button>
+    <button type="button" class="toolbar-tab-btn nav-more-btn" id="navMoreBtn"><span class="toolbar-icon">⋯</span><span class="toolbar-label">เพิ่มเติม</span></button>
   </div>
 </nav>
+
+<div class="modal-overlay" id="navMoreModal" hidden>
+  <div class="modal-box nav-more-box">
+    <h2>เมนูทั้งหมด</h2>
+    <div class="nav-more-group">
+      <div class="nav-more-group-label">🎓 เรียน &amp; ฝึกฝน</div>
+      <div class="nav-more-group-items">
+        <button type="button" class="nav-more-item" data-tab="cardbox">🗂️ Cardbox</button>
+        <button type="button" class="nav-more-item" data-tab="minigame">🕹️ Minigame</button>
+      </div>
+    </div>
+    <div class="nav-more-group">
+      <div class="nav-more-group-label">📖 คำศัพท์</div>
+      <div class="nav-more-group-items">
+        <button type="button" class="nav-more-item" data-tab="browse">📖 คลังคำศัพท์</button>
+        <button type="button" class="nav-more-item" data-tab="builder">🧩 Word Builder</button>
+        <button type="button" class="nav-more-item" data-tab="addwords">➕ เพิ่มคำศัพท์</button>
+        <button type="button" class="nav-more-item" data-tab="generate">📝 สร้างคำศัพท์</button>
+        <button type="button" class="nav-more-item" data-tab="quiz">🎯 แบบทดสอบ</button>
+      </div>
+    </div>
+    <div class="nav-more-group">
+      <div class="nav-more-group-label">🏆 ความคืบหน้า</div>
+      <div class="nav-more-group-items">
+        <button type="button" class="nav-more-item" data-tab="achievements">🏆 Achievement</button>
+        <button type="button" class="nav-more-item" data-tab="stats">📈 Stats</button>
+      </div>
+    </div>
+    <div class="modal-close-row">
+      <button type="button" class="btn btn-outline btn-sm" id="navMoreCloseBtn">ปิด</button>
+    </div>
+  </div>
+</div>
 
 <main>
 
@@ -465,47 +518,51 @@
         <button class="btn btn-outline" id="gameTabRacks" data-i18n="mini.racks">🁢 Random Racks</button>
         <button class="btn btn-outline" id="gameTabAlpha" data-i18n="mini.alpha">🔀 Alphagram Blitz</button>
         <button class="btn btn-outline" id="gameTabMarathon" data-i18n="mini.marathon">⚡ Time Attack Marathon</button>
-        <button class="btn btn-outline" id="gameTabRealMarathon" data-i18n="mini.realmarathon">🏃 Marathon</button>
+        <button class="btn btn-outline" id="gameTabWordMarathon" data-i18n="mini.wordMarathon">🏃 Word Marathon</button>
       </div>
     </div>
 
-    <div class="panel-card" id="realMarathonGamePanel" style="display:none">
-      <h2>🏃 Marathon</h2>
-      <p class="panel-sub">ไต่ระดับความยาวคำตั้งแต่ 5L ถึง 12L แบบมาราธอนจริง — จับเวลารวมทั้งเกม ไม่จำกัดเวลาต่อคำ ระหว่างทางมีจุด Checkpoint ให้พัก 30 วินาทีเป็นระยะ</p>
-      <div id="realMarathonSetup">
+    <div class="panel-card" id="wordMarathonGamePanel" style="display:none">
+      <h2>🏃 Word Marathon</h2>
+      <p class="panel-sub">โหมดฝึกความอึด แรงบันดาลใจจากนักกีฬาทีมชาติที่นั่งซ้อม Marathon 7 ตัวอักษรยาวๆ หลายชั่วโมง — เลือกความยาวคำตั้งแต่ 5-12 ตัวอักษร ตั้งเวลารวมได้ตามใจ พร้อมจุด Checkpoint ให้พักเป็นระยะ</p>
+      <div id="wmSetup">
         <div class="control-row">
-          <div class="field"><label for="rmStartLen">เริ่มที่ความยาว (L)</label>
-            <select id="rmStartLen">
-              <option value="5">5L</option><option value="6">6L</option><option value="7">7L</option>
-              <option value="8" selected>8L</option><option value="9">9L</option><option value="10">10L</option>
-              <option value="11">11L</option>
+          <div class="field">
+            <label for="wmLength">ความยาวคำ (ตัวอักษร)</label>
+            <select id="wmLength">
+              <option value="5">5 ตัวอักษร</option>
+              <option value="6">6 ตัวอักษร</option>
+              <option value="7" selected>7 ตัวอักษร (แบบทีมชาติ)</option>
+              <option value="8">8 ตัวอักษร</option>
+              <option value="9">9 ตัวอักษร</option>
+              <option value="10">10 ตัวอักษร</option>
+              <option value="11">11 ตัวอักษร</option>
+              <option value="12">12 ตัวอักษร</option>
             </select>
           </div>
-          <div class="field"><label for="rmEndLen">จบที่ความยาว (L)</label>
-            <select id="rmEndLen">
-              <option value="6">6L</option><option value="7">7L</option><option value="8">8L</option>
-              <option value="9">9L</option><option value="10">10L</option><option value="11">11L</option>
-              <option value="12" selected>12L</option>
-            </select>
+          <div class="field">
+            <label for="wmDuration">ระยะเวลารวม (นาที)</label>
+            <input type="number" id="wmDuration" min="5" max="480" value="60">
+            <span class="field-hint">ของจริงบางคนซ้อมกัน 7 ชั่วโมง (420 นาที) — ปรับได้ตามต้องการ</span>
+          </div>
+        </div>
+        <div class="control-row">
+          <div class="field">
+            <label for="wmCheckpointEvery">พักที่ Checkpoint ทุกๆ (นาที)</label>
+            <input type="number" id="wmCheckpointEvery" min="0" max="120" value="15">
+            <span class="field-hint">ตั้งเป็น 0 ถ้าไม่ต้องการ Checkpoint อัตโนมัติ (ยังกด "พักตอนนี้" เองได้เสมอ)</span>
+          </div>
+          <div class="field">
+            <label class="checkbox-field" style="margin-top:1.6rem">
+              <input type="checkbox" id="wmShowAnagram"> แสดงคำใบ้เป็นชุดตัวอักษรเรียงแล้ว (ง่ายลง)
+            </label>
           </div>
         </div>
         <div class="control-row">
-          <div class="field"><label for="rmWordsPerLevel">จำนวนคำต่อระดับความยาว</label><input type="number" id="rmWordsPerLevel" min="1" max="50" value="5"></div>
-          <div class="field"><label for="rmCheckpointEvery">พัก (Checkpoint) ทุกๆ กี่ระดับ</label>
-            <select id="rmCheckpointEvery">
-              <option value="0">ไม่ต้องพัก</option>
-              <option value="1">ทุก 1 ระดับ</option>
-              <option value="2" selected>ทุก 2 ระดับ</option>
-              <option value="3">ทุก 3 ระดับ</option>
-            </select>
-          </div>
-        </div>
-        <span class="field-hint">ตัวอย่าง: เริ่ม 8L จบ 12L ต่อระดับ 5 คำ พัก ทุก 2 ระดับ = ตอบคำ 8L,8L,...(5คำ) → 9L → พัก 30 วิ → 10L → 11L → พัก 30 วิ → 12L → เข้าเส้นชัย</span>
-        <div class="control-row">
-          <button class="btn btn-primary" id="rmStartBtn">▶ เริ่มวิ่ง Marathon</button>
+          <button class="btn btn-primary" id="wmStartBtn">▶ เริ่ม Word Marathon</button>
         </div>
       </div>
-      <div id="realMarathonPlay" style="display:none"></div>
+      <div id="wmPlay" style="display:none"></div>
     </div>
 
     <div class="panel-card" id="marathonGamePanel" style="display:none">
@@ -637,29 +694,42 @@
 
   <!-- ============== DASHBOARD TAB ============== -->
   <section id="tab-dashboard" class="tab-panel active">
-    <div class="panel-card">
-      <h2 data-i18n="dash.title">Dashboard</h2>
-      <p class="panel-sub" data-i18n="dash.sub">ภาพรวมความคืบหน้าในการเรียนคำศัพท์ของคุณ ข้อมูลทั้งหมดเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</p>
+    <div class="dash-topline">
+      <div>
+        <h2 class="dash-topline-title" data-i18n="dash.title">Dashboard</h2>
+        <p class="dash-topline-sub" data-i18n="dash.sub">ภาพรวมความคืบหน้าในการเรียนคำศัพท์ของคุณ ข้อมูลทั้งหมดเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</p>
+      </div>
+    </div>
 
-      <div class="stat-grid" id="dashStatGrid"></div>
-
-      <div class="donut-wrap">
-        <div class="donut" id="dashDonut" style="--p:0">
-          <div class="donut-inner"><span class="pct" id="dashPct">0%</span><span class="pct-label" data-i18n="dash.mastered">เชี่ยวชาญ</span></div>
+    <div class="dash-hero-row">
+      <div class="dash-hero-card">
+        <div class="donut-wrap">
+          <div class="donut" id="dashDonut" style="--p:0">
+            <div class="donut-inner"><span class="pct" id="dashPct">0%</span><span class="pct-label" data-i18n="dash.mastered">เชี่ยวชาญ</span></div>
+          </div>
+          <div class="legend" id="dashLegend"></div>
         </div>
-        <div class="legend" id="dashLegend"></div>
+        <div class="dash-hero-copy">
+          <div class="btn-row">
+            <button class="btn btn-teal btn-hero" id="dashLearnBtn">🎓 Learn</button>
+          </div>
+        </div>
       </div>
 
-      <div class="btn-row">
-        <button class="btn btn-teal btn-hero" id="dashLearnBtn">🎓 Learn</button>
-      </div>
+      <button type="button" class="dash-review-card" id="dashReviewBtn">
+        <div class="dash-review-top">
+          <span class="dash-review-label">⏰ REVIEW</span>
+        </div>
+        <div class="dash-review-num" id="dashReviewNum">0</div>
+        <div class="dash-review-detail" id="dashReviewDetail">ถึงกำหนดแล้ว 0 คำ · ~0 นาที</div>
+        <span class="dash-review-cta">เริ่มทวนตอนนี้ →</span>
+      </button>
+    </div>
 
+    <div class="stat-grid" id="dashStatGrid"></div>
+
+    <div class="panel-card dash-actions-card">
       <div class="dash-action-grid">
-        <button type="button" class="dash-action-btn dash-action-review" id="dashReviewBtn">
-          <span class="dash-action-icon">⏰</span>
-          <span class="dash-action-title">REVIEW</span>
-          <span class="dash-action-detail" id="dashReviewDetail">ถึงกำหนดแล้ว 0 คำ · ~0 นาที</span>
-        </button>
         <button type="button" class="dash-action-btn" id="dashTimeBtn">
           <span class="dash-action-icon">⏱️</span>
           <span class="dash-action-title">เวลาเรียน</span>
@@ -676,10 +746,10 @@
           <span class="dash-action-detail">การฝึกทำ Challenge จะทำให้เก่งขึ้น</span>
         </button>
       </div>
+    </div>
 
-      <div class="btn-row">
-        <button class="btn btn-danger btn-sm" id="resetBtn" data-i18n="dash.reset">♻ Reset ความคืบหน้าทั้งหมด</button>
-      </div>
+    <div class="btn-row">
+      <button class="btn btn-danger btn-sm" id="resetBtn" data-i18n="dash.reset">♻ Reset ความคืบหน้าทั้งหมด</button>
     </div>
 
     <div class="modal-overlay" id="dashGoalModal" hidden>
