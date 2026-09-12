@@ -6526,10 +6526,10 @@
   // training format.
 
   const wm = {
-    length: 7, totalMs: 60 * 60000, checkpointMs: 15 * 60000, showAnagram: false,
+    length: 7, totalMs: 60 * 60000, checkpointMs: 15 * 60000,
     correct: 0, incorrect: 0, streak: 0, bestStreak: 0,
     startedAt: 0, elapsedBeforePause: 0, pausedAt: 0, running: false,
-    nextCheckpointAt: 0, checkpointCount: 0,
+    nextCheckpointAt: 0, checkpointCount: 0, missed: [], missedSinceCheckpoint: [],
     current: null, tickHandle: null, finished: false
   };
 
@@ -6561,7 +6561,7 @@
     for (let i = 0; i < pool.length; i++) {
       if (sortLetters(pool[i]) === key) accepted.add(pool[i]);
     }
-    return { display: wm.showAnagram ? key : shuffle(word.split('')).join(''), accepted: accepted, revealWord: word };
+    return { display: key, accepted: accepted, revealWord: word };
   }
 
   function wmStart() {
@@ -6569,13 +6569,14 @@
     wm.totalMs = Math.max(5, Math.min(parseInt(document.getElementById('wmDuration').value, 10) || 60, 480)) * 60000;
     const cpMin = Math.max(0, Math.min(parseInt(document.getElementById('wmCheckpointEvery').value, 10) || 0, 120));
     wm.checkpointMs = cpMin > 0 ? cpMin * 60000 : 0;
-    wm.showAnagram = !!document.getElementById('wmShowAnagram').checked;
 
     wm.correct = 0;
     wm.incorrect = 0;
     wm.streak = 0;
     wm.bestStreak = 0;
     wm.checkpointCount = 0;
+    wm.missed = [];
+    wm.missedSinceCheckpoint = [];
     wm.elapsedBeforePause = 0;
     wm.startedAt = Date.now();
     wm.running = true;
@@ -6627,6 +6628,7 @@
   function wmResume() {
     wm.running = true;
     wm.startedAt = Date.now();
+    wm.missedSinceCheckpoint = [];
     if (wm.checkpointMs > 0) {
       // schedule the next checkpoint relative to total elapsed time so far
       const elapsed = wm.elapsedBeforePause;
@@ -6639,6 +6641,11 @@
   function wmNextRound() {
     const round = wmBuildRound();
     if (!round) {
+      // The word (or set of accepted answers) we most recently showed was
+      // already resolved (answered/skipped) before this call — nothing new
+      // to mark as missed, so clear it before finishing to avoid recording
+      // the same round twice.
+      wm.current = null;
       showToast('ไม่พบคำในความยาวนี้ — จบ Word Marathon ก่อนกำหนด');
       wmFinish();
       return;
@@ -6651,6 +6658,30 @@
     const elapsedH = wmElapsedMs() / 3600000;
     if (elapsedH <= 0) return 0;
     return Math.round(wm.correct / elapsedH);
+  }
+
+  // Records the round's answer(s) into the "missed/remaining" lists so the
+  // learner can review them later. Called when a round ends without being
+  // solved — on skip, or when the marathon finishes (time's up / manual
+  // end) while a round is still showing. Not called on checkpoint/pause,
+  // since that resumes the same round rather than ending it.
+  function wmRecordMissed(round) {
+    if (!round) return;
+    const words = Array.from(round.accepted).sort();
+    wm.missed.push({ display: round.display, words: words });
+    wm.missedSinceCheckpoint.push({ display: round.display, words: words });
+  }
+
+  function wmMissedWordsHTML(list, title) {
+    if (!list.length) return '<p class="session-missed-none">🎉 ไม่มีคำที่เหลือค้างเลย</p>';
+    const allWords = [];
+    list.forEach(function (m) { m.words.forEach(function (w) { allWords.push(w); }); });
+    return '<div class="session-missed-block">' +
+      '<div class="session-missed-title">' + title + ' (' + list.length + ' คำ):</div>' +
+      '<div class="anagram-partners">' +
+        allWords.map(function (w) { return '<span class="anagram-chip">' + w + '</span>'; }).join('') +
+      '</div>' +
+    '</div>';
   }
 
   function wmStatRowHTML() {
@@ -6710,6 +6741,7 @@
     document.getElementById('wmSkipBtn').addEventListener('click', function () {
       wm.incorrect++;
       wm.streak = 0;
+      wmRecordMissed(wm.current);
       showToast('ข้ามไป — คำตอบ: ' + wm.current.revealWord);
       wmNextRound();
     });
@@ -6728,6 +6760,7 @@
         '<div class="big-stat">' + wm.correct + '</div>' +
         '<div class="field-hint">คำที่ตอบถูกสะสม · Streak สูงสุด ' + wm.bestStreak + ' · พลาด/ข้าม ' + wm.incorrect + '</div>' +
         '<div class="wm-pace-note">อัตราเฉลี่ยประมาณ ' + pace + ' คำ/ชั่วโมง</div>' +
+        wmMissedWordsHTML(wm.missedSinceCheckpoint, '📋 คำที่เหลือ/ข้ามไปในช่วงนี้') +
         '<div class="session-controls" style="margin-top:1.2rem">' +
           '<button class="btn btn-primary" id="wmResumeBtn">▶ ไปต่อ</button>' +
           '<button class="btn btn-danger btn-sm" id="wmEndFromCpBtn">⏹ จบ Marathon ตรงนี้</button>' +
@@ -6743,6 +6776,9 @@
     wm.running = false;
     wm.elapsedBeforePause = wmElapsedMs();
     wmStopTicker();
+    // Whatever round was on screen (or paused at a checkpoint) never got
+    // solved, so it's still "left over" for the summary.
+    if (wm.current) { wmRecordMissed(wm.current); wm.current = null; }
     if (wm.correct > 0 && window.Achievements) {
       window.Achievements.record('marathon_complete', { rounds: wm.correct, bestStreak: wm.bestStreak });
     }
@@ -6758,6 +6794,7 @@
         '<div class="field-hint" style="margin-bottom:1rem">คำที่ตอบถูกทั้งหมด (' + wm.length + ' ตัวอักษร) · Streak สูงสุด ' + wm.bestStreak +
           ' · พลาด/ข้าม ' + wm.incorrect + ' · Checkpoint ที่ผ่าน ' + wm.checkpointCount +
           ' · เวลารวม ' + wmFormatDuration(elapsed) + ' · เฉลี่ย ' + pace + ' คำ/ชั่วโมง</div>' +
+        wmMissedWordsHTML(wm.missed, '📋 คำที่เหลือ/พลาดทั้งหมดใน Marathon นี้') +
         '<div class="session-controls" style="margin-top:1.2rem">' +
           '<button class="btn btn-primary" id="wmPlayAgainBtn">🔁 เริ่มใหม่</button>' +
         '</div>' +
