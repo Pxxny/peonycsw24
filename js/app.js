@@ -5039,6 +5039,11 @@
     if (prevBtn) prevBtn.addEventListener('click', function () { shiftGoalDate(-1); });
     if (nextBtn) nextBtn.addEventListener('click', function () { shiftGoalDate(1); });
 
+    const practiceBtn = document.getElementById('dashPracticeBtn');
+    if (practiceBtn) {
+      practiceBtn.addEventListener('click', function () { activateTab('practice'); });
+    }
+
     // Daily Goal type picker — picks a length to study for the viewed date,
     // saved per-date so switching days keeps each day's own goal/progress.
     const goalTypeRow = document.getElementById('dashGoalTypeRow');
