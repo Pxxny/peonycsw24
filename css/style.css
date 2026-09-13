@@ -67,6 +67,12 @@ body {
   background: var(--board-1);
   z-index: 51;
 }
+.app-header .hamburger-btn {
+  position: absolute;
+  top: 1rem;
+  right: 0.8rem;
+  z-index: 52;
+}
 
 /* ---------- toolbar reworked as a sticky sidebar rail ---------- */
 
@@ -231,6 +237,106 @@ main {
   margin: 0 0 1.2rem;
 }
 
+/* ---------- sidebar nav groups (desktop) ---------- */
+
+.nav-group {
+  border: none;
+  margin: 0.35rem 0 0;
+}
+.nav-group-label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #767EA0;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 8px;
+  user-select: none;
+}
+.nav-group-label::-webkit-details-marker { display: none; }
+.nav-group-label:hover { color: var(--cream); background: var(--board-2); }
+.nav-group-icon { font-size: 0.95rem; }
+.nav-group[open] > .nav-group-label::after { content: '▾'; margin-left: auto; opacity: .6; }
+.nav-group:not([open]) > .nav-group-label::after { content: '▸'; margin-left: auto; opacity: .6; }
+.nav-group-items { display: flex; flex-direction: column; gap: 0.15rem; padding-left: 0.3rem; }
+
+.nav-more-btn, .hamburger-btn {
+  display: none;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.86rem;
+  color: #8890A8;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.nav-more-btn:hover, .hamburger-btn:hover { border-color: var(--rail); background: var(--board-2); color: var(--cream); }
+.hamburger-btn { font-size: 1.3rem; width: 2.4rem; height: 2.4rem; border-radius: 9px; flex: 0 0 auto; }
+
+/* ---------- Option B: "More" bottom sheet (mobile) ---------- */
+
+.nav-sheet-overlay { align-items: flex-end; padding: 0; }
+.nav-sheet-box {
+  max-width: 100%; width: 100%; max-height: 78vh; overflow-y: auto;
+  border-radius: 18px 18px 0 0; border-bottom: none;
+  padding-top: 0.5rem;
+  animation: navSheetUp .22s ease;
+}
+.nav-sheet-handle { width: 36px; height: 4px; background: var(--rail); border-radius: 4px; margin: 0.3rem auto 1rem; }
+@keyframes navSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.nav-more-box { max-width: 380px; max-height: 80vh; overflow-y: auto; }
+.nav-more-group { margin-bottom: 1.1rem; }
+.nav-more-group:last-of-type { margin-bottom: 0.4rem; }
+.nav-more-group-label {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--brass); margin-bottom: 0.5rem;
+}
+.nav-more-group-items { display: flex; flex-direction: column; gap: 0.3rem; }
+.nav-more-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  width: 100%; text-align: left;
+  background: var(--board-2); border: 1px solid var(--rail); border-radius: 9px;
+  color: var(--cream); font-family: var(--font-body); font-size: 0.9rem; font-weight: 500;
+  padding: 0.6rem 0.8rem; cursor: pointer;
+}
+.nav-more-item:hover { border-color: var(--brass); }
+
+/* ---------- Option C: hamburger + full side drawer (mobile) ---------- */
+
+.drawer-overlay {
+  position: fixed; inset: 0; background: rgba(10,16,13,0.72); z-index: 200;
+}
+.drawer-overlay[hidden] { display: none; }
+.drawer-box {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 80%; max-width: 300px;
+  background: var(--board-1); border-right: 1px solid var(--rail);
+  padding: 1rem 0.8rem; overflow-y: auto;
+  animation: navDrawerIn .22s ease;
+}
+@keyframes navDrawerIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+.drawer-header {
+  font-family: var(--font-display); font-weight: 700; color: var(--brass);
+  font-size: 1.05rem; margin-bottom: 0.9rem; padding: 0 0.4rem;
+}
+.drawer-group-label {
+  font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: #767EA0; padding: 0.7rem 0.4rem 0.3rem;
+}
+.drawer-item {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left;
+  background: transparent; border: none; border-radius: 8px;
+  color: var(--cream); font-family: var(--font-body); font-size: 0.9rem;
+  padding: 0.55rem 0.6rem; cursor: pointer;
+}
+.drawer-item:hover { background: var(--board-2); }
+.drawer-item.active { background: var(--board-2); color: var(--brass); }
+.drawer-item .ic { font-size: 1rem; width: 1.3rem; text-align: center; flex: 0 0 auto; }
+
 /* ---------- responsive: sidebar collapses to bottom tab bar on mobile ---------- */
 
 @media (max-width: 860px) {
@@ -240,6 +346,11 @@ main {
   .app-header {
     position: static;
     border-bottom: 1px solid var(--rail);
+  }
+  /* Reserve room on the right so the hamburger button (drawer mode only)
+     never overlaps the title/subtitle text as it wraps on a narrow screen. */
+  body[data-mobile-nav="drawer"] .app-header {
+    padding-right: 3.2rem;
   }
   .toolbar {
     position: fixed;
@@ -272,10 +383,14 @@ main {
   main { padding-bottom: 6rem; }
 
   /* Grouped sidebar sections don't fit a horizontal bottom bar — fold
-     everything except the core tabs into the "More" modal instead. */
+     everything except the core tabs into the "More" sheet (default) or a
+     hamburger-triggered side drawer, per the person's choice in Settings. */
   .nav-group { display: none; }
-  .nav-more-btn { display: flex; }
+  body[data-mobile-nav="drawer"] .nav-more-btn { display: none; }
+  body:not([data-mobile-nav="drawer"]) .nav-more-btn { display: flex; }
+  body[data-mobile-nav="drawer"] .hamburger-btn { display: flex; align-items: center; justify-content: center; }
 }
+
 
 /* ---------- form controls ---------- */
 
@@ -354,65 +469,6 @@ main {
 .btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.4rem; }
 
 .toolbar-tab-hidden { display: none !important; }
-
-/* ---------- sidebar nav groups (desktop) ---------- */
-
-.nav-group {
-  border: none;
-  margin: 0.35rem 0 0;
-}
-.nav-group-label {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.45rem 0.7rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #767EA0;
-  cursor: pointer;
-  list-style: none;
-  border-radius: 8px;
-  user-select: none;
-}
-.nav-group-label::-webkit-details-marker { display: none; }
-.nav-group-label:hover { color: var(--cream); background: var(--board-2); }
-.nav-group-icon { font-size: 0.95rem; }
-.nav-group[open] > .nav-group-label::after { content: '▾'; margin-left: auto; opacity: .6; }
-.nav-group:not([open]) > .nav-group-label::after { content: '▸'; margin-left: auto; opacity: .6; }
-.nav-group-items { display: flex; flex-direction: column; gap: 0.15rem; padding-left: 0.3rem; }
-
-.nav-more-btn {
-  display: none;
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 0.86rem;
-  color: #8890A8;
-  background: transparent;
-  border: 1px solid transparent;
-  cursor: pointer;
-}
-.nav-more-btn:hover { border-color: var(--rail); background: var(--board-2); color: var(--cream); }
-
-/* ---------- "More" modal (mobile) ---------- */
-
-.nav-more-box { max-width: 380px; max-height: 80vh; overflow-y: auto; }
-.nav-more-group { margin-bottom: 1.1rem; }
-.nav-more-group:last-of-type { margin-bottom: 0.4rem; }
-.nav-more-group-label {
-  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--brass); margin-bottom: 0.5rem;
-}
-.nav-more-group-items { display: flex; flex-direction: column; gap: 0.3rem; }
-.nav-more-item {
-  display: flex; align-items: center; gap: 0.6rem;
-  width: 100%; text-align: left;
-  background: var(--board-2); border: 1px solid var(--rail); border-radius: 9px;
-  color: var(--cream); font-family: var(--font-body); font-size: 0.9rem; font-weight: 500;
-  padding: 0.6rem 0.8rem; cursor: pointer;
-}
-.nav-more-item:hover { border-color: var(--brass); }
 
 .btn-hero {
   font-size: 1.15rem;
@@ -611,6 +667,11 @@ main {
 .anagram-detail .key-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.55rem; flex-wrap: wrap; }
 .anagram-detail .key-label { color: #8890A8; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .anagram-partners { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.browse-fuzzy-suggest { margin-top: 0.6rem; padding: 0.7rem 0.9rem; background: var(--board-2); border: 1px dashed var(--rail); border-radius: 10px; font-size: 0.85rem; }
+.browse-fuzzy-suggest .fuzzy-label { color: #8890A8; margin-bottom: 0.4rem; }
+.browse-fuzzy-chip { display: inline-flex; align-items: center; background: transparent; border: 1px solid var(--brass); color: var(--brass); border-radius: 999px; padding: 0.2rem 0.7rem; margin: 0 0.35rem 0.35rem 0; font-family: var(--font-mono); font-size: 0.82rem; cursor: pointer; }
+.browse-fuzzy-chip:hover { background: var(--brass); color: #0D1020; }
 .anagram-chip {
   background: var(--teal-deep);
   color: var(--cream);
@@ -700,6 +761,10 @@ main {
 .group-row-name { font-weight: 700; color: var(--cream); }
 .group-row-meta { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .group-row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.group-drag-handle { cursor: grab; color: #767EA0; font-size: 1.1rem; padding: 0 0.4rem; user-select: none; touch-action: none; }
+.group-drag-handle:active { cursor: grabbing; }
+.group-row.sortable-ghost { opacity: 0.4; }
+.group-row.sortable-chosen { box-shadow: 0 0 0 2px var(--brass); }
 
 .status-pill {
   font-size: 0.7rem;
@@ -1874,3 +1939,219 @@ main {
 }
 .wd-form-word { color: var(--cream); font-weight: 700; font-size: 0.85rem; }
 .wd-form-label { color: var(--teal); font-size: 0.68rem; font-family: var(--font-body); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ---------- AI Coach chat widget ---------- */
+
+#coachFab {
+  position: fixed;
+  right: 1.2rem;
+  bottom: 1.5rem;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  border: 1px solid var(--rail);
+  background: var(--brass);
+  color: #0D1020;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  z-index: 150;
+}
+#coachFab:hover { filter: brightness(1.08); }
+
+/* AI Coach: proactive nudge (CoachAdaptiveLoop.js) — a subtle pulse on
+   the FAB when a real training session just finished and the coach has
+   something new to say, without forcing the panel open mid-training.
+   Cleared automatically the next time the panel is opened. */
+#coachFab.coach-fab-nudge {
+  animation: coachFabPulse 1.4s ease-in-out infinite;
+}
+@keyframes coachFabPulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(0,0,0,.4), 0 0 0 0 rgba(124,158,255,.55); }
+  50% { box-shadow: 0 8px 24px rgba(0,0,0,.4), 0 0 0 8px rgba(124,158,255,0); }
+}
+
+#coachPanel {
+  position: fixed;
+  right: 1.2rem;
+  bottom: 5.1rem;
+  width: min(340px, calc(100vw - 2.4rem));
+  max-height: min(520px, calc(100vh - 8rem));
+  background: var(--board-1);
+  border: 1px solid var(--rail);
+  border-radius: 16px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.5);
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#coachPanel[hidden] { display: none; }
+
+#coachHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.8rem 1rem; border-bottom: 1px solid var(--rail);
+  font-weight: 700; color: var(--brass); font-family: var(--font-display);
+}
+#coachHeader button {
+  background: transparent; border: none; color: #8890A8; font-size: 1rem; cursor: pointer;
+}
+#coachHeader button:hover { color: var(--cream); }
+
+#coachMessages {
+  flex: 1; overflow-y: auto; padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.55rem;
+  min-height: 180px;
+}
+.coach-msg {
+  max-width: 85%; padding: 0.55rem 0.8rem; border-radius: 12px; font-size: 0.85rem; line-height: 1.5;
+}
+.coach-msg-coach { align-self: flex-start; background: var(--board-2); color: var(--cream); border: 1px solid var(--rail); }
+.coach-msg-proactive { border-left: 3px solid var(--brass); }
+.coach-msg-user { align-self: flex-end; background: var(--brass); color: #0D1020; }
+
+#coachQuickRow {
+  display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 1rem 0.7rem;
+}
+.coach-quick-chip {
+  background: transparent; border: 1px solid var(--rail); color: #C7CCE6;
+  border-radius: 999px; padding: 0.3rem 0.7rem; font-size: 0.76rem; cursor: pointer;
+}
+.coach-quick-chip:hover { border-color: var(--brass); color: var(--brass); }
+
+#coachForm {
+  display: flex; gap: 0.5rem; padding: 0.7rem 1rem; border-top: 1px solid var(--rail);
+}
+#coachInput {
+  flex: 1; background: var(--board-2); border: 1px solid var(--rail); border-radius: 8px;
+  padding: 0.5rem 0.7rem; color: var(--cream); font-family: var(--font-body); font-size: 0.85rem;
+}
+#coachForm button[type="submit"] {
+  background: var(--brass); color: #0D1020; border: none; border-radius: 8px;
+  padding: 0.5rem 0.9rem; font-weight: 600; cursor: pointer; font-size: 0.85rem;
+}
+
+@media (max-width: 860px) {
+  #coachFab { bottom: 5.4rem; }
+  #coachPanel { bottom: 9rem; max-height: min(60vh, 460px); }
+}
+
+/* ---------- AI Coach: Insights tab (CoachInsightsPanel.js) ---------- */
+/* Widens the existing #coachPanel when the Insights tab is open, so the
+   ECharts charts get enough room to be readable. Chat mode keeps the
+   original compact width untouched. */
+#coachPanel.coach-panel-wide {
+  width: min(560px, calc(100vw - 2.4rem));
+  max-height: min(640px, calc(100vh - 6rem));
+}
+@media (max-width: 860px) {
+  #coachPanel.coach-panel-wide { width: calc(100vw - 1.2rem); max-height: min(72vh, 560px); }
+}
+
+#coachTabRow {
+  display: flex; gap: 0.4rem; padding: 0.6rem 1rem 0; border-bottom: 1px solid var(--rail);
+}
+.coach-tab-btn {
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: #8890A8; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  padding: 0.4rem 0.2rem 0.6rem;
+}
+.coach-tab-btn:hover { color: var(--cream); }
+.coach-tab-btn.coach-tab-active { color: var(--brass); border-bottom-color: var(--brass); }
+
+#coachInsights {
+  flex: 1; overflow-y: auto; padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 1rem;
+}
+#coachInsights[hidden] { display: none; }
+/* #coachMessages/#coachQuickRow/#coachForm set display unconditionally
+   above, which — since an ID selector beats the [hidden] attribute
+   selector's specificity — would otherwise defeat the browser's default
+   "[hidden] { display: none }" rule. These explicit overrides make the
+   hidden attribute (toggled by CoachInsightsPanel.js's switchTab) work
+   as intended when switching to the Insights tab. */
+#coachMessages[hidden], #coachQuickRow[hidden], #coachForm[hidden] { display: none; }
+.coach-chart-block { position: relative; }
+.coach-chart-el { width: 100%; height: 200px; }
+.coach-chart-empty {
+  height: 200px; display: flex; align-items: center; justify-content: center; text-align: center;
+  color: #8890A8; font-size: 0.8rem; padding: 0 1rem; border: 1px dashed var(--rail); border-radius: 10px;
+}
+
+/* ---------- AI Coach: Daily Training Plan tab (CoachPlanPanel.js) ---------- */
+
+.coach-plan-pane {
+  flex: 1; overflow-y: auto; padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.7rem;
+}
+.coach-plan-pane[hidden] { display: none; }
+.coach-plan-summary {
+  color: #C7CCE6; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem;
+}
+.coach-plan-item {
+  background: var(--board-2); border: 1px solid var(--rail); border-radius: 12px;
+  padding: 0.7rem 0.85rem; border-left: 3px solid var(--rail);
+}
+.coach-plan-priority-critical { border-left-color: #FF5D6C; }
+.coach-plan-priority-high { border-left-color: var(--clay); }
+.coach-plan-priority-medium { border-left-color: var(--brass); }
+.coach-plan-priority-low { border-left-color: #767EA0; }
+
+.coach-plan-item-head {
+  display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;
+}
+.coach-plan-item-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.3rem; height: 1.3rem; border-radius: 50%; background: var(--board-1);
+  color: var(--brass); font-size: 0.72rem; font-weight: 700; flex: 0 0 auto;
+}
+.coach-plan-item-type { font-size: 0.76rem; color: #8890A8; font-weight: 600; }
+.coach-plan-item-priority {
+  margin-left: auto; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
+  color: #C7CCE6; background: var(--board-1); border-radius: 999px; padding: 0.12rem 0.5rem;
+}
+.coach-plan-item-title { color: var(--cream); font-weight: 700; font-size: 0.88rem; margin-bottom: 0.25rem; }
+.coach-plan-item-reason { color: #8890A8; font-size: 0.78rem; line-height: 1.5; margin-bottom: 0.55rem; }
+.coach-plan-action-btn {
+  background: var(--brass); color: #0D1020; border: none; border-radius: 8px;
+  padding: 0.4rem 0.8rem; font-weight: 600; font-size: 0.78rem; cursor: pointer;
+}
+.coach-plan-action-btn:hover { filter: brightness(1.08); }
+
+.coach-plan-refresh-btn {
+  align-self: center; background: transparent; border: 1px solid var(--rail); color: #8890A8;
+  border-radius: 999px; padding: 0.4rem 0.9rem; font-size: 0.78rem; cursor: pointer; margin-top: 0.3rem;
+}
+.coach-plan-refresh-btn:hover { border-color: var(--brass); color: var(--brass); }
+
+/* ---------- AI Coach: Repeated Mistakes tab (CoachMistakesPanel.js) ---------- */
+
+.coach-mistakes-pane {
+  flex: 1; overflow-y: auto; padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.55rem;
+}
+.coach-mistakes-pane[hidden] { display: none; }
+.coach-mistake-summary { color: #C7CCE6; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem; }
+
+.coach-mistake-row {
+  display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  background: var(--board-2); border: 1px solid var(--rail); border-left: 3px solid var(--rail);
+  border-radius: 12px; padding: 0.6rem 0.8rem;
+}
+.coach-mistake-sev-critical { border-left-color: #FF5D6C; }
+.coach-mistake-sev-high { border-left-color: var(--clay); }
+.coach-mistake-sev-medium { border-left-color: var(--brass); }
+
+.coach-mistake-word {
+  font-family: var(--font-mono); font-weight: 700; color: var(--cream); font-size: 0.95rem;
+  display: flex; flex-direction: column; gap: 0.1rem; flex: 0 0 auto;
+}
+.coach-mistake-len { font-family: var(--font-body); font-weight: 400; font-size: 0.68rem; color: #767EA0; }
+
+.coach-mistake-stats { display: flex; flex-wrap: wrap; gap: 0.15rem 0.7rem; flex: 1 1 160px; }
+.coach-mistake-stat { font-size: 0.74rem; color: #8890A8; }
+.coach-mistake-stat b { color: #C7CCE6; }
+
+.coach-mistake-action-btn {
+  background: transparent; border: 1px solid var(--brass); color: var(--brass);
+  border-radius: 8px; padding: 0.35rem 0.7rem; font-size: 0.76rem; font-weight: 600; cursor: pointer;
+  flex: 0 0 auto;
+}
+.coach-mistake-action-btn:hover { background: var(--brass); color: #0D1020; }
+.coach-mistake-action-btn:disabled { opacity: 0.6; cursor: default; background: transparent; color: #8890A8; border-color: var(--rail); }
