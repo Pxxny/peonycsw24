@@ -7,6 +7,13 @@
 (function () {
   'use strict';
 
+  // Day.js setup (loaded via CDN in index.html). Guarded so the app still
+  // works if the CDN script fails to load — falls back to plain Date math.
+  if (window.dayjs) {
+    if (window.dayjs_plugin_relativeTime) window.dayjs.extend(window.dayjs_plugin_relativeTime);
+    if (window.dayjs_locale_th) window.dayjs.locale('th');
+  }
+
   const SCRABBLE_VALUES = {
     A: 1, B: 3, C: 3, D: 2, E: 1, F: 4, G: 2, H: 4, I: 1, J: 8,
     K: 5, L: 1, M: 3, N: 1, O: 1, P: 3, Q: 10, R: 1, S: 1, T: 1,
@@ -35,6 +42,7 @@
   // DD/MM/YYYY HH:MM:SS — used to show a Cardbox card's next-review time.
   function formatDueDate(ms) {
     if (!ms) return '—';
+    if (window.dayjs) return window.dayjs(ms).format('DD/MM/YYYY HH:mm:ss');
     const d = new Date(ms);
     const pad = function (n) { return String(n).padStart(2, '0'); };
     const dd = pad(d.getDate());
@@ -44,6 +52,21 @@
     const mi = pad(d.getMinutes());
     const ss = pad(d.getSeconds());
     return dd + '/' + mm + '/' + yyyy + ' ' + hh + ':' + mi + ':' + ss;
+  }
+
+  // Relative "x นาทีที่แล้ว / x ชม.ที่แล้ว" phrasing via Day.js's relativeTime
+  // plugin (Thai locale), falling back to the original hand-rolled version
+  // if the CDN script didn't load.
+  function formatRelativeTime(ms) {
+    if (window.dayjs && window.dayjs_plugin_relativeTime) return window.dayjs(ms).fromNow();
+    const diffMs = Date.now() - ms;
+    const min = Math.floor(diffMs / 60000);
+    if (min < 1) return 'เมื่อสักครู่';
+    if (min < 60) return min + ' นาทีที่แล้ว';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + ' ชม.ที่แล้ว';
+    const d = new Date(ms);
+    return d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
   }
   const PAGE_SIZE = 150;
 
@@ -1493,11 +1516,36 @@
 
 
   let toastTimer = null;
+  let toastAnimation = null;
   function showToast(msg) {
     const el = document.getElementById('toast');
     el.textContent = msg;
-    el.classList.add('show');
     clearTimeout(toastTimer);
+
+    if (window.Motion) {
+      // Spring-based pop-in/out feels livelier than the plain CSS
+      // ease transition — Motion One only needs the target CSS values,
+      // it handles the physics itself.
+      if (toastAnimation) toastAnimation.stop();
+      el.classList.add('show'); // keeps it in the layout/visible via existing CSS as a baseline
+      toastAnimation = window.Motion.animate(
+        el,
+        { transform: ['translateX(-50%) translateY(120%)', 'translateX(-50%) translateY(0%)'], opacity: [0, 1] },
+        { duration: 0.45, easing: [0.34, 1.56, 0.64, 1] } // easeOutBack-ish overshoot
+      );
+      toastTimer = setTimeout(function () {
+        toastAnimation = window.Motion.animate(
+          el,
+          { transform: ['translateX(-50%) translateY(0%)', 'translateX(-50%) translateY(120%)'], opacity: [1, 0] },
+          { duration: 0.25, easing: 'ease-in' }
+        );
+        toastAnimation.finished.then(function () { el.classList.remove('show'); });
+      }, 2600);
+      return;
+    }
+
+    // Fallback: original CSS-transition based show/hide.
+    el.classList.add('show');
     toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2600);
   }
 
@@ -1759,6 +1807,63 @@
     });
   }
 
+  // Hamburger + side drawer (mobile, alternative to the "More" sheet above —
+  // whichever the person picked in Settings > "เมนูมือถือ").
+  const MOBILE_NAV_KEY = 'csw24_mobile_nav_style_v1';
+  function loadMobileNavStyle() {
+    try { return localStorage.getItem(MOBILE_NAV_KEY) || 'sheet'; } catch (e) { return 'sheet'; }
+  }
+  function applyMobileNavStyle(style) {
+    document.body.setAttribute('data-mobile-nav', style);
+  }
+
+  function initDrawerMenu() {
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const overlay = document.getElementById('drawerOverlay');
+    if (!hamburgerBtn || !overlay) return;
+    hamburgerBtn.addEventListener('click', function () { overlay.hidden = false; });
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) overlay.hidden = true;
+    });
+    overlay.querySelectorAll('.drawer-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        overlay.hidden = true;
+        activateTab(item.dataset.tab);
+      });
+    });
+  }
+
+  // Keeps the drawer's own .active highlight in sync with whichever tab
+  // is currently open, since the drawer has its own separate button set
+  // (not .tab-btn) from the sidebar/bottom-bar ones.
+  function syncDrawerActiveState(tabName) {
+    document.querySelectorAll('.drawer-item').forEach(function (item) {
+      item.classList.toggle('active', item.dataset.tab === tabName);
+    });
+  }
+
+  function initMobileNavStyleSetting() {
+    const chipsWrap = document.getElementById('mobileNavStyleChips');
+    if (!chipsWrap) return;
+    const current = loadMobileNavStyle();
+    applyMobileNavStyle(current);
+    chipsWrap.querySelectorAll('.mode-chip').forEach(function (chip) {
+      chip.classList.toggle('active', chip.dataset.navStyle === current);
+      chip.addEventListener('click', function () {
+        const style = chip.dataset.navStyle;
+        applyMobileNavStyle(style);
+        try { localStorage.setItem(MOBILE_NAV_KEY, style); } catch (e) {}
+        chipsWrap.querySelectorAll('.mode-chip').forEach(function (c) { c.classList.toggle('active', c === chip); });
+        // Closing both overlays avoids a stale one being stuck open/hidden
+        // wrong if the person switches style while one happens to be open.
+        const modal = document.getElementById('navMoreModal');
+        const drawer = document.getElementById('drawerOverlay');
+        if (modal) modal.hidden = true;
+        if (drawer) drawer.hidden = true;
+      });
+    });
+  }
+
   // Programmatic tab switch, shared by the tab-bar click handler and any
   // code (e.g. Learn's Review button) that needs to jump to a tab and run
   // its usual on-activate side effects without the user clicking it.
@@ -1783,6 +1888,7 @@
       runBrowseSearch();
     }
     scrollActiveTabIntoView(btn);
+    syncDrawerActiveState(tabName);
   }
 
   function updateCurrentTabLabel(btn) {
@@ -3647,9 +3753,16 @@
     localStorage.setItem(LEARN_LOG_KEY, JSON.stringify(list));
   }
   const LEARN_LOG_CAP = 5000;
-  function logLearnAnswer(word, len, isCorrect) {
+  function logLearnAnswer(word, len, isCorrect, responseMs) {
     const log = loadLearnLog();
-    log.push({ word: word, len: len, correct: !!isCorrect, t: Date.now() });
+    const entry = { word: word, len: len, correct: !!isCorrect, t: Date.now() };
+    // Only stored when known — a card with multiple valid answers (anagram
+    // partners) reuses the same one measured interval for every word it
+    // credits, since they were all typed within that single card's timing,
+    // not answered separately. Old log entries simply have no responseMs
+    // field; every reader here treats that as "unknown", never as 0.
+    if (typeof responseMs === 'number' && responseMs >= 0) entry.responseMs = responseMs;
+    log.push(entry);
     if (log.length > LEARN_LOG_CAP) log.splice(0, log.length - LEARN_LOG_CAP);
     saveLearnLog(log);
   }
@@ -3954,7 +4067,8 @@
 
   const learnSession = {
     length: null, levelIndex: null, info: null, queue: [], index: 0,
-    correct: 0, incorrect: 0, results: [], hintLevel: 0, hintUsed: false
+    correct: 0, incorrect: 0, results: [], hintLevel: 0, hintUsed: false,
+    cardShownAt: 0
   };
 
   function startLearnLevel(L, levelIndex) {
@@ -4058,6 +4172,7 @@
     const letters = sortLetters(word);
     learnSession.hintLevel = 0;
     learnSession.hintUsed = false;
+    learnSession.cardShownAt = Date.now(); // response-time baseline for this card
 
     const validGroup = [word].concat(getAnagrams(word));
     const found = new Set();
@@ -4169,6 +4284,8 @@
   // times seen / last seen anywhere) with the Learn answer log (for
   // Learn-specific correct/wrong counts), so it reads like "เจอคำนี้ครั้งที่
   // เท่าไหร่ เจอล่าสุดเมื่อไหร่ ถูก ผิด กี่ครั้ง" for that one word.
+  const LEARN_SAME_SITTING_GAP_MS = 30 * 60000; // 30 min
+
   function learnWordStatLine(word) {
     const allHist = getWordHistory(word); // most-recent-first, across every mode
     const totalSeen = allHist.length; // includes the encounter just logged
@@ -4176,10 +4293,25 @@
       return '<span class="learn-word-stat-chip is-new">🆕 เจอคำนี้ครั้งแรก</span>';
     }
 
-    // Previous encounter = the one right before this one, i.e. index 1
-    // once "most recent first" includes the just-logged hit at index 0.
-    const prevT = allHist[1] ? allHist[1].t : null;
-    const prevLabel = prevT ? learnFormatWhen(prevT) : 'ไม่ทราบ';
+    // allHist[0] is the encounter just logged for this card. "เจอล่าสุด"
+    // should mean the last time before *this* sitting — so skip back past
+    // any earlier entries that are still within the same sitting (close
+    // together in time, e.g. the word came up more than once in this
+    // Learn/Cardbox session) and report the first genuinely older one.
+    let prevT = null;
+    let cursor = allHist[0].t;
+    for (let i = 1; i < allHist.length; i++) {
+      if (cursor - allHist[i].t < LEARN_SAME_SITTING_GAP_MS) {
+        cursor = allHist[i].t;
+        continue;
+      }
+      prevT = allHist[i].t;
+      break;
+    }
+    // Every prior encounter turned out to be part of the same sitting —
+    // fall back to the oldest one we have rather than claiming "just now".
+    if (prevT === null) prevT = allHist[allHist.length - 1].t;
+    const prevLabel = learnFormatWhen(prevT);
 
     const learnLog = loadLearnLog().filter(function (e) { return e.word === word; });
     let learnCorrect = 0, learnWrong = 0;
@@ -4196,14 +4328,7 @@
   }
 
   function learnFormatWhen(t) {
-    const diffMs = Date.now() - t;
-    const min = Math.floor(diffMs / 60000);
-    if (min < 1) return 'เมื่อสักครู่';
-    if (min < 60) return min + ' นาทีที่แล้ว';
-    const hr = Math.floor(min / 60);
-    if (hr < 24) return hr + ' ชม.ที่แล้ว';
-    const d = new Date(t);
-    return d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    return formatRelativeTime(t);
   }
 
   function renderLearnWordStats(words) {
@@ -4224,6 +4349,15 @@
     if (skipBtn) skipBtn.disabled = true;
     if (input) input.disabled = true;
 
+    // How long this card was on screen before being answered/skipped —
+    // the response-time signal PerformanceAnalyzer reads later. Guarded
+    // against a missing/garbage cardShownAt (e.g. this function somehow
+    // being called before a card was ever rendered) so a bad timestamp
+    // never gets logged as a real response time.
+    const responseMs = (learnSession.cardShownAt && learnSession.cardShownAt <= Date.now())
+      ? (Date.now() - learnSession.cardShownAt)
+      : undefined;
+
     // The learner had to type every word in validGroup (all anagram
     // solutions for this rack) to pass the card, so every one of those
     // words should get full credit — not just the queue's primary `word`.
@@ -4236,13 +4370,13 @@
       // words the learner never got a chance to type shouldn't be marked
       // wrong.
       recordAnswer(word, false, learnSession.hintUsed, true);
-      logLearnAnswer(word, learnSession.length, false);
+      logLearnAnswer(word, learnSession.length, false, responseMs);
       logWordEncounter(word, 'learn');
     } else {
       addWordsToCardbox(wordsToCredit);
       wordsToCredit.forEach(function (w) {
         recordAnswer(w, allCorrect, learnSession.hintUsed, false);
-        logLearnAnswer(w, w.length, allCorrect);
+        logLearnAnswer(w, w.length, allCorrect, responseMs);
         logWordEncounter(w, 'learn');
       });
     }
@@ -4502,6 +4636,48 @@
       .slice(0, n);
   }
 
+  // Keep a single Chart.js instance across re-renders (switching tabs,
+  // language, etc.) — Chart.js throws if you create a second chart on a
+  // canvas that already has one attached.
+  let statsOverviewChartInstance = null;
+
+  function renderStatsOverviewChart(hist, correctCounts, incorrectCounts) {
+    const canvas = document.getElementById('statsOverviewChart');
+    if (!canvas || !window.Chart) return;
+
+    // Total encounters per mode across every word, via Lodash — flattens
+    // the {word: [{mode,...}, ...]} history into one array of events, then
+    // groups+counts by mode in two short calls instead of a hand-rolled loop.
+    const allEvents = window._ ? window._.flatMap(Object.values(hist)) : Object.values(hist).flat();
+    const byMode = window._ ? window._.countBy(allEvents, 'mode') : allEvents.reduce(function (acc, e) { acc[e.mode] = (acc[e.mode] || 0) + 1; return acc; }, {});
+
+    const totalCorrect = window._ ? window._.sum(Object.values(correctCounts)) : Object.values(correctCounts).reduce(function (a, b) { return a + b; }, 0);
+    const totalIncorrect = window._ ? window._.sum(Object.values(incorrectCounts)) : Object.values(incorrectCounts).reduce(function (a, b) { return a + b; }, 0);
+
+    const labels = ['เรียน (Learn)', 'พิมพ์ (Typing)', 'Cardbox', 'Minigame อื่นๆ', 'ถูก (Cardbox)', 'ผิด (Cardbox)'];
+    const otherMinigame = (byMode.racks || 0) + (byMode.alpha || 0) + (byMode.marathon || 0) + (byMode.wordmarathon || 0);
+    const data = [byMode.learn || 0, byMode.typing || 0, byMode.cardbox || 0, otherMinigame, totalCorrect, totalIncorrect];
+    const colors = ['#7C9EFF', '#7FE0B0', '#F2C879', '#C7A0FF', '#7FE0B0', '#FF9AA6'];
+
+    if (statsOverviewChartInstance) {
+      statsOverviewChartInstance.data.datasets[0].data = data;
+      statsOverviewChartInstance.update();
+      return;
+    }
+    statsOverviewChartInstance = new window.Chart(canvas, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderRadius: 4 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#8890A8', font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: '#8890A8' }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
   function renderStatsTab() {
     const hist = loadHistory();
 
@@ -4545,6 +4721,8 @@
 
     const typingEl = document.getElementById('statsTypingList');
     if (typingEl) typingEl.innerHTML = statsRankListHTML(topFromCounts(typingCounts, STATS_TOP_N), 'ครั้ง');
+
+    renderStatsOverviewChart(hist, correctCounts, incorrectCounts);
   }
 
   // ---------- Dashboard: REVIEW / time-studied / Daily Goal ----------
@@ -4876,6 +5054,113 @@
     return '<div class="legend-item"><span class="legend-dot" style="background:' + color + '"></span>' + label + ' (' + count + ')</div>';
   }
 
+  // ---------- IndexedDB backup mirror (idb) ----------
+  // Periodically snapshots every csw24_* localStorage key into IndexedDB as
+  // a safety net — localStorage is the source of truth for everything else
+  // in the app; this only ever writes a full-snapshot copy and is used to
+  // restore FROM, never read from during normal operation.
+
+  const IDB_DB_NAME = 'csw24_backup';
+  const IDB_STORE = 'snapshots';
+  const IDB_SNAPSHOT_KEY = 'latest';
+  let idbBackupDbPromise = null;
+
+  function idbGetDb() {
+    if (!window.idb) return null;
+    if (!idbBackupDbPromise) {
+      idbBackupDbPromise = window.idb.openDB(IDB_DB_NAME, 1, {
+        upgrade: function (db) {
+          if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+        }
+      });
+    }
+    return idbBackupDbPromise;
+  }
+
+  function collectCsw24Snapshot() {
+    const snap = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.indexOf('csw24_') === 0) snap[key] = localStorage.getItem(key);
+    }
+    return snap;
+  }
+
+  async function idbBackupNow() {
+    const db = await idbGetDb();
+    if (!db) return false;
+    const snap = collectCsw24Snapshot();
+    await db.put(IDB_STORE, { data: snap, savedAt: Date.now() }, IDB_SNAPSHOT_KEY);
+    return true;
+  }
+
+  async function idbGetLastBackupInfo() {
+    const db = await idbGetDb();
+    if (!db) return null;
+    return (await db.get(IDB_STORE, IDB_SNAPSHOT_KEY)) || null;
+  }
+
+  async function idbRestoreFromBackup() {
+    const record = await idbGetLastBackupInfo();
+    if (!record || !record.data) return 0;
+    let restored = 0;
+    Object.keys(record.data).forEach(function (key) {
+      localStorage.setItem(key, record.data[key]);
+      restored++;
+    });
+    return restored;
+  }
+
+  function initIdbBackup() {
+    const statusEl = document.getElementById('idbBackupStatus');
+    const backupBtn = document.getElementById('idbBackupNowBtn');
+    const restoreBtn = document.getElementById('idbRestoreBtn');
+    if (!statusEl || !backupBtn || !restoreBtn) return;
+
+    if (!window.idb) {
+      statusEl.textContent = 'IndexedDB backup ใช้ไม่ได้ในเบราว์เซอร์นี้ (โหลดไลบรารีไม่สำเร็จ) — localStorage ยังทำงานปกติ';
+      backupBtn.disabled = true;
+      restoreBtn.disabled = true;
+      return;
+    }
+
+    function refreshStatus() {
+      idbGetLastBackupInfo().then(function (record) {
+        statusEl.textContent = record
+          ? 'สำรองล่าสุด: ' + formatRelativeTime(record.savedAt) + ' (' + formatDueDate(record.savedAt) + ')'
+          : 'ยังไม่เคยสำรองข้อมูลไว้เลย';
+      }).catch(function () {
+        statusEl.textContent = 'ตรวจสอบสถานะสำรองไม่สำเร็จ';
+      });
+    }
+    refreshStatus();
+
+    // Background auto-backup: once per session, a few seconds after load
+    // (so it never competes with the app's own startup work), then every
+    // 10 minutes while the tab stays open.
+    setTimeout(function () { idbBackupNow().then(refreshStatus); }, 8000);
+    setInterval(function () { idbBackupNow().then(refreshStatus); }, 10 * 60000);
+
+    backupBtn.addEventListener('click', function () {
+      idbBackupNow().then(function (ok) {
+        showToast(ok ? '💾 สำรองข้อมูลแล้ว' : 'สำรองไม่สำเร็จ');
+        refreshStatus();
+      });
+    });
+
+    restoreBtn.addEventListener('click', function () {
+      idbGetLastBackupInfo().then(function (record) {
+        if (!record) { showToast('ยังไม่มีข้อมูลสำรอง'); return; }
+        const when = formatDueDate(record.savedAt);
+        if (!window.confirm('กู้คืนข้อมูลจากสำรองเมื่อ ' + when + ' ? การกู้คืนจะเขียนทับข้อมูลปัจจุบันทั้งหมด')) return;
+        idbRestoreFromBackup().then(function (n) {
+          showToast('กู้คืนข้อมูลแล้ว (' + n + ' รายการ) กำลังโหลดหน้าใหม่...');
+          setTimeout(function () { window.location.reload(); }, 1200);
+        });
+      });
+    });
+  }
+
   // ---------- Import / Export ----------
 
   function initImportExport() {
@@ -5016,9 +5301,12 @@
     const dateStr = formatDueDate(g.createdAt);
     return (
       '<div class="card-row group-row" data-group-id="' + g.id + '">' +
-        '<div>' +
-          '<div class="group-row-name">' + escapeHtml(g.name) + '</div>' +
-          '<div class="field-hint">' + dateStr + '</div>' +
+        '<div style="display:flex;align-items:center;gap:0.5rem">' +
+          '<div class="group-drag-handle" title="ลากเพื่อจัดเรียงลำดับใหม่"><i data-lucide="grip-vertical" style="width:1.1em;height:1.1em"></i></div>' +
+          '<div>' +
+            '<div class="group-row-name">' + escapeHtml(g.name) + '</div>' +
+            '<div class="field-hint">' + dateStr + '</div>' +
+          '</div>' +
         '</div>' +
         '<div class="group-row-meta">' +
           '<span class="status-pill status-new">' + t('cardboxGroups.wordCount').replace('{n}', g.cards.length) + '</span>' +
@@ -5041,12 +5329,34 @@
       return;
     }
     listEl.innerHTML = groups.map(cardboxGroupRowHTML).join('');
+    if (window.lucide) window.lucide.createIcons();
   }
 
   function initCardboxGroups() {
     const addBtn = document.getElementById('addCardboxGroupBtn');
     const listEl = document.getElementById('cardboxGroupsList');
     if (!addBtn || !listEl) return;
+
+    // SortableJS: drag the ⠿ handle to reorder saved groups. The list is
+    // re-rendered by renderCardboxGroups() after every add/rename/delete,
+    // so we persist the new order straight to storage on drop rather than
+    // trying to keep a separate Sortable instance in sync with re-renders.
+    if (window.Sortable) {
+      window.Sortable.create(listEl, {
+        handle: '.group-drag-handle',
+        animation: 150,
+        onEnd: function () {
+          const orderedIds = Array.from(listEl.querySelectorAll('.group-row')).map(function (row) { return row.dataset.groupId; });
+          const groups = loadCardboxGroups();
+          const byId = {};
+          groups.forEach(function (g) { byId[g.id] = g; });
+          const reordered = orderedIds.map(function (id) { return byId[id]; }).filter(Boolean);
+          // Guard against any mismatch (e.g. a row without a matching group)
+          // by falling back to the original list rather than losing groups.
+          if (reordered.length === groups.length) saveCardboxGroups(reordered);
+        }
+      });
+    }
 
     addBtn.addEventListener('click', function () {
       const box = loadCardbox();
@@ -5158,16 +5468,20 @@
     // Progressive search: re-run the search in real time as the person types,
     // debounced so fast typing doesn't re-filter the whole dictionary on
     // every single keystroke. Enter still triggers an immediate search.
-    let browseDebounceHandle = null;
+    const debouncedBrowseSearch = window._
+      ? window._.debounce(runBrowseSearch, 200)
+      : (function () {
+          let handle = null;
+          const fn = function () { runBrowseSearch(); };
+          fn.cancel = function () { if (handle) clearTimeout(handle); };
+          return function () { fn.cancel(); handle = setTimeout(fn, 200); };
+        })();
     BROWSE_FILTER_IDS.forEach(function (id) {
       const el = document.getElementById(id);
-      el.addEventListener('input', function () {
-        if (browseDebounceHandle) clearTimeout(browseDebounceHandle);
-        browseDebounceHandle = setTimeout(runBrowseSearch, 200);
-      });
+      el.addEventListener('input', debouncedBrowseSearch);
       el.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
-          if (browseDebounceHandle) clearTimeout(browseDebounceHandle);
+          if (debouncedBrowseSearch.cancel) debouncedBrowseSearch.cancel();
           runBrowseSearch();
         }
       });
@@ -5180,13 +5494,10 @@
     });
 
     const browseLimitEl = document.getElementById('browseLimitInput');
-    browseLimitEl.addEventListener('input', function () {
-      if (browseDebounceHandle) clearTimeout(browseDebounceHandle);
-      browseDebounceHandle = setTimeout(runBrowseSearch, 200);
-    });
+    browseLimitEl.addEventListener('input', debouncedBrowseSearch);
     browseLimitEl.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
-        if (browseDebounceHandle) clearTimeout(browseDebounceHandle);
+        if (debouncedBrowseSearch.cancel) debouncedBrowseSearch.cancel();
         runBrowseSearch();
       }
     });
@@ -5291,7 +5602,27 @@
     return true;
   }
 
-  function runBrowseSearch() {
+  // Comlink-wrapped worker for the expensive "all lengths + filters" scan.
+  // Created lazily on first use; if the worker or Comlink fails to load for
+  // any reason, browseState.worker stays null and runBrowseSearch below
+  // just filters on the main thread as before.
+  let browseWorkerApi = null;
+  let browseWorkerInitTried = false;
+  function getBrowseWorkerApi() {
+    if (browseWorkerInitTried) return browseWorkerApi;
+    browseWorkerInitTried = true;
+    try {
+      const worker = new Worker('js/browse-worker.js');
+      if (window.Comlink) browseWorkerApi = window.Comlink.wrap(worker);
+    } catch (e) {
+      browseWorkerApi = null;
+    }
+    return browseWorkerApi;
+  }
+
+  let browseSearchToken = 0;
+  async function runBrowseSearch() {
+    const myToken = ++browseSearchToken;
     const wordSearch = document.getElementById('browseWordSearch').value.trim().toUpperCase();
     const starts = document.getElementById('filterStarts').value.trim().toUpperCase();
     const ends = document.getElementById('filterEnds').value.trim().toUpperCase();
@@ -5339,7 +5670,29 @@
       candidates = lengthPool(browseState.activeLength);
     }
 
-    const results = hasFilters ? candidates.filter(function (w) { return wordMatchesFilters(w, f); }) : candidates;
+    // The expensive case is "all lengths" (300k+ words) combined with any
+    // filter — offload just that case to a Web Worker (via Comlink) so a
+    // heavy scan never freezes typing/scrolling. Everything else (a single
+    // length, or no filters at all) is cheap enough to stay synchronous —
+    // spinning up worker round-trip overhead for those would be pure
+    // waste.
+    let results;
+    const worthOffloading = hasFilters && browseState.activeLength === 'all' && !f.pattern && candidates.length > 20000;
+    if (worthOffloading) {
+      const api = getBrowseWorkerApi();
+      if (api) {
+        try {
+          results = await api.filterWords(browseState.activeLength, f);
+          if (myToken !== browseSearchToken) return; // a newer search started while we were waiting
+        } catch (e) {
+          results = candidates.filter(function (w) { return wordMatchesFilters(w, f); });
+        }
+      } else {
+        results = candidates.filter(function (w) { return wordMatchesFilters(w, f); });
+      }
+    } else {
+      results = hasFilters ? candidates.filter(function (w) { return wordMatchesFilters(w, f); }) : candidates;
+    }
     browseState.results = results;
     browseState.shown = 0;
     applyBrowseSort();
@@ -5361,11 +5714,53 @@
         ? 'พบ ' + totalMatched.toLocaleString('en-US') + ' คำ · แสดง ' + browseState.results.length.toLocaleString('en-US') + ' คำ (จำกัดไว้)'
         : 'พบ ' + totalMatched.toLocaleString('en-US') + ' คำ';
     renderBrowseResults(true);
+    showBrowseFuzzySuggestions(f.wordSearch, totalMatched, candidates);
     const selectAllCb = document.getElementById('browseSelectAll');
     if (selectAllCb) {
       selectAllCb.checked = browseState.results.length > 0 &&
         browseState.results.every(function (w) { return browseState.selected.has(w); });
     }
+  }
+
+  // Fuse.js-powered "did you mean" — only kicks in when an exact word
+  // search came up empty, so it never interferes with the structured
+  // filters (starts/ends/contains/pattern/rack), which have their own
+  // precise semantics that a fuzzy match would only confuse.
+  let browseFuse = null, browseFuseCandidatesRef = null;
+  function showBrowseFuzzySuggestions(wordSearch, totalMatched, candidates) {
+    const area = document.getElementById('browseFuzzySuggest');
+    if (!area) return;
+    if (!wordSearch || totalMatched > 0 || !window.Fuse) { area.innerHTML = ''; return; }
+
+    // Fuzzy-match against words the same length as the typo'd search term
+    // when possible — both faster than indexing the whole "all lengths"
+    // pool (300k+ words) and more relevant, since a mistyped word is
+    // almost always the same length as the intended one.
+    const fuzzyPool = (candidates.length > 20000 && lengthPool(wordSearch.length).length)
+      ? lengthPool(wordSearch.length)
+      : candidates;
+
+    // Rebuild the Fuse index only when the candidate pool actually changes
+    // (e.g. a different word-length tab) — indexing the full pool on every
+    // keystroke would be wasteful.
+    if (browseFuseCandidatesRef !== fuzzyPool) {
+      browseFuse = new window.Fuse(fuzzyPool, { includeScore: true, threshold: 0.4 });
+      browseFuseCandidatesRef = fuzzyPool;
+    }
+    const hits = browseFuse.search(wordSearch, { limit: 6 }).map(function (r) { return r.item; });
+    if (!hits.length) { area.innerHTML = ''; return; }
+
+    area.innerHTML =
+      '<div class="browse-fuzzy-suggest">' +
+        '<div class="fuzzy-label">ไม่พบคำนี้ตรงๆ — หมายถึงคำเหล่านี้หรือเปล่า?</div>' +
+        hits.map(function (w) { return '<button type="button" class="browse-fuzzy-chip" data-word="' + w + '">' + w + '</button>'; }).join('') +
+      '</div>';
+    area.querySelectorAll('.browse-fuzzy-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        document.getElementById('browseWordSearch').value = chip.dataset.word;
+        runBrowseSearch();
+      });
+    });
   }
 
   // Sorts browseState.results in place according to browseState.sort.
@@ -5376,9 +5771,10 @@
   // compare fairly across different word lengths.
   function applyBrowseSort() {
     const sort = browseState.sort;
+    const useFastSort = !!(window.fastSort && window.fastSort.inPlaceSort);
     if (sort === 'prob-desc' || sort === 'prob-asc' || sort === 'play-desc' || sort === 'play-asc') {
       const isPlay = sort === 'play-desc' || sort === 'play-asc';
-      const dir = (sort === 'prob-desc' || sort === 'play-desc') ? -1 : 1;
+      const desc = (sort === 'prob-desc' || sort === 'play-desc');
       const keyFn = isPlay ? wordPlayability : wordProbabilityNormalizedPct;
       // Precompute each word's key once (Schwartzian transform) instead of
       // recomputing it inside the comparator — on a large result set the
@@ -5387,11 +5783,23 @@
       const withKey = browseState.results.map(function (w) {
         return { w: w, p: keyFn(w) };
       });
-      withKey.sort(function (a, b) {
-        if (a.p !== b.p) return (a.p - b.p) * dir;
-        return a.w < b.w ? -1 : (a.w > b.w ? 1 : 0);
-      });
+      if (useFastSort) {
+        // fast-sort's multi-key `by` handles the primary (score) + tiebreak
+        // (word) comparison and its ties/NaN edge cases for us.
+        window.fastSort.inPlaceSort(withKey).by([
+          { [desc ? 'desc' : 'asc']: function (x) { return x.p; } },
+          { asc: function (x) { return x.w; } }
+        ]);
+      } else {
+        const dir = desc ? -1 : 1;
+        withKey.sort(function (a, b) {
+          if (a.p !== b.p) return (a.p - b.p) * dir;
+          return a.w < b.w ? -1 : (a.w > b.w ? 1 : 0);
+        });
+      }
       browseState.results = withKey.map(function (x) { return x.w; });
+    } else if (useFastSort) {
+      window.fastSort.inPlaceSort(browseState.results).asc();
     } else {
       browseState.results.sort(function (a, b) { return a < b ? -1 : (a > b ? 1 : 0); });
     }
@@ -6552,6 +6960,7 @@
     return m + ':' + String(s).padStart(2, '0');
   }
 
+  let wmRoundSeq = 0;
   function wmBuildRound() {
     const pool = lengthPool(wm.length);
     if (!pool.length) return null;
@@ -6561,7 +6970,8 @@
     for (let i = 0; i < pool.length; i++) {
       if (sortLetters(pool[i]) === key) accepted.add(pool[i]);
     }
-    return { display: key, accepted: accepted, revealWord: word };
+    wmRoundSeq++;
+    return { id: wmRoundSeq, display: key, accepted: accepted, revealWord: word };
   }
 
   function wmStart() {
@@ -6577,6 +6987,7 @@
     wm.checkpointCount = 0;
     wm.missed = [];
     wm.missedSinceCheckpoint = [];
+    wmRoundSeq = 0;
     wm.elapsedBeforePause = 0;
     wm.startedAt = Date.now();
     wm.running = true;
@@ -6661,15 +7072,29 @@
   }
 
   // Records the round's answer(s) into the "missed/remaining" lists so the
-  // learner can review them later. Called when a round ends without being
-  // solved — on skip, or when the marathon finishes (time's up / manual
-  // end) while a round is still showing. Not called on checkpoint/pause,
-  // since that resumes the same round rather than ending it.
+  // learner can review them later. Triggered the first time a round shows
+  // any sign of difficulty — a wrong guess, a skip, or the marathon ending
+  // while the round is still unsolved — so a word the learner eventually
+  // got right after a few misses still shows up for review, not just words
+  // never solved at all. Guarded by round._missedLogged so a round already
+  // flagged (e.g. by a wrong guess) isn't pushed a second time when it's
+  // later skipped or the marathon ends.
   function wmRecordMissed(round) {
-    if (!round) return;
+    if (!round || round._missedLogged) return;
+    round._missedLogged = true;
     const words = Array.from(round.accepted).sort();
-    wm.missed.push({ display: round.display, words: words });
-    wm.missedSinceCheckpoint.push({ display: round.display, words: words });
+    wm.missed.push({ id: round.id, display: round.display, words: words });
+    wm.missedSinceCheckpoint.push({ id: round.id, display: round.display, words: words });
+  }
+
+  // Undoes wmRecordMissed once a round the learner had struggled with
+  // (a wrong guess) is ultimately answered correctly — it was recovered,
+  // not left over, so it shouldn't appear in the end-of-marathon review list.
+  function wmClearMissed(round) {
+    if (!round || !round._missedLogged) return;
+    round._missedLogged = false;
+    wm.missed = wm.missed.filter(function (m) { return m.id !== round.id; });
+    wm.missedSinceCheckpoint = wm.missedSinceCheckpoint.filter(function (m) { return m.id !== round.id; });
   }
 
   function wmMissedWordsHTML(list, title) {
@@ -6677,7 +7102,7 @@
     const allWords = [];
     list.forEach(function (m) { m.words.forEach(function (w) { allWords.push(w); }); });
     return '<div class="session-missed-block">' +
-      '<div class="session-missed-title">' + title + ' (' + list.length + ' คำ):</div>' +
+      '<div class="session-missed-title">' + title + ' (' + allWords.length + ' คำ จาก ' + list.length + ' ชุดตัวอักษร):</div>' +
       '<div class="anagram-partners">' +
         allWords.map(function (w) { return '<span class="anagram-chip">' + w + '</span>'; }).join('') +
       '</div>' +
@@ -6728,10 +7153,12 @@
         logWordEncounter(guess, 'wordmarathon');
         showToast('✓ ถูกต้อง!');
         if (window.Achievements) window.Achievements.record('marathon_correct', { count: 1, streak: wm.streak });
+        wmClearMissed(wm.current); // solved it after all — no longer "left over"
         wmNextRound();
       } else {
         wm.incorrect++;
         wm.streak = 0;
+        wmRecordMissed(wm.current);
         showToast('✗ ไม่ถูกต้อง ลองอีกครั้ง');
         input.value = '';
         input.focus();
@@ -6846,6 +7273,16 @@
 
   // ---------- global keyboard shortcuts ----------
 
+  // Tippy.js: upgrades every element with a `title` attribute (currently
+  // the Cardbox leech badge) into a styled tooltip instead of the browser's
+  // slow, unstyled native one. Uses event delegation on <body> so it also
+  // picks up leech badges rendered later (Cardbox list re-renders on every
+  // filter/sort/page change) without re-scanning the DOM each time.
+  function initTooltips() {
+    if (!window.tippy) return;
+    window.tippy.delegate('body', { target: '[title]', duration: 150 });
+  }
+
   function initGlobalShortcuts() {
     document.addEventListener('keydown', function (e) {
       if (e.key !== '/') return;
@@ -6868,6 +7305,8 @@
     loadCustomWords();
     initTabs();
     initNavMoreMenu();
+    initDrawerMenu();
+    initMobileNavStyleSetting();
     applyI18n();
     initSettingsTab();
     initGenerator();
@@ -6878,6 +7317,7 @@
     initAnagramReview();
     initDueTimeControls();
     initImportExport();
+    initIdbBackup();
     initCardboxImportExport();
     initCardboxGroups();
     initDueEditOverlay();
@@ -6893,6 +7333,7 @@
     initDashActions();
     initLearnTab();
     initGlobalShortcuts();
+    initTooltips();
     if (window.Achievements) {
       window.Achievements.init();
       window.Achievements.renderTab();
@@ -6900,5 +7341,71 @@
     renderCardboxTab();
     renderCardboxGroups();
     renderDashboard();
+    if (window.lucide) window.lucide.createIcons(); // picks up the static Stats-tab icon
+
+    // ---------- CoachUI bridge ----------
+    // CoachUI.js runs as its own separate module with no access to this
+    // file's closed-over functions (app.js exposes nothing globally by
+    // design). This is the one deliberate, narrow doorway between them —
+    // only the specific reads/actions a coach command is allowed to
+    // trigger, nothing else. CoachUI must go through this object; it never
+    // reaches into localStorage or app internals on its own for anything
+    // that already has a bridge method here.
+    window.CSW24Bridge = {
+      activateTab: activateTab,
+      showToast: showToast,
+      isRealWord: function (word) {
+        const w = (word || '').toUpperCase();
+        const pool = (typeof CSW24_BY_LENGTH !== 'undefined' && CSW24_BY_LENGTH[w.length]) || [];
+        return pool.indexOf(w) !== -1;
+      },
+      getAnagramsOf: function (word) {
+        const w = (word || '').toUpperCase();
+        const pool = (typeof CSW24_BY_LENGTH !== 'undefined' && CSW24_BY_LENGTH[w.length]) || [];
+        const key = sortLetters(w);
+        return pool.filter(function (cand) { return sortLetters(cand) === key; });
+      },
+      addToCardbox: function (words) {
+        const list = Array.isArray(words) ? words : [words];
+        const valid = list.map(function (w) { return (w || '').toUpperCase(); })
+          .filter(function (w) { return window.CSW24Bridge.isRealWord(w); });
+        if (!valid.length) return 0;
+        const added = addWordsToCardbox(valid);
+        renderCardboxTab();
+        return added;
+      },
+      switchMinigameTab: function (which) {
+        // which: 'typing' | 'racks' | 'alpha' | 'marathon' | 'wordmarathon'
+        activateTab('minigame');
+        const btnId = { typing: 'gameTabTyping', racks: 'gameTabRacks', alpha: 'gameTabAlpha', marathon: 'gameTabMarathon', wordmarathon: 'gameTabWordMarathon' }[which];
+        const btn = btnId && document.getElementById(btnId);
+        if (btn) btn.click();
+      },
+      getSnapshot: function () {
+        // Only the numbers CoachUI is allowed to state as fact — every
+        // field here is read straight from real storage, nothing derived
+        // or guessed. Kept intentionally small; anything not listed here
+        // is something CoachUI must not claim to know yet.
+        const box = loadCardbox();
+        const due = box.filter(function (c) { return c.due && c.due <= Date.now(); }).length;
+        const leeches = box.filter(function (c) { return c.leech; }).length;
+        const learned = box.filter(function (c) { return c.status === 'learned'; }).length;
+        const log = loadLearnLog();
+        const today = startOfTodayMs();
+        const todayLog = log.filter(function (e) { return e.t >= today; });
+        const todayCorrect = todayLog.filter(function (e) { return e.correct; }).length;
+        return {
+          cardboxTotal: box.length,
+          due: due,
+          leeches: leeches,
+          learned: learned,
+          totalWordsSeen: Object.keys(loadHistory()).length,
+          learnAnswersToday: todayLog.length,
+          learnCorrectToday: todayCorrect,
+          learnAccuracyToday: todayLog.length ? Math.round((todayCorrect / todayLog.length) * 100) : null,
+          learnAnswersLifetime: log.length
+        };
+      }
+    };
   });
 })();

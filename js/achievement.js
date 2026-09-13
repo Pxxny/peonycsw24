@@ -201,6 +201,30 @@
         '<div class="ach-toast-kicker">' + (lang === 'th' ? 'ปลดล็อกความสำเร็จ!' : 'Achievement unlocked!') + '</div>' +
         '<div class="ach-toast-name">' + badge.name[lang] + '</div>' +
       '</div>';
+
+    if (global.Motion) {
+      // Motion One re-runs cleanly on every call, so consecutive badge
+      // unlocks no longer need the old force-reflow trick to restart a
+      // CSS animation class.
+      global.Motion.animate(
+        el,
+        { transform: ['translateX(-50%) translateY(-140%) scale(0.9)', 'translateX(-50%) translateY(0%) scale(1)'], opacity: [0, 1] },
+        { duration: 0.4, easing: [0.34, 1.56, 0.64, 1] }
+      );
+      const icon = el.querySelector('.ach-toast-icon');
+      if (icon) {
+        global.Motion.animate(icon, { transform: ['scale(0)', 'scale(1.3)', 'scale(1)'] }, { duration: 0.5, delay: 0.1 });
+      }
+      setTimeout(function () {
+        global.Motion.animate(
+          el,
+          { opacity: [1, 0], transform: ['translateX(-50%) translateY(0%) scale(1)', 'translateX(-50%) translateY(-40%) scale(0.95)'] },
+          { duration: 0.25 }
+        ).finished.then(function () { setTimeout(drainToastQueue, 320); });
+      }, 2800);
+      return;
+    }
+
     el.classList.remove('ach-toast-show');
     // force reflow so the animation restarts for consecutive toasts
     void el.offsetWidth;
