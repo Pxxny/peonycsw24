@@ -552,6 +552,54 @@ main {
 .stats-rank-word { flex: 1; font-weight: 600; }
 .stats-rank-count { opacity: .75; font-size: .9em; white-space: nowrap; }
 
+/* ---------- retention heatmap calendar (Stats tab) ---------- */
+.retention-streaks { display: flex; gap: .6rem; margin-bottom: .8rem; flex-wrap: wrap; }
+.retention-streak-stat {
+  flex: 1; min-width: 92px; text-align: center; padding: .6rem .5rem; border-radius: 10px;
+  background: rgba(255,255,255,.03);
+}
+.retention-streak-stat strong { display: block; font-size: 1.3rem; font-family: var(--font-display); color: var(--brass); }
+.retention-streak-stat span { display: block; font-size: .72rem; opacity: .65; margin-top: .1rem; }
+.retention-heatmap { display: flex; gap: 3px; overflow-x: auto; padding-bottom: .3rem; }
+.retention-week { display: flex; flex-direction: column; align-items: center; }
+.retention-month-label { font-size: .62rem; opacity: .55; height: 1rem; white-space: nowrap; }
+.retention-week-cells { display: flex; flex-direction: column; gap: 3px; }
+.retention-cell {
+  width: 11px; height: 11px; border-radius: 3px; display: inline-block;
+  background: rgba(255,255,255,.06);
+}
+.retention-cell-empty { background: transparent; }
+.retention-cell[data-level="1"] { background: color-mix(in srgb, var(--teal) 30%, transparent); }
+.retention-cell[data-level="2"] { background: color-mix(in srgb, var(--teal) 55%, transparent); }
+.retention-cell[data-level="3"] { background: color-mix(in srgb, var(--teal) 78%, transparent); }
+.retention-cell[data-level="4"] { background: var(--teal-deep); }
+.retention-heatmap-legend { display: flex; align-items: center; gap: 4px; margin-top: .5rem; font-size: .72rem; opacity: .65; }
+.retention-heatmap-legend .retention-cell { width: 10px; height: 10px; }
+
+/* ---------- practice tab (secret) ---------- */
+.practice-unlock-banner { background: linear-gradient(135deg, rgba(124,158,255,.12), rgba(74,222,156,.08)); }
+.practice-summary { display: flex; flex-direction: column; gap: .7rem; }
+.practice-rec-card { padding: .7rem .8rem; border-radius: 10px; background: rgba(255,255,255,.03); }
+.practice-word-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .55rem; }
+.practice-word-chips .chip { padding: .2rem .55rem; border-radius: 999px; background: rgba(124,158,255,.16); font-size: .82rem; font-weight: 600; }
+.practice-mini-stats { display: flex; gap: .6rem; flex-wrap: wrap; }
+.practice-mini-stat { flex: 1; min-width: 110px; text-align: center; padding: .55rem .5rem; border-radius: 10px; background: rgba(255,255,255,.03); }
+.practice-mini-stat strong { display: block; font-size: 1.25rem; font-family: var(--font-display); color: var(--teal); }
+.practice-mini-stat span { display: block; font-size: .72rem; opacity: .65; margin-top: .1rem; }
+.practice-shortcuts { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+/* ---------- odds trainer ---------- */
+.odds-trainer-question { padding: .8rem; border-radius: 10px; background: rgba(255,255,255,.03); font-weight: 600; margin-bottom: .7rem; line-height: 1.5; }
+.odds-trainer-answer-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .7rem; }
+.odds-trainer-answer-row input { width: 90px; padding: .5rem .6rem; border-radius: 8px; border: 1px solid var(--rail); background: rgba(255,255,255,.04); color: inherit; font-size: 1rem; }
+.odds-trainer-result { min-height: 1.5rem; }
+.odds-trainer-verdict { font-weight: 700; margin-bottom: .3rem; }
+.odds-trainer-pass { color: var(--teal); }
+.odds-trainer-fail { color: var(--clay); }
+.odds-trainer-detail { font-size: .85rem; opacity: .8; line-height: 1.5; }
+.odds-trainer-error { color: var(--clay); font-size: .85rem; }
+.odds-trainer-score { margin-top: .6rem; font-weight: 600; opacity: .85; }
+
 /* ---------- letter tiles ---------- */
 
 .tile-word {
