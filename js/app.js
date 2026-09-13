@@ -1881,6 +1881,7 @@
     if (tabName === 'settings') { renderDashboard(); }
     if (tabName === 'achievements' && window.Achievements) window.Achievements.renderTab();
     if (tabName === 'stats') renderStatsTab();
+    if (tabName === 'practice') renderPracticeTab();
     if (tabName === 'play' && window.PlayGame) window.PlayGame.init();
     if (tabName === 'browse' && !browseInitialized) {
       browseInitialized = true;
@@ -4723,6 +4724,196 @@
     if (typingEl) typingEl.innerHTML = statsRankListHTML(topFromCounts(typingCounts, STATS_TOP_N), 'ครั้ง');
 
     renderStatsOverviewChart(hist, correctCounts, incorrectCounts);
+    renderRetentionHeatmap();
+  }
+
+  // ---------- Retention Heatmap Calendar (Stats tab) ----------
+  // Pure render layer over window.RetentionHeatmap's read-only aggregates.
+  // This function invents no numbers of its own — every count, accuracy%,
+  // and streak value comes straight from RetentionHeatmap.js.
+  const RETENTION_HEATMAP_DAYS = 182; // ~26 weeks, GitHub-style
+  const RETENTION_MONTH_LABELS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+  function renderRetentionHeatmap() {
+    const grid = document.getElementById('retentionHeatmapGrid');
+    const streaksEl = document.getElementById('retentionHeatmapStreaks');
+    if (!grid || !window.RetentionHeatmap) return;
+
+    const days = window.RetentionHeatmap.calendarRange(RETENTION_HEATMAP_DAYS);
+    const info = window.RetentionHeatmap.summary(RETENTION_HEATMAP_DAYS);
+
+    if (streaksEl) {
+      streaksEl.innerHTML =
+        '<div class="retention-streak-stat"><strong>' + info.streaks.current + '</strong><span>วันติดต่อกัน (ปัจจุบัน)</span></div>' +
+        '<div class="retention-streak-stat"><strong>' + info.streaks.longest + '</strong><span>สถิติต่อเนื่องสูงสุด</span></div>' +
+        '<div class="retention-streak-stat"><strong>' + info.activeDays + '/' + info.totalDays + '</strong><span>วันที่มีการฝึก</span></div>';
+    }
+
+    // Lay out as GitHub does: columns = weeks, rows = Sun..Sat. The first
+    // column is padded with empty cells up to the first day's weekday so
+    // every real day lands in its correct row.
+    const firstDow = new Date(days[0].date + 'T00:00:00').getDay();
+    const cells = [];
+    for (let i = 0; i < firstDow; i++) cells.push(null);
+    days.forEach(function (d) { cells.push(d); });
+
+    const weeks = [];
+    for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+
+    let lastMonth = -1;
+    const colsHTML = weeks.map(function (week) {
+      const firstReal = week.find(function (c) { return c; });
+      let monthLabel = '';
+      if (firstReal) {
+        const m = new Date(firstReal.date + 'T00:00:00').getMonth();
+        if (m !== lastMonth) { monthLabel = RETENTION_MONTH_LABELS[m]; lastMonth = m; }
+      }
+      const cellsHTML = week.map(function (day) {
+        if (!day) return '<span class="retention-cell retention-cell-empty"></span>';
+        const title = day.date + ' · ' + day.count + ' ครั้ง' + (day.accuracyPct != null ? ' · แม่นยำ ' + day.accuracyPct + '%' : '');
+        return '<span class="retention-cell" data-level="' + day.level + '" title="' + title + '"></span>';
+      }).join('');
+      return '<div class="retention-week"><span class="retention-month-label">' + monthLabel + '</span><div class="retention-week-cells">' + cellsHTML + '</div></div>';
+    }).join('');
+
+    grid.innerHTML = colsHTML;
+  }
+
+  // ---------- Practice tab (secret — unlocked via AI Coach: "PRACTICE") ----------
+  // Pure render/navigation layer, same honesty rule as the rest of the AI
+  // Coach stack: every number shown comes from RecommendationEngine.js /
+  // SpacedRepetition.js's own real-data computations, never invented here.
+  function renderPracticeTab() {
+    const el = document.getElementById('practiceSummary');
+    if (!el) return;
+
+    if (!window.RecommendationEngine) {
+      el.innerHTML = '<div class="empty-state">ระบบแนะนำการฝึกยังโหลดไม่สำเร็จ ลองรีเฟรชหน้าครับ</div>';
+      return;
+    }
+
+    const rec = window.RecommendationEngine.recommend();
+    const dueCount = (window.SpacedRepetition && typeof window.SpacedRepetition.dueQueue === 'function')
+      ? window.SpacedRepetition.dueQueue().length : null;
+    const leechCount = (window.SpacedRepetition && typeof window.SpacedRepetition.leechReport === 'function')
+      ? window.SpacedRepetition.leechReport().length : null;
+
+    let html = '<div class="practice-rec-card"><strong>' + (rec.reason || 'ยังไม่มีคำแนะนำเฉพาะตอนนี้') + '</strong>';
+    if (rec.words && rec.words.length) {
+      html += '<div class="practice-word-chips">' + rec.words.slice(0, 20).map(function (w) {
+        return '<span class="chip">' + w + '</span>';
+      }).join('') + '</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="practice-mini-stats">';
+    if (dueCount != null) html += '<div class="practice-mini-stat"><strong>' + dueCount + '</strong><span>ถึงกำหนดทบทวน</span></div>';
+    if (leechCount != null) html += '<div class="practice-mini-stat"><strong>' + leechCount + '</strong><span>Leech words</span></div>';
+    html += '</div>';
+
+    el.innerHTML = html;
+  }
+
+  function initPracticeShortcuts() {
+    document.querySelectorAll('[data-practice-go]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const target = btn.getAttribute('data-practice-go');
+        if (target === 'alpha') {
+          activateTab('minigame');
+          const alphaBtn = document.getElementById('gameTabAlpha');
+          if (alphaBtn) alphaBtn.click();
+          return;
+        }
+        activateTab(target);
+      });
+    });
+
+    // Advanced-mode buttons — the trainers themselves aren't built yet, so
+    // this stays an honest "coming soon" rather than faking a working
+    // feature. Label text is read straight off the button so this needs
+    // no separate name lookup table to keep in sync.
+    const PRACTICE_SOON_LABELS = {
+      endgame: 'Endgame Trainer', odds: 'Probability/Odds Trainer',
+      hook: 'Hook Word Trainer', parallel: 'Parallel Play Finder',
+      rackbalance: 'Rack Balance Analyzer', voweldump: 'Vowel Dump Practice',
+      phony: 'Phony Word Spotter', scoreest: 'Score Estimation Challenge',
+      reshuffle: 'Rack Reshuffle Memory Game', tiletrack: 'Tile Tracking Trainer'
+    };
+    document.querySelectorAll('[data-practice-soon]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const key = btn.getAttribute('data-practice-soon');
+        const label = PRACTICE_SOON_LABELS[key] || 'โหมดนี้';
+        showToast(label + ' — เร็วๆ นี้ครับ 🚧');
+      });
+    });
+
+    document.querySelectorAll('[data-practice-open]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const key = btn.getAttribute('data-practice-open');
+        if (key === 'odds') openOddsTrainer();
+      });
+    });
+  }
+
+  // ---------- Probability/Odds Trainer (Practice tab, advanced modes) ----------
+  // Pure UI layer over window.OddsTrainer's exact hypergeometric math —
+  // this code never computes a probability itself, only renders what
+  // OddsTrainer.generateQuestion()/gradeGuess() already computed.
+  let oddsTrainerState = { question: null, correct: 0, total: 0 };
+
+  function openOddsTrainer() {
+    const card = document.getElementById('oddsTrainerCard');
+    if (!card) return;
+    card.style.display = '';
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!oddsTrainerState.question) nextOddsQuestion();
+  }
+
+  function nextOddsQuestion() {
+    if (!window.OddsTrainer) return;
+    oddsTrainerState.question = window.OddsTrainer.generateQuestion();
+    const qEl = document.getElementById('oddsTrainerQuestion');
+    const resultEl = document.getElementById('oddsTrainerResult');
+    const guessEl = document.getElementById('oddsTrainerGuess');
+    if (qEl) qEl.textContent = oddsTrainerState.question ? oddsTrainerState.question.prompt : 'ไม่สามารถสร้างโจทย์ได้ในตอนนี้';
+    if (resultEl) resultEl.innerHTML = '';
+    if (guessEl) { guessEl.value = ''; guessEl.focus(); }
+  }
+
+  function submitOddsGuess() {
+    if (!window.OddsTrainer || !oddsTrainerState.question) return;
+    const guessEl = document.getElementById('oddsTrainerGuess');
+    const resultEl = document.getElementById('oddsTrainerResult');
+    const scoreEl = document.getElementById('oddsTrainerScore');
+    const guess = guessEl ? parseFloat(guessEl.value) : NaN;
+    const graded = window.OddsTrainer.gradeGuess(oddsTrainerState.question, guess);
+    if (!resultEl) return;
+
+    if (!graded.ok) {
+      resultEl.innerHTML = '<div class="odds-trainer-error">' + graded.error + '</div>';
+      return;
+    }
+
+    oddsTrainerState.total++;
+    if (graded.pass) oddsTrainerState.correct++;
+
+    resultEl.innerHTML =
+      '<div class="odds-trainer-verdict ' + (graded.pass ? 'odds-trainer-pass' : 'odds-trainer-fail') + '">' +
+      (graded.pass ? '✅ ใกล้เคียงมาก!' : '❌ ห่างไปหน่อย') +
+      '</div>' +
+      '<div class="odds-trainer-detail">คำตอบจริง: <strong>' + graded.exactPct + '%</strong> ' +
+      '(คุณตอบ ' + graded.guessPct + '% ห่าง ' + graded.diff + ' จุด) · ' + graded.detail + '</div>';
+
+    if (scoreEl) scoreEl.textContent = 'คะแนน: ' + oddsTrainerState.correct + '/' + oddsTrainerState.total;
+  }
+
+  function initOddsTrainerUI() {
+    const submitBtn = document.getElementById('oddsTrainerSubmit');
+    const nextBtn = document.getElementById('oddsTrainerNext');
+    const guessEl = document.getElementById('oddsTrainerGuess');
+    if (submitBtn) submitBtn.addEventListener('click', submitOddsGuess);
+    if (nextBtn) nextBtn.addEventListener('click', nextOddsQuestion);
+    if (guessEl) guessEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitOddsGuess(); });
   }
 
   // ---------- Dashboard: REVIEW / time-studied / Daily Goal ----------
@@ -7329,6 +7520,8 @@
     initMarathonGame();
     initWordMarathonGame();
     initMinigameTabs();
+    initPracticeShortcuts();
+    initOddsTrainerUI();
     initDashSuggested();
     initDashActions();
     initLearnTab();
