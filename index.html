@@ -39,6 +39,7 @@
       <summary class="nav-group-label"><span class="nav-group-icon">🎓</span><span>เรียน &amp; ฝึกฝน</span></summary>
       <div class="nav-group-items">
         <button class="tab-btn toolbar-tab-btn toolbar-tab-hidden" data-tab="learn" data-i18n="tab.learn"><span class="toolbar-icon">🎓</span><span class="toolbar-label">Learn</span></button>
+        <button class="tab-btn toolbar-tab-btn toolbar-tab-hidden" data-tab="practice"><span class="toolbar-icon">🔒</span><span class="toolbar-label">Practice</span></button>
         <button class="tab-btn toolbar-tab-btn" data-tab="cardbox" data-i18n="tab.cardbox"><span class="toolbar-icon">🗂️</span><span class="toolbar-label">Cardbox</span></button>
         <button class="tab-btn toolbar-tab-btn" data-tab="minigame" data-i18n="tab.minigame"><span class="toolbar-icon">🕹️</span><span class="toolbar-label">Minigame</span></button>
       </div>
@@ -850,6 +851,56 @@
     </div>
   </section>
 
+  <!-- ============== PRACTICE TAB (secret — unlocked via AI Coach: "PRACTICE") ============== -->
+  <section id="tab-practice" class="tab-panel">
+    <div class="panel-card practice-unlock-banner">
+      <h2>🔒 Practice Mode</h2>
+      <p class="panel-sub">เมนูลับ ปลดล็อกผ่าน AI Coach — สรุปสิ่งที่ควรฝึกตอนนี้ทั้งหมดในที่เดียว จากข้อมูลจริงของคุณ</p>
+    </div>
+    <div class="panel-card">
+      <h2>🎯 สิ่งที่ควรฝึกตอนนี้</h2>
+      <div id="practiceSummary" class="practice-summary"></div>
+    </div>
+    <div class="panel-card">
+      <h2>⚡ ทางลัด</h2>
+      <div class="practice-shortcuts">
+        <button type="button" class="btn btn-outline" data-practice-go="cardbox">🗂️ ทบทวน Cardbox</button>
+        <button type="button" class="btn btn-outline" data-practice-go="quiz">🎯 แบบทดสอบ</button>
+        <button type="button" class="btn btn-outline" data-practice-go="alpha">🔤 Anagram Blitz</button>
+        <button type="button" class="btn btn-outline" data-practice-go="learn">🎓 Learn</button>
+      </div>
+    </div>
+    <div class="panel-card">
+      <h2>🧪 โหมดฝึกขั้นสูง</h2>
+      <p class="panel-sub">ระบบใหม่ กำลังพัฒนา</p>
+      <div class="practice-shortcuts">
+        <button type="button" class="btn btn-outline" data-practice-soon="endgame">🏁 Endgame Trainer</button>
+        <button type="button" class="btn btn-primary" data-practice-open="odds">🎲 Probability/Odds Trainer</button>
+        <button type="button" class="btn btn-outline" data-practice-soon="hook">🪝 Hook Word Trainer</button>
+        <button type="button" class="btn btn-outline" data-practice-soon="parallel">➕ Parallel Play Finder</button>
+        <button type="button" class="btn btn-outline" data-practice-soon="rackbalance">⚖️ Rack Balance Analyzer</button>
+        <button type="button" class="btn btn-outline" data-practice-soon="voweldump">🔤 Vowel Dump Practice</button>
+        <button type="button" class="btn btn-outline" data-practice-soon="phony">🚫 Phony Word Spotter</button>
+        <button type="button" class="btn btn-outline" data-practice-soon="scoreest">🧮 Score Estimation Challenge</button>
+        <button type="button" class="btn btn-outline" data-practice-soon="reshuffle">🔀 Rack Reshuffle Memory Game</button>
+        <button type="button" class="btn btn-outline" data-practice-soon="tiletrack">📦 Tile Tracking Trainer</button>
+      </div>
+    </div>
+    <div class="panel-card" id="oddsTrainerCard" style="display:none">
+      <h2>🎲 Probability/Odds Trainer</h2>
+      <p class="panel-sub">คำนวณโอกาสจริงจากจำนวนเบี้ยที่เหลือในถุง (hypergeometric) แล้วกรอกคำตอบเป็นเปอร์เซ็นต์</p>
+      <div id="oddsTrainerQuestion" class="odds-trainer-question"></div>
+      <div class="odds-trainer-answer-row">
+        <input type="number" id="oddsTrainerGuess" min="0" max="100" step="0.1" placeholder="0-100" />
+        <span>%</span>
+        <button type="button" class="btn btn-primary" id="oddsTrainerSubmit">ตรวจคำตอบ</button>
+        <button type="button" class="btn btn-outline" id="oddsTrainerNext">โจทย์ถัดไป</button>
+      </div>
+      <div id="oddsTrainerResult" class="odds-trainer-result"></div>
+      <div id="oddsTrainerScore" class="odds-trainer-score"></div>
+    </div>
+  </section>
+
   <!-- ============== ACHIEVEMENTS TAB ============== -->
   <!-- ============== PLAY TAB ============== -->
   <section id="tab-play" class="tab-panel">
@@ -1004,6 +1055,23 @@
       <h2><i data-lucide="bar-chart-3" style="width:1.1em;height:1.1em;vertical-align:-0.15em"></i> ภาพรวมกิจกรรม</h2>
       <div style="max-width:100%;height:220px">
         <canvas id="statsOverviewChart"></canvas>
+      </div>
+    </div>
+    <div class="panel-card">
+      <h2><i data-lucide="calendar-days" style="width:1.1em;height:1.1em;vertical-align:-0.15em"></i> ปฏิทินความสม่ำเสมอ</h2>
+      <p class="panel-sub">แต่ละช่องคือ 1 วัน สีเข้มขึ้นตามจำนวนคำที่เจอวันนั้น (เทียบกับวันที่ขยันที่สุดของคุณเอง)</p>
+      <div id="retentionHeatmapWrap">
+        <div id="retentionHeatmapStreaks" class="retention-streaks"></div>
+        <div id="retentionHeatmapGrid" class="retention-heatmap"></div>
+        <div class="retention-heatmap-legend">
+          <span>น้อย</span>
+          <span class="retention-cell" data-level="0"></span>
+          <span class="retention-cell" data-level="1"></span>
+          <span class="retention-cell" data-level="2"></span>
+          <span class="retention-cell" data-level="3"></span>
+          <span class="retention-cell" data-level="4"></span>
+          <span>มาก</span>
+        </div>
       </div>
     </div>
     <div class="panel-card">
@@ -1291,6 +1359,8 @@
 <script src="js/badges.js"></script>
 <script src="js/achievement.js"></script>
 <script src="js/app.js"></script>
+<script src="js/RetentionHeatmap.js"></script>
+<script src="js/OddsTrainer.js"></script>
 <script src="js/PerformanceAnalyzer.js"></script>
 <!-- AI Coach: WeaknessDetector.js reads PerformanceAnalyzer.js's report +
      the raw Learn log, so it must load after PerformanceAnalyzer.js and
