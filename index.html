@@ -14,6 +14,8 @@
 <!-- Tippy.js core CSS (tooltip box shadow/arrow) — small, load-order safe. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy.css">
 <link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B0D14">
 </head>
 <body>
 
@@ -28,6 +30,7 @@
   </div>
   <h1 data-i18n="app.title">CSW24 Word Lab</h1>
   <p data-i18n="app.subtitle">เจนคำศัพท์ · หา Anagram · เก็บลง Cardbox · ทบทวนแบบ Spaced Repetition · Minigame</p>
+  <span id="offlineBadge" class="offline-badge" hidden>📴 ออฟไลน์</span>
 </header>
 
 <nav class="toolbar" id="toolbar" aria-label="เมนูหลัก">
@@ -1332,8 +1335,7 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
 <!-- idb — small IndexedDB wrapper, used for a background localStorage backup mirror. -->
 <script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.js"></script>
-<!-- Comlink — Web Worker RPC, used to run the heaviest Browse "all lengths" scans off the main thread. -->
-<script src="https://cdn.jsdelivr.net/npm/comlink@4.4.2/dist/umd/comlink.js"></script>
+<!-- (Comlink removed — browse-worker.js now uses plain postMessage so Browse search works fully offline without a CDN dependency.) -->
 <!-- Day.js (+ relativeTime plugin + Thai locale) — replaces manual date/relative-time formatting. -->
 <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.20/dayjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.20/plugin/relativeTime.js"></script>
@@ -1432,5 +1434,31 @@
      Loads last since it depends on every other AI Coach module plus the
      already-mounted coach DOM. -->
 <script src="js/CoachAdaptiveLoop.js"></script>
+<script>
+  // Registers sw.js so the app keeps working with no internet connection
+  // after being opened at least once online. Deliberately silent on
+  // failure (unsupported browser, file:// origin, etc.) — the app already
+  // works fine without it, this is a pure enhancement.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function (err) {
+        console.warn('[app] Service Worker registration failed:', err);
+      });
+    });
+  }
+
+  // Offline badge — a plain readout of the browser's own navigator.onLine
+  // state and online/offline events. Doesn't change app behavior at all;
+  // just tells the learner honestly whether they're currently connected,
+  // since the app itself works the same either way once its files are
+  // cached by the Service Worker above.
+  (function () {
+    const badge = document.getElementById('offlineBadge');
+    function update() { if (badge) badge.hidden = navigator.onLine; }
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    update();
+  })();
+</script>
 </body>
 </html>
