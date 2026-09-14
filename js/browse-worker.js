@@ -1,7 +1,12 @@
 /* =========================================================
    CSW24 Word Lab — Browse search Web Worker
    Runs the heaviest "all lengths" filter scans off the main
-   thread via Comlink, so a big search never freezes the UI.
+   thread via plain postMessage, so a big search never freezes
+   the UI. No external dependency (previously Comlink from a
+   CDN) — a classic Worker's importScripts() for a cross-origin
+   URL is not reliably interceptable by the page's offline
+   Service Worker in every browser, so this file is kept
+   fully self-contained and works offline unconditionally.
 
    This file intentionally duplicates a handful of small, pure
    functions from app.js (sortLetters, wordScore, pattern/rack
@@ -13,7 +18,6 @@
    words-data.js, not the whole app.
    ========================================================= */
 
-importScripts('https://cdn.jsdelivr.net/npm/comlink@4.4.2/dist/umd/comlink.js');
 importScripts('words-data.js');
 
 const SCRABBLE_VALUES = {
@@ -120,4 +124,17 @@ const api = {
   }
 };
 
-Comlink.expose(api);
+// Plain postMessage RPC (replaces Comlink.expose). Each request carries an
+// id so the main thread can match responses if multiple calls overlap;
+// requestId is echoed back untouched.
+self.onmessage = function (e) {
+  const msg = e.data || {};
+  if (msg.method !== 'filterWords') return;
+  let result, error;
+  try {
+    result = api.filterWords(msg.args[0], msg.args[1]);
+  } catch (err) {
+    error = err && err.message ? err.message : String(err);
+  }
+  self.postMessage({ requestId: msg.requestId, result: result, error: error });
+};

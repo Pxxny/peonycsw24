@@ -5798,22 +5798,51 @@
     return true;
   }
 
-  // Comlink-wrapped worker for the expensive "all lengths + filters" scan.
-  // Created lazily on first use; if the worker or Comlink fails to load for
-  // any reason, browseState.worker stays null and runBrowseSearch below
-  // just filters on the main thread as before.
-  let browseWorkerApi = null;
+  // Plain-postMessage-wrapped worker for the expensive "all lengths +
+  // filters" scan (no external RPC library — see browse-worker.js's
+  // header for why). Created lazily on first use; if the worker fails to
+  // load for any reason, browseState.worker stays null and
+  // runBrowseSearch below just filters on the main thread as before.
+  let browseWorkerHandle = null;
   let browseWorkerInitTried = false;
+  let browseWorkerReqId = 0;
+  const browseWorkerPending = {};
+
   function getBrowseWorkerApi() {
-    if (browseWorkerInitTried) return browseWorkerApi;
+    if (browseWorkerInitTried) return browseWorkerHandle;
     browseWorkerInitTried = true;
     try {
       const worker = new Worker('js/browse-worker.js');
-      if (window.Comlink) browseWorkerApi = window.Comlink.wrap(worker);
+      worker.onmessage = function (e) {
+        const msg = e.data || {};
+        const resolver = browseWorkerPending[msg.requestId];
+        if (!resolver) return;
+        delete browseWorkerPending[msg.requestId];
+        if (msg.error) resolver.reject(new Error(msg.error));
+        else resolver.resolve(msg.result);
+      };
+      worker.onerror = function () {
+        // Worker itself failed to load/run (e.g. blocked, unsupported) —
+        // reject every pending call so callers fall back to main-thread
+        // filtering instead of hanging forever.
+        Object.keys(browseWorkerPending).forEach(function (id) {
+          browseWorkerPending[id].reject(new Error('browse worker error'));
+          delete browseWorkerPending[id];
+        });
+      };
+      browseWorkerHandle = {
+        filterWords: function (activeLength, filters) {
+          return new Promise(function (resolve, reject) {
+            const requestId = ++browseWorkerReqId;
+            browseWorkerPending[requestId] = { resolve: resolve, reject: reject };
+            worker.postMessage({ method: 'filterWords', args: [activeLength, filters], requestId: requestId });
+          });
+        }
+      };
     } catch (e) {
-      browseWorkerApi = null;
+      browseWorkerHandle = null;
     }
-    return browseWorkerApi;
+    return browseWorkerHandle;
   }
 
   let browseSearchToken = 0;
@@ -5867,7 +5896,7 @@
     }
 
     // The expensive case is "all lengths" (300k+ words) combined with any
-    // filter — offload just that case to a Web Worker (via Comlink) so a
+    // filter — offload just that case to a Web Worker (plain postMessage) so a
     // heavy scan never freezes typing/scrolling. Everything else (a single
     // length, or no filters at all) is cheap enough to stay synchronous —
     // spinning up worker round-trip overhead for those would be pure
