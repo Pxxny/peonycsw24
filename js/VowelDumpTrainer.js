@@ -31,7 +31,10 @@
 
   function drawRack() {
     const rm = global.RackManage;
-    if (!rm) return null;
+    if (!rm) {
+      console.warn('[VowelDumpTrainer] window.RackManage is not available — check that js/BoardSystem/RackManage.js loaded successfully before this file.');
+      return null;
+    }
     const bag = rm.createBag();
     return rm.drawTiles(bag, RACK_SIZE);
   }

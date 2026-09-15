@@ -4833,9 +4833,7 @@
     // feature. Label text is read straight off the button so this needs
     // no separate name lookup table to keep in sync.
     const PRACTICE_SOON_LABELS = {
-      endgame: 'Endgame Trainer', odds: 'Probability/Odds Trainer',
-      hook: 'Hook Word Trainer', parallel: 'Parallel Play Finder',
-      rackbalance: 'Rack Balance Analyzer', voweldump: 'Vowel Dump Practice',
+      hook: 'Hook Word Trainer',
       phony: 'Phony Word Spotter', scoreest: 'Score Estimation Challenge',
       reshuffle: 'Rack Reshuffle Memory Game', tiletrack: 'Tile Tracking Trainer'
     };
@@ -4853,6 +4851,8 @@
         if (key === 'odds') openOddsTrainer();
         if (key === 'voweldump') openVowelDumpTrainer();
         if (key === 'rackbalance') openRackBalanceAnalyzer();
+        if (key === 'endgame') openEndgameTrainer();
+        if (key === 'parallel') openParallelFinder();
       });
     });
   }
@@ -5059,6 +5059,225 @@
   function initRackBalanceUI() {
     const nextBtn = document.getElementById('rackBalanceNext');
     if (nextBtn) nextBtn.addEventListener('click', nextRackBalanceRack);
+  }
+
+  // ---------- Endgame Trainer / Parallel Play Finder (Practice tab) ----------
+  // Both modes share one Web Worker (endgame-practice-worker.js) that runs
+  // EndgamePracticeEngine's real board-building + exhaustive move search
+  // off the main thread — see that engine file's header for why the final
+  // search step specifically needs to stay uncapped (and can take a few
+  // seconds), and endgame-practice-worker.js's header for why it's worth
+  // moving off the UI thread. This wrapper never falls back to running
+  // the search on the main thread if the worker fails to load, since an
+  // un-capped exhaustive search really would freeze the page — instead it
+  // reports the failure honestly so the learner isn't left staring at a
+  // dead spinner.
+  let endgameWorkerHandle = null;
+  let endgameWorkerInitTried = false;
+  let endgameWorkerReqId = 0;
+  const endgameWorkerPending = {};
+
+  function getEndgameWorker() {
+    if (endgameWorkerInitTried) return endgameWorkerHandle;
+    endgameWorkerInitTried = true;
+    try {
+      const worker = new Worker('js/endgame-practice-worker.js');
+      worker.onmessage = function (e) {
+        const msg = e.data || {};
+        const resolver = endgameWorkerPending[msg.requestId];
+        if (!resolver) return;
+        delete endgameWorkerPending[msg.requestId];
+        if (msg.error) resolver.reject(new Error(msg.error));
+        else resolver.resolve(msg.result);
+      };
+      worker.onerror = function () {
+        Object.keys(endgameWorkerPending).forEach(function (id) {
+          endgameWorkerPending[id].reject(new Error('endgame practice worker error'));
+          delete endgameWorkerPending[id];
+        });
+      };
+      endgameWorkerHandle = {
+        call: function (method, args) {
+          return new Promise(function (resolve, reject) {
+            const requestId = ++endgameWorkerReqId;
+            endgameWorkerPending[requestId] = { resolve: resolve, reject: reject };
+            worker.postMessage({ method: method, args: args, requestId: requestId });
+          });
+        }
+      };
+    } catch (e) {
+      endgameWorkerHandle = null;
+    }
+    return endgameWorkerHandle;
+  }
+
+  const ENDGAME_BOARD_MOVES = 5;   // how many real moves to pre-place before the learner's turn
+  const ENDGAME_RACK_SIZE = 7;
+
+  // Renders a completed (non-interactive) board into `el` — same visual
+  // classes as the Play tab's real board (play-board/play-cell/premium-*)
+  // so it looks consistent, but with no click/drag handlers since this
+  // board is a fixed scenario, not something the learner plays tiles onto.
+  function renderStaticBoard(el, board) {
+    if (!el || !window.BoardSystems) return;
+    el.innerHTML = '';
+    const size = window.BoardSystems.SIZE;
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const cellEl = document.createElement('div');
+        cellEl.className = 'play-cell';
+        const premium = window.BoardSystems.getPremium(r, c);
+        if (premium) cellEl.classList.add('premium-' + premium);
+        if (r === 7 && c === 7) cellEl.classList.add('center-star');
+        const cell = board[r][c];
+        if (cell) {
+          cellEl.classList.add('has-tile');
+          cellEl.textContent = cell.letter;
+          const val = document.createElement('span');
+          val.className = 'tile-val';
+          val.textContent = cell.blank ? '' : (window.RackManage.tileValue(cell.letter) || '');
+          cellEl.appendChild(val);
+        }
+        el.appendChild(cellEl);
+      }
+    }
+  }
+
+  function renderStaticRack(el, rack) {
+    if (!el) return;
+    el.innerHTML = rack.map(plainTileHTML).join('');
+  }
+
+  // ----- Endgame Trainer -----
+  function openEndgameTrainer() {
+    const card = document.getElementById('endgameTrainerCard');
+    if (!card) return;
+    card.style.display = '';
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    nextEndgameScenario();
+  }
+
+  function nextEndgameScenario() {
+    const loading = document.getElementById('endgameLoading');
+    const content = document.getElementById('endgameContent');
+    const resultEl = document.getElementById('endgameResult');
+    const worker = getEndgameWorker();
+    if (!worker) {
+      if (loading) loading.textContent = '⚠️ ไม่สามารถเปิดระบบนี้ได้ในเบราว์เซอร์นี้ (ต้องรองรับ Web Worker)';
+      if (loading) loading.style.display = '';
+      if (content) content.style.display = 'none';
+      return;
+    }
+    if (loading) loading.style.display = '';
+    if (content) content.style.display = 'none';
+    if (resultEl) resultEl.innerHTML = '';
+
+    worker.call('buildEndgameScenario', [ENDGAME_BOARD_MOVES, ENDGAME_RACK_SIZE]).then(function (scenario) {
+      if (loading) loading.style.display = 'none';
+      if (!scenario) {
+        if (resultEl) resultEl.innerHTML = '<div class="odds-trainer-error">ไม่สามารถสร้างสถานการณ์ได้ ลองใหม่อีกครั้ง</div>';
+        return;
+      }
+      if (content) content.style.display = '';
+      endgameState = scenario;
+      renderStaticBoard(document.getElementById('endgameBoard'), scenario.board);
+      renderStaticRack(document.getElementById('endgameRack'), scenario.rack);
+      const tilesLeftEl = document.getElementById('endgameTilesLeft');
+      if (tilesLeftEl) tilesLeftEl.textContent = scenario.tilesLeftInBag;
+    }).catch(function (err) {
+      if (loading) { loading.style.display = ''; loading.textContent = '⚠️ เกิดข้อผิดพลาด: ' + err.message; }
+      if (content) content.style.display = 'none';
+    });
+  }
+
+  let endgameState = null;
+
+  function revealEndgameAnswer() {
+    const resultEl = document.getElementById('endgameResult');
+    if (!resultEl || !endgameState) return;
+    if (!endgameState.best) {
+      resultEl.innerHTML = '<div class="vowel-dump-verdict">ไม่พบคำที่วางได้เลยจากมือนี้บนกระดานนี้ (เกิดขึ้นได้ยาก แต่เป็นไปได้)</div>';
+      return;
+    }
+    const best = endgameState.best;
+    resultEl.innerHTML =
+      '<div class="vowel-dump-verdict">✅ คำที่ทำแต้มสูงสุด: ' + best.word + ' (' + best.score + ' แต้ม)</div>' +
+      '<div class="vowel-dump-detail">คำที่เกิดขึ้น: ' + best.formed.map(function (f) { return f.text; }).join(', ') + '</div>';
+  }
+
+  function initEndgameUI() {
+    const revealBtn = document.getElementById('endgameReveal');
+    const nextBtn = document.getElementById('endgameNext');
+    if (revealBtn) revealBtn.addEventListener('click', revealEndgameAnswer);
+    if (nextBtn) nextBtn.addEventListener('click', nextEndgameScenario);
+  }
+
+  // ----- Parallel Play Finder -----
+  let parallelState = null;
+
+  function openParallelFinder() {
+    const card = document.getElementById('parallelFinderCard');
+    if (!card) return;
+    card.style.display = '';
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    nextParallelScenario();
+  }
+
+  function nextParallelScenario() {
+    const loading = document.getElementById('parallelLoading');
+    const content = document.getElementById('parallelContent');
+    const resultEl = document.getElementById('parallelResult');
+    const worker = getEndgameWorker();
+    if (!worker) {
+      if (loading) loading.textContent = '⚠️ ไม่สามารถเปิดระบบนี้ได้ในเบราว์เซอร์นี้ (ต้องรองรับ Web Worker)';
+      if (loading) loading.style.display = '';
+      if (content) content.style.display = 'none';
+      return;
+    }
+    if (loading) loading.style.display = '';
+    if (content) content.style.display = 'none';
+    if (resultEl) resultEl.innerHTML = '';
+
+    worker.call('buildParallelScenario', [ENDGAME_BOARD_MOVES, ENDGAME_RACK_SIZE]).then(function (scenario) {
+      if (loading) loading.style.display = 'none';
+      if (!scenario) {
+        if (resultEl) resultEl.innerHTML = '<div class="odds-trainer-error">ไม่สามารถสร้างสถานการณ์ได้ ลองใหม่อีกครั้ง</div>';
+        return;
+      }
+      if (content) content.style.display = '';
+      parallelState = scenario;
+      renderStaticBoard(document.getElementById('parallelBoard'), scenario.board);
+      renderStaticRack(document.getElementById('parallelRack'), scenario.rack);
+    }).catch(function (err) {
+      if (loading) { loading.style.display = ''; loading.textContent = '⚠️ เกิดข้อผิดพลาด: ' + err.message; }
+      if (content) content.style.display = 'none';
+    });
+  }
+
+  function revealParallelAnswers() {
+    const resultEl = document.getElementById('parallelResult');
+    if (!resultEl || !parallelState) return;
+    if (!parallelState.parallels.length) {
+      resultEl.innerHTML = '<div class="vowel-dump-verdict">ไม่มี Parallel Play ที่เป็นไปได้จากมือนี้บนกระดานนี้ (จากทั้งหมด ' + parallelState.allMoveCount + ' คำที่วางได้)</div>';
+      return;
+    }
+    // Sort by score descending and cap the display list — the underlying
+    // data (parallelState.parallels) is always the complete real set;
+    // only the on-screen list is trimmed so the panel stays scannable.
+    const sorted = parallelState.parallels.slice().sort(function (a, b) { return b.score - a.score; });
+    const shown = sorted.slice(0, 15);
+    resultEl.innerHTML =
+      '<div class="vowel-dump-verdict">✅ พบ Parallel Play ทั้งหมด ' + parallelState.parallels.length + ' แบบ (จาก ' + parallelState.allMoveCount + ' คำที่วางได้ทั้งหมด)</div>' +
+      '<div class="vowel-dump-detail">' + shown.map(function (c) {
+        return c.word + ' (' + c.score + ' แต้ม) → ' + c.formed.map(function (f) { return f.text; }).join(', ');
+      }).join('<br>') + (sorted.length > shown.length ? '<br>...และอีก ' + (sorted.length - shown.length) + ' แบบ' : '') + '</div>';
+  }
+
+  function initParallelUI() {
+    const revealBtn = document.getElementById('parallelReveal');
+    const nextBtn = document.getElementById('parallelNext');
+    if (revealBtn) revealBtn.addEventListener('click', revealParallelAnswers);
+    if (nextBtn) nextBtn.addEventListener('click', nextParallelScenario);
   }
 
   // ---------- Dashboard: REVIEW / time-studied / Daily Goal ----------
@@ -7674,6 +7893,8 @@
     initOddsTrainerUI();
     initVowelDumpUI();
     initRackBalanceUI();
+    initEndgameUI();
+    initParallelUI();
     initDashSuggested();
     initDashActions();
     initLearnTab();

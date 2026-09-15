@@ -34,10 +34,12 @@
   const HARD_LETTERS = { J: 1, Q: 1, X: 1, Z: 1 };
 
   function drawRack() {
-    const vd = global.VowelDumpTrainer;
-    if (vd && typeof vd.drawRack === 'function') return vd.drawRack();
-    // Fallback if VowelDumpTrainer isn't loaded for some reason — same
-    // draw logic, duplicated minimally rather than left broken.
+    // Draws directly from RackManage rather than delegating to
+    // VowelDumpTrainer.drawRack() — both trainers want the exact same
+    // "7 tiles from a fresh full bag" draw, but calling RackManage
+    // directly here means this file has no dependency on
+    // VowelDumpTrainer.js's load order or internal implementation at
+    // all, which is one less way for this trainer to break.
     const rm = global.RackManage;
     if (!rm) return null;
     const bag = rm.createBag();
