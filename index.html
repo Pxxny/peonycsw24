@@ -879,10 +879,10 @@
       <h2>🧪 โหมดฝึกขั้นสูง</h2>
       <p class="panel-sub">ระบบใหม่ กำลังพัฒนา</p>
       <div class="practice-shortcuts">
-        <button type="button" class="btn btn-outline" data-practice-soon="endgame">🏁 Endgame Trainer</button>
+        <button type="button" class="btn btn-primary" data-practice-open="endgame">🏁 Endgame Trainer</button>
         <button type="button" class="btn btn-primary" data-practice-open="odds">🎲 Probability/Odds Trainer</button>
         <button type="button" class="btn btn-outline" data-practice-soon="hook">🪝 Hook Word Trainer</button>
-        <button type="button" class="btn btn-outline" data-practice-soon="parallel">➕ Parallel Play Finder</button>
+        <button type="button" class="btn btn-primary" data-practice-open="parallel">➕ Parallel Play Finder</button>
         <button type="button" class="btn btn-primary" data-practice-open="rackbalance">⚖️ Rack Balance Analyzer</button>
         <button type="button" class="btn btn-primary" data-practice-open="voweldump">🔤 Vowel Dump Practice</button>
         <button type="button" class="btn btn-outline" data-practice-soon="phony">🚫 Phony Word Spotter</button>
@@ -923,7 +923,37 @@
       </div>
       <div id="rackBalanceResult" class="rack-balance-result"></div>
     </div>
+    <div class="panel-card" id="endgameTrainerCard" style="display:none">
+      <h2>🏁 Endgame Trainer</h2>
+      <p class="panel-sub">สร้างกระดานกลางเกมจริง (ทุกคำถูกต้องตามกติกา) + มือช่วงท้ายเกม — หาคำที่ทำแต้มสูงสุดให้ได้ก่อนเฉลย</p>
+      <div id="endgameLoading" class="practice-board-loading" style="display:none">⏳ กำลังสร้างสถานการณ์... (อาจใช้เวลาสักครู่)</div>
+      <div id="endgameContent" style="display:none">
+        <div class="play-board-wrap"><div id="endgameBoard" class="play-board"></div></div>
+        <div class="vowel-dump-rack" id="endgameRack"></div>
+        <p class="panel-sub">มือของคุณเหลือ <span id="endgameTilesLeft"></span> ตัวในถุง — หาคำที่ทำแต้มได้สูงสุด แล้วกดเฉลย</p>
+        <div class="vowel-dump-answer-row">
+          <button type="button" class="btn btn-primary" id="endgameReveal">เฉลยคำตอบที่ดีที่สุด</button>
+          <button type="button" class="btn btn-outline" id="endgameNext">สถานการณ์ใหม่</button>
+        </div>
+        <div id="endgameResult" class="rack-balance-result"></div>
+      </div>
+    </div>
+    <div class="panel-card" id="parallelFinderCard" style="display:none">
+      <h2>➕ Parallel Play Finder</h2>
+      <p class="panel-sub">สร้างกระดานกลางเกมจริง — หา "parallel play" ทั้งหมดที่เป็นไปได้ (คำที่วางแล้วเกิดคำใหม่มากกว่า 1 คำพร้อมกัน)</p>
+      <div id="parallelLoading" class="practice-board-loading" style="display:none">⏳ กำลังสร้างสถานการณ์... (อาจใช้เวลาสักครู่)</div>
+      <div id="parallelContent" style="display:none">
+        <div class="play-board-wrap"><div id="parallelBoard" class="play-board"></div></div>
+        <div class="vowel-dump-rack" id="parallelRack"></div>
+        <div class="vowel-dump-answer-row">
+          <button type="button" class="btn btn-primary" id="parallelReveal">แสดง Parallel Play ทั้งหมด</button>
+          <button type="button" class="btn btn-outline" id="parallelNext">สถานการณ์ใหม่</button>
+        </div>
+        <div id="parallelResult" class="rack-balance-result"></div>
+      </div>
+    </div>
   </section>
+
 
   <!-- ============== ACHIEVEMENTS TAB ============== -->
   <!-- ============== PLAY TAB ============== -->
@@ -1127,17 +1157,6 @@
       <p class="panel-sub" data-i18n="settings.sub">ตั้งค่าภาษา สีเว็บ และช่วงความยาวคำแนะนำของ Dashboard</p>
 
       <div class="field" style="margin-bottom:1rem">
-        <label>อัปเดตล่าสุด</label>
-        <div class="btn-row">
-          <button type="button" class="btn btn-outline btn-sm ru-open-btn" id="ruOpenBtn">
-            <span>🕘 Recent Updates</span>
-            <span class="ru-dot" id="ruNewDot" hidden></span>
-          </button>
-        </div>
-        <p class="field-hint">ดูประวัติการอัปเดตของเว็บ ดึงข้อมูลสดจาก GitHub Commits</p>
-      </div>
-
-      <div class="field" style="margin-bottom:1rem">
         <label data-i18n="settings.language">ภาษา / Language</label>
         <div class="chip-row">
           <button type="button" class="mode-chip" id="langThBtn" data-lang="th">ไทย</button>
@@ -1240,36 +1259,6 @@
 </main>
 
 <div id="toast"></div>
-
-<!-- ============== RECENT UPDATES MODAL ============== -->
-<div class="modal-overlay" id="ruModalOverlay" hidden>
-  <div class="modal-box ru-modal-box">
-    <div class="ru-modal-head">
-      <div>
-        <h2>🕘 Recent Updates</h2>
-        <p class="ru-modal-sub">อัปเดตล่าสุดของเว็บ ดึงข้อมูลสดจาก GitHub</p>
-      </div>
-      <button type="button" class="ru-modal-close" id="ruCloseBtn" aria-label="Close">✕</button>
-    </div>
-    <div class="ru-filter-row" id="ruFilterRow">
-      <button type="button" class="ru-filter-chip active" data-kind="all">ทั้งหมด</button>
-      <button type="button" class="ru-filter-chip" data-kind="feature">✨ Feature</button>
-      <button type="button" class="ru-filter-chip" data-kind="fix">🐛 Fix</button>
-      <button type="button" class="ru-filter-chip" data-kind="ui">🎨 UI</button>
-      <button type="button" class="ru-filter-chip" data-kind="improve">🔧 Improvement</button>
-    </div>
-    <div class="ru-timeline-scroll" id="ruTimelineScroll">
-      <ul class="ru-timeline" id="ruTimeline" hidden></ul>
-      <div class="ru-state-box" id="ruStateBox">
-        <div class="ru-spinner"></div>
-        <div>กำลังโหลดอัปเดต...</div>
-      </div>
-      <div class="ru-load-more-row" id="ruLoadMoreRow" hidden>
-        <button type="button" class="btn btn-outline btn-sm ru-load-more-btn" id="ruLoadMoreBtn">โหลดเพิ่ม</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <div id="wordDetailOverlay" class="wd-overlay" style="display:none">
   <div class="wd-card">
@@ -1420,11 +1409,11 @@
 <script src="js/BoardSystem/RackManage.js"></script>
 <script src="js/BoardSystem/BoardSystems.js"></script>
 <script src="js/BoardSystem/BotSystem.js"></script>
+<script src="js/EndgamePracticeEngine.js"></script>
 <script src="js/BoardSystem/PlayGame.js"></script>
 <script src="js/badges.js"></script>
 <script src="js/achievement.js"></script>
 <script src="js/app.js"></script>
-<script src="js/RecentUpdates.js"></script>
 <script src="js/RetentionHeatmap.js"></script>
 <script src="js/OddsTrainer.js"></script>
 <script src="js/VowelDumpTrainer.js"></script>
