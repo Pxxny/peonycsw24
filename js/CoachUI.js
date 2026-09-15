@@ -101,7 +101,10 @@
       case 'OPEN_PRACTICE':
         // Secret menu — only ever reached via the exact-keyword check in
         // handleUserMessage(), never guessed at by intent-matching.
-        bridge.activateTab('practice');
+        // unlockPracticeAndOpen (not plain activateTab) is required here:
+        // app.js locks the practice tab shut every fresh page load and
+        // only this bridge call is allowed to lift that lock.
+        bridge.unlockPracticeAndOpen();
         break;
       case 'SHOW_WORD':
       case 'SHOW_ANAGRAM': {

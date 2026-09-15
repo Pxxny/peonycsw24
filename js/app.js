@@ -180,7 +180,9 @@
       'settings.showHooksHint': 'เมื่อเปิด: ทุกที่ที่แสดงคำศัพท์จะโชว์ตัวอักษรที่เติมหน้า/หลังคำแล้วได้เป็นคำใหม่ทันที',
       'settings.anagramAutoReshuffle': 'สลับตัวอักษร Anagram อัตโนมัติหลังตอบ',
       'settings.anagramAutoReshuffleHint': 'เมื่อเปิด: หลังตอบครบ/ข้ามคำใน Anagram แล้ว ระหว่างรอไปคำถัดไป ตัวอักษรจะสลับที่ใหม่ให้เองทุกกี่วินาทีตามที่ตั้ง',
-      'settings.anagramReshuffleSeconds': 'สลับทุกกี่วินาที'
+      'settings.anagramReshuffleSeconds': 'สลับทุกกี่วินาที',
+      'settings.anagramLiveCheck': 'ตรวจคำตอบ Anagram ทันทีที่พิมพ์',
+      'settings.anagramLiveCheckHint': 'เมื่อเปิด: ระบบบอกถูก/ผิดทันทีทุกครั้งที่พิมพ์ (แบบเดิม) เมื่อปิด: ต้องกดปุ่มส่งคำตอบ หรือกด Enter ก่อนถึงจะตรวจให้ — ใช้ได้ทั้งหน้า Learn และ Cardbox > Anagram'
     },
     en: {
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 Generate', 'tab.quiz': '🎯 Quiz',
@@ -287,7 +289,9 @@
       'settings.showHooksHint': 'When on: everywhere a word is shown, letters that extend it into a new word (front or back) are displayed right away.',
       'settings.anagramAutoReshuffle': 'Auto-reshuffle Anagram tiles after answering',
       'settings.anagramAutoReshuffleHint': 'When on: after finishing or skipping an Anagram card, while waiting to move to the next one, the letter tiles reshuffle every N seconds.',
-      'settings.anagramReshuffleSeconds': 'Reshuffle every (seconds)'
+      'settings.anagramReshuffleSeconds': 'Reshuffle every (seconds)',
+      'settings.anagramLiveCheck': 'Check Anagram answer as you type',
+      'settings.anagramLiveCheckHint': 'When on: right/wrong is shown on every keystroke (old behavior). When off: you must press the submit button or Enter before it checks — applies to both the Learn tab and Cardbox > Anagram.'
     }
   };
 
@@ -310,6 +314,7 @@
     showHooks: true,
     anagramCycleInterval: 3,
     anagramAutoReshuffle: false, anagramReshuffleSeconds: 3,
+    anagramLiveCheck: true, // true = judge every keystroke (old behavior); false = wait for Enter/submit button
     leechThreshold: 4
   };
 
@@ -566,6 +571,17 @@
       saveSettings();
     });
 
+    // anagram live-check: whether typed Anagram answers are judged on
+    // every keystroke (old behavior) or only once the learner submits
+    // (Enter / submit button). Applies to both the Learn tab and the
+    // Cardbox > Anagram quiz.
+    const anagramLiveCheckToggle = document.getElementById('anagramLiveCheckToggle');
+    anagramLiveCheckToggle.checked = settings.anagramLiveCheck !== false;
+    anagramLiveCheckToggle.addEventListener('change', function () {
+      settings.anagramLiveCheck = anagramLiveCheckToggle.checked;
+      saveSettings();
+    });
+
     // leech threshold: how many consecutive misses on one card before it
     // gets flagged as a "leech" (see updateCardResult).
     const leechThresholdInput = document.getElementById('leechThresholdInput');
@@ -584,6 +600,44 @@
 
   function sortLetters(word) {
     return word.split('').sort().join('');
+  }
+
+  // Zyzzyva-style rack letter ordering for the Learn tab. 'alphabetical'
+  // is the existing behavior (sortLetters); the other three reorder the
+  // same real letters of `word` — never adding, dropping, or changing
+  // any letter — to change how hard the rack is to read at a glance:
+  //   - vowel-first / consonant-first: alphabetize within each group,
+  //     then place one group before the other. A/E/I/O/U (not Y) count
+  //     as vowels, matching this app's existing VOWELS convention.
+  //   - random: a fresh Fisher-Yates shuffle of the same letters every
+  //     time it's called (so re-picking "Random" on the same word gives
+  //     a different scramble, matching Zyzzyva's own Random order).
+  const LEARN_VOWEL_SET = { A: 1, E: 1, I: 1, O: 1, U: 1 };
+  function orderLettersForLearn(word, order) {
+    const letters = word.split('');
+    if (order === 'random') {
+      const a = letters.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+      }
+      return a.join('');
+    }
+    if (order === 'vowel-first' || order === 'consonant-first') {
+      const vowels = letters.filter(function (ch) { return LEARN_VOWEL_SET[ch]; }).sort();
+      const consonants = letters.filter(function (ch) { return !LEARN_VOWEL_SET[ch]; }).sort();
+      return order === 'vowel-first' ? vowels.concat(consonants).join('') : consonants.concat(vowels).join('');
+    }
+    return sortLetters(word); // 'alphabetical' (default/fallback)
+  }
+
+  const LEARN_LETTER_ORDER_KEY = 'csw24_learn_letter_order_v1';
+  function loadLearnLetterOrder() {
+    try { return localStorage.getItem(LEARN_LETTER_ORDER_KEY) || 'alphabetical'; }
+    catch (e) { return 'alphabetical'; }
+  }
+  function saveLearnLetterOrder(order) {
+    try { localStorage.setItem(LEARN_LETTER_ORDER_KEY, order); } catch (e) { /* ignore */ }
   }
 
   function wordScore(word) {
@@ -1773,6 +1827,13 @@
   // ---------- tab navigation ----------
 
   let browseInitialized = false;
+  // Practice is a secret menu — locked every fresh page load, and only
+  // unlocked for the current session by typing "PRACTICE" to the AI
+  // Coach (see CoachUI.js's isPracticeUnlockPhrase). activateTab() below
+  // refuses to open the tab at all while this is false, so there is no
+  // path to it (button, coach command, or otherwise) that bypasses the
+  // secret phrase.
+  let practiceUnlocked = false;
 
   function initTabs() {
     const btns = document.querySelectorAll('.tab-btn');
@@ -1868,6 +1929,12 @@
   // code (e.g. Learn's Review button) that needs to jump to a tab and run
   // its usual on-activate side effects without the user clicking it.
   function activateTab(tabName) {
+    if (tabName === 'practice' && !practiceUnlocked) {
+      // Locked — no code entered yet this session. Silently refuse
+      // rather than opening the tab; the AI Coach's unlock message is
+      // the only feedback the person should see for this.
+      return;
+    }
     const btn = document.querySelector('.tab-btn[data-tab="' + tabName + '"]');
     const panel = document.getElementById('tab-' + tabName);
     if (!btn || !panel) return;
@@ -3310,7 +3377,10 @@
         (validGroup.length > 1 ? '<div class="anagram-found-progress" id="anagramFoundProgress">พบแล้ว 0 / ' + validGroup.length + ' คำ</div>' : '') +
         (validGroup.length > 1 ? '<div class="anagram-partners" id="anagramFoundList"></div>' : '') +
         '<form class="session-answer-form" id="anagramForm">' +
-          '<input type="text" id="anagramInput" autocomplete="off" placeholder="พิมพ์คำตอบ — ตรวจให้อัตโนมัติ" autofocus>' +
+          '<input type="text" id="anagramInput" autocomplete="off" placeholder="' +
+            (settings.anagramLiveCheck ? 'พิมพ์คำตอบ — ตรวจให้อัตโนมัติ' : 'พิมพ์คำตอบ แล้วกด Enter หรือปุ่มส่ง') +
+          '" autofocus>' +
+          (settings.anagramLiveCheck ? '' : '<button class="btn btn-primary" type="submit">ตรวจคำตอบ</button>') +
         '</form>' +
         '<div class="session-controls">' +
           '<button type="button" class="btn btn-outline btn-sm" id="anagramHintBtn">💡 Hint</button>' +
@@ -3613,14 +3683,30 @@
         feedback.textContent = '✗ ยังไม่ถูก ลองอีกครั้ง' +
           (found.size ? ' (พบแล้ว ' + found.size + ' / ' + validGroup.length + ' คำ)' : '');
         feedback.className = 'session-feedback wrong';
-      } else {
+      } else if (settings.anagramLiveCheck) {
+        // Live mode: guess is still shorter than any remaining valid word
+        // — too early to judge, so stay silent instead of flashing wrong.
         feedback.textContent = '';
         feedback.className = 'session-feedback';
+      } else {
+        // Deferred mode: the learner explicitly submitted this guess, so
+        // even a too-short one deserves a wrong verdict rather than silence.
+        wrongStreak = true;
+        feedback.textContent = '✗ ยังไม่ถูก ลองอีกครั้ง' +
+          (found.size ? ' (พบแล้ว ' + found.size + ' / ' + validGroup.length + ' คำ)' : '');
+        feedback.className = 'session-feedback wrong';
       }
     }
 
-    input.addEventListener('input', checkTyped);
-    form.addEventListener('submit', function (e) { e.preventDefault(); });
+    if (settings.anagramLiveCheck) {
+      input.addEventListener('input', checkTyped);
+      form.addEventListener('submit', function (e) { e.preventDefault(); });
+    } else {
+      // Deferred checking: typing alone gives no feedback; the guess is
+      // only judged once the learner presses Enter (native form submit)
+      // or the visible submit button.
+      form.addEventListener('submit', function (e) { e.preventDefault(); checkTyped(); });
+    }
   }
 
   function renderRecallCard(area, word) {
@@ -3723,9 +3809,23 @@
       const r = regularBase + posInBlock + 1;
       if (r > regularLevels) return null;
       const start = (r - 1) * LEARN_WORDS_PER_LEVEL;
+      let levelWords = words.slice(start, start + LEARN_WORDS_PER_LEVEL);
+      // The final regular level of a word length rarely divides evenly by
+      // LEARN_WORDS_PER_LEVEL (e.g. 127 two-letter words = 12 full levels
+      // of 10 + a 13th level of only 7) — pad it back up to a fixed 10 by
+      // wrapping around to the start of the SAME length's word list, so
+      // every level the learner sees has exactly 10 real CSW24 words for
+      // that length. No word is ever skipped or invented; a handful of
+      // early words in that length just get reviewed on two levels
+      // instead of one, which is harmless for a Learn feature (the point
+      // is repeated exposure anyway).
+      if (levelWords.length < LEARN_WORDS_PER_LEVEL && words.length >= LEARN_WORDS_PER_LEVEL) {
+        const needed = LEARN_WORDS_PER_LEVEL - levelWords.length;
+        levelWords = levelWords.concat(words.slice(0, needed));
+      }
       return {
         kind: 'regular', regularLevel: r,
-        words: words.slice(start, start + LEARN_WORDS_PER_LEVEL)
+        words: levelWords
       };
     }
 
@@ -3875,6 +3975,132 @@
         if (dueBtn) openDueEdit(dueBtn.dataset.word);
       });
     }
+
+    // ---------- Zyzzyva-style toolbar: Check Answers / Mark as Correct /
+    // Pause / Analyze Quiz / Letter order ----------
+    // Wired once here (not per-card) since these buttons live outside
+    // #learnSessionArea; they always act on whichever card is currently
+    // showing via learnSession.current, which renderLearnCard() refreshes
+    // every time a new card is displayed.
+    const checkAnswersBtn = document.getElementById('learnCheckAnswersBtn');
+    if (checkAnswersBtn) {
+      checkAnswersBtn.addEventListener('click', function () {
+        const cur = learnSession.current;
+        if (!cur || cur.completed) return;
+        cur.revealAnswerTable();
+        // Check Answers only REVEALS — it doesn't end the card or mark
+        // anything wrong, matching Zyzzyva's own Check Answers (the
+        // learner can keep typing afterward; still-unfound words just
+        // become visible as a hint).
+      });
+    }
+
+    const markCorrectBtn = document.getElementById('learnMarkCorrectBtn');
+    if (markCorrectBtn) {
+      markCorrectBtn.addEventListener('click', function () {
+        const cur = learnSession.current;
+        if (!cur || cur.completed) return;
+        // Credits every remaining unfound word in this card's validGroup
+        // as found — for when the learner knows the word but mistyped it,
+        // or disagrees with the judge. Mirrors Zyzzyva's "Mark as
+        // Correct", which overrides the automatic check the same way.
+        cur.validGroup.forEach(function (w) { cur.found.add(w); });
+        cur.revealAnswerTable();
+        if (cur.input) cur.input.disabled = true;
+        cur.feedback.textContent = '✓ ทำเครื่องหมายว่าถูกต้องแล้ว (Mark as Correct)';
+        cur.feedback.className = 'session-feedback correct';
+        cur.finish(cur.word, true, false, cur.validGroup);
+      });
+    }
+
+    const pauseBtn = document.getElementById('learnPauseBtn');
+    const pauseOverlay = document.getElementById('learnPauseOverlay');
+    const resumeBtn = document.getElementById('learnResumeBtn');
+    if (pauseBtn && pauseOverlay) {
+      pauseBtn.addEventListener('click', function () {
+        learnSession.paused = true;
+        learnSession.pausedAt = Date.now();
+        pauseOverlay.style.display = 'flex';
+        const cur = learnSession.current;
+        if (cur && cur.input) cur.input.disabled = true;
+      });
+    }
+    if (resumeBtn && pauseOverlay) {
+      resumeBtn.addEventListener('click', function () {
+        // Shift this card's response-time baseline forward by however
+        // long the pause lasted, so the paused time isn't counted as
+        // "thinking time" in PerformanceAnalyzer's response-time stats.
+        if (learnSession.paused && learnSession.pausedAt && learnSession.cardShownAt) {
+          learnSession.cardShownAt += (Date.now() - learnSession.pausedAt);
+        }
+        learnSession.paused = false;
+        pauseOverlay.style.display = 'none';
+        const cur = learnSession.current;
+        if (cur && cur.input && !cur.completed) { cur.input.disabled = false; cur.input.focus(); }
+      });
+    }
+
+    const analyzeBtn = document.getElementById('learnAnalyzeBtn');
+    const analyzeOverlay = document.getElementById('learnAnalyzeOverlay');
+    const analyzeCloseBtn = document.getElementById('learnAnalyzeCloseBtn');
+    if (analyzeBtn && analyzeOverlay) {
+      analyzeBtn.addEventListener('click', function () {
+        renderLearnAnalyzeQuiz();
+        analyzeOverlay.style.display = 'flex';
+      });
+    }
+    if (analyzeCloseBtn && analyzeOverlay) {
+      analyzeCloseBtn.addEventListener('click', function () { analyzeOverlay.style.display = 'none'; });
+      analyzeOverlay.addEventListener('click', function (e) {
+        if (e.target.id === 'learnAnalyzeOverlay') analyzeOverlay.style.display = 'none';
+      });
+    }
+
+    const letterOrderSelect = document.getElementById('learnLetterOrder');
+    if (letterOrderSelect) {
+      letterOrderSelect.value = loadLearnLetterOrder();
+      letterOrderSelect.addEventListener('change', function () {
+        saveLearnLetterOrder(letterOrderSelect.value);
+        // Re-render the current card immediately so the new order is
+        // visible right away, same as Zyzzyva applying Letter Order
+        // instantly rather than only on the next word. Only safe to do
+        // when a card is actually showing (learnSession.current is set).
+        if (learnSession.current) renderLearnCard();
+      });
+    }
+  }
+
+  // Word-by-word breakdown of the CURRENT session so far — every row
+  // comes straight from learnSession.queue/results/hintFlags (already
+  // real per-word data this app tracks), never a synthesized "analysis".
+  // Zyzzyva's own Analyze Quiz pulls from lexicon-wide stats this app
+  // doesn't have (word probability rankings etc.); the honest equivalent
+  // here is a plain review of what's actually happened in this session.
+  function renderLearnAnalyzeQuiz() {
+    const el = document.getElementById('learnAnalyzeContent');
+    if (!el) return;
+    const total = learnSession.results.length;
+    const correct = learnSession.results.filter(Boolean).length;
+    const hints = learnSession.hintFlags.filter(Boolean).length;
+
+    let html = '<div class="learn-analyze-summary">' +
+      '<div class="learn-analyze-stat"><strong>' + correct + '/' + total + '</strong><span>ถูก/ทำไปแล้ว</span></div>' +
+      '<div class="learn-analyze-stat"><strong>' + (total - correct) + '</strong><span>พลาด/ข้าม</span></div>' +
+      '<div class="learn-analyze-stat"><strong>' + hints + '</strong><span>ใช้ Hint</span></div>' +
+      '</div>';
+
+    if (total === 0) {
+      html += '<div class="empty-state">ยังไม่ได้ตอบคำไหนในด่านนี้เลย</div>';
+    } else {
+      html += learnSession.queue.slice(0, total).map(function (w, i) {
+        const ok = learnSession.results[i];
+        const hintUsed = learnSession.hintFlags[i];
+        return '<div class="learn-analyze-row"><span class="la-word">' + w + '</span>' +
+          '<span class="' + (ok ? 'la-correct' : 'la-wrong') + '">' + (ok ? '✓ ถูก' : '✗ พลาด') +
+          (hintUsed ? ' · ใช้ hint' : '') + '</span></div>';
+      }).join('');
+    }
+    el.innerHTML = html;
   }
 
   function renderLearnContent() {
@@ -4068,8 +4294,8 @@
 
   const learnSession = {
     length: null, levelIndex: null, info: null, queue: [], index: 0,
-    correct: 0, incorrect: 0, results: [], hintLevel: 0, hintUsed: false,
-    cardShownAt: 0
+    correct: 0, incorrect: 0, results: [], hintFlags: [], hintLevel: 0, hintUsed: false,
+    cardShownAt: 0, paused: false, pausedAt: 0
   };
 
   function startLearnLevel(L, levelIndex) {
@@ -4087,6 +4313,9 @@
     learnSession.correct = 0;
     learnSession.incorrect = 0;
     learnSession.results = [];
+    learnSession.hintFlags = [];
+    learnSession.paused = false;
+    learnSession.current = null;
 
     document.getElementById('learnContentCard').style.display = 'none';
     document.getElementById('learnSessionCard').style.display = '';
@@ -4096,6 +4325,15 @@
   function endLearnLevel() {
     document.getElementById('learnSessionCard').style.display = 'none';
     document.getElementById('learnContentCard').style.display = '';
+    // Clear the toolbar's card handle so Check Answers / Mark as Correct
+    // can't act on a stale card if the learner exits mid-card and the
+    // session card is later shown again some other way.
+    learnSession.current = null;
+    if (learnSession.paused) {
+      learnSession.paused = false;
+      const pauseOverlay = document.getElementById('learnPauseOverlay');
+      if (pauseOverlay) pauseOverlay.style.display = 'none';
+    }
     renderLearnContent();
   }
 
@@ -4170,7 +4408,7 @@
     }
 
     const word = learnSession.queue[learnSession.index];
-    const letters = sortLetters(word);
+    const letters = orderLettersForLearn(word, loadLearnLetterOrder());
     learnSession.hintLevel = 0;
     learnSession.hintUsed = false;
     learnSession.cardShownAt = Date.now(); // response-time baseline for this card
@@ -4185,9 +4423,12 @@
         '</div>' +
         tileRowHTML(letters, 'big') +
         (validGroup.length > 1 ? '<div class="anagram-found-progress" id="learnFoundProgress">พบแล้ว 0 / ' + validGroup.length + ' คำ</div>' : '') +
-        (validGroup.length > 1 ? '<div class="anagram-partners" id="learnFoundList"></div>' : '') +
+        '<table class="zyzzyva-table" id="learnFoundTable"><thead><tr><th>#</th><th>คำ</th></tr></thead><tbody id="learnFoundList"></tbody></table>' +
         '<form class="session-answer-form" id="learnAnagramForm">' +
-          '<input type="text" id="learnAnagramInput" autocomplete="off" placeholder="พิมพ์คำตอบ — ตรวจให้อัตโนมัติ" autofocus>' +
+          '<input type="text" id="learnAnagramInput" autocomplete="off" placeholder="' +
+            (settings.anagramLiveCheck ? 'พิมพ์คำตอบ — ตรวจให้อัตโนมัติ' : 'พิมพ์คำตอบ แล้วกด Enter หรือปุ่มส่ง') +
+          '" autofocus>' +
+          (settings.anagramLiveCheck ? '' : '<button class="btn btn-primary" type="submit">ตรวจคำตอบ</button>') +
         '</form>' +
         '<div class="session-controls">' +
           '<button type="button" class="btn btn-outline btn-sm" id="learnHintBtn">💡 Hint</button>' +
@@ -4213,10 +4454,43 @@
 
     function renderFoundList() {
       if (!foundListEl) return;
-      foundListEl.innerHTML = Array.from(found).sort().map(function (w) {
-        return '<span class="anagram-chip">' + w + '</span>';
+      foundListEl.innerHTML = Array.from(found).sort().map(function (w, i) {
+        return '<tr class="zyzzyva-row-correct"><td class="zyzzyva-col-num">' + (i + 1) + '</td><td class="zyzzyva-col-word">' + w + '</td></tr>';
       }).join('');
     }
+
+    // Fills the table with every valid word — found ones stay marked
+    // correct, the rest show as missed (Zyzzyva's own "−WORD" convention
+    // for a word not yet found). Shared by the Skip button (ends the
+    // card) and the toolbar's "Check Answers" button (does NOT end the
+    // card — the learner can keep typing after seeing it, same as
+    // Zyzzyva's Check Answers, which just reveals without penalizing).
+    function revealAnswerTable() {
+      if (!foundListEl) return;
+      foundListEl.innerHTML = validGroup.slice().sort().map(function (w, i) {
+        const isFound = found.has(w);
+        return '<tr class="' + (isFound ? 'zyzzyva-row-correct' : 'zyzzyva-row-missed') + '">' +
+          '<td class="zyzzyva-col-num">' + (i + 1) + '</td>' +
+          '<td class="zyzzyva-col-word">' + (isFound ? '' : '−') + w + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    // Exposes this card's live state to the persistent toolbar buttons
+    // (Check Answers / Mark as Correct / Pause), which live outside
+    // #learnSessionArea and are wired once in initLearnTab rather than
+    // re-wired every card. Overwritten on every renderLearnCard() call,
+    // so the toolbar always reaches whichever card is currently showing.
+    learnSession.current = {
+      word: word, validGroup: validGroup, found: found,
+      input: input, feedback: feedback,
+      revealAnswerTable: revealAnswerTable,
+      finish: finishLearnCard, completed: false
+    };
+    const checkAnswersBtnRef = document.getElementById('learnCheckAnswersBtn');
+    const markCorrectBtnRef = document.getElementById('learnMarkCorrectBtn');
+    if (checkAnswersBtnRef) checkAnswersBtnRef.disabled = false;
+    if (markCorrectBtnRef) markCorrectBtnRef.disabled = false;
 
     hintBtn.addEventListener('click', function () {
       const maxHint = Math.max(1, word.length - 1);
@@ -4238,9 +4512,9 @@
     skipBtn.addEventListener('click', function () {
       input.value = '';
       input.disabled = true;
-      feedback.textContent = '⏭ ข้ามคำนี้ — เฉลย: ' + validGroup.slice().sort().join(', ');
+      feedback.textContent = '⏭ ข้ามคำนี้ — เฉลยแสดงในตารางด้านบน';
       feedback.className = 'session-feedback wrong';
-      found.clear();
+      revealAnswerTable();
       finishLearnCard(word, false, true, validGroup);
     });
 
@@ -4253,7 +4527,10 @@
         return;
       }
       const minRemainingLen = Math.min.apply(null, validGroup.filter(function (w) { return !found.has(w); }).map(function (w) { return w.length; }));
-      if (guess.length < minRemainingLen) { feedback.textContent = ''; feedback.className = 'session-feedback'; return; }
+      if (settings.anagramLiveCheck && guess.length < minRemainingLen) {
+        // Live mode only: too early to judge a still-growing guess.
+        feedback.textContent = ''; feedback.className = 'session-feedback'; return;
+      }
 
       const isValid = validGroup.indexOf(guess) !== -1;
       if (isValid) {
@@ -4276,8 +4553,12 @@
       }
     }
 
-    input.addEventListener('input', checkTyped);
-    form.addEventListener('submit', function (e) { e.preventDefault(); });
+    if (settings.anagramLiveCheck) {
+      input.addEventListener('input', checkTyped);
+      form.addEventListener('submit', function (e) { e.preventDefault(); });
+    } else {
+      form.addEventListener('submit', function (e) { e.preventDefault(); checkTyped(); });
+    }
   }
 
   // Per-word "you've met this word before" strip shown after a Learn card
@@ -4346,9 +4627,14 @@
     const hintBtn = document.getElementById('learnHintBtn');
     const skipBtn = document.getElementById('learnSkipBtn');
     const input = document.getElementById('learnAnagramInput');
+    const checkAnswersBtnRef = document.getElementById('learnCheckAnswersBtn');
+    const markCorrectBtnRef = document.getElementById('learnMarkCorrectBtn');
     if (hintBtn) hintBtn.disabled = true;
     if (skipBtn) skipBtn.disabled = true;
     if (input) input.disabled = true;
+    if (checkAnswersBtnRef) checkAnswersBtnRef.disabled = true;
+    if (markCorrectBtnRef) markCorrectBtnRef.disabled = true;
+    if (learnSession.current) learnSession.current.completed = true;
 
     // How long this card was on screen before being answered/skipped —
     // the response-time signal PerformanceAnalyzer reads later. Guarded
@@ -4383,6 +4669,7 @@
     }
     if (allCorrect) learnSession.correct++; else learnSession.incorrect++;
     learnSession.results.push(allCorrect);
+    learnSession.hintFlags.push(learnSession.hintUsed);
 
     // A scrambled rack that has multiple valid answers (e.g. AEINORT ->
     // OTARINE / NOTAIRE) puts every one of those words into the level's
@@ -4542,6 +4829,10 @@
   }
 
   function renderLearnLevelSummary() {
+    // Clear the toolbar's card handle — Check Answers / Mark as Correct
+    // must not act on a stale, already-finished card once the summary
+    // screen (which has no card of its own) is showing.
+    learnSession.current = null;
     const total = learnSession.queue.length;
     const pct = total ? Math.round((learnSession.correct / total) * 100) : 0;
     const stars = pct >= 90 ? '⭐⭐⭐' : pct >= 70 ? '⭐⭐' : pct >= 40 ? '⭐' : '·';
@@ -5402,11 +5693,6 @@
     const nextBtn = document.getElementById('dashGoalNextDay');
     if (prevBtn) prevBtn.addEventListener('click', function () { shiftGoalDate(-1); });
     if (nextBtn) nextBtn.addEventListener('click', function () { shiftGoalDate(1); });
-
-    const practiceBtn = document.getElementById('dashPracticeBtn');
-    if (practiceBtn) {
-      practiceBtn.addEventListener('click', function () { activateTab('practice'); });
-    }
 
     // Daily Goal type picker — picks a length to study for the viewed date,
     // saved per-date so switching days keeps each day's own goal/progress.
@@ -7919,6 +8205,14 @@
     // that already has a bridge method here.
     window.CSW24Bridge = {
       activateTab: activateTab,
+      unlockPracticeAndOpen: function () {
+        // The only legitimate way practiceUnlocked ever becomes true —
+        // reached exclusively via CoachUI.js's exact-keyword check
+        // (isPracticeUnlockPhrase), never guessed at by intent-matching
+        // or any other bridge call.
+        practiceUnlocked = true;
+        activateTab('practice');
+      },
       showToast: showToast,
       isRealWord: function (word) {
         const w = (word || '').toUpperCase();
