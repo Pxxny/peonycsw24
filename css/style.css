@@ -744,6 +744,93 @@ main {
 }
 .no-anagram { color: #6B7292; font-style: italic; font-size: 0.82rem; }
 
+/* ---------- Learn: Zyzzyva-style found-words table ---------- */
+.zyzzyva-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  background: var(--board-2);
+  border: 1px solid var(--rail);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.zyzzyva-table thead th {
+  text-align: left;
+  padding: 0.4rem 0.7rem;
+  background: var(--board-1);
+  color: #8890A8;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--rail);
+}
+.zyzzyva-table thead th:first-child { width: 2.4rem; text-align: right; }
+.zyzzyva-table tbody td {
+  padding: 0.35rem 0.7rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.zyzzyva-table tbody tr:last-child td { border-bottom: none; }
+.zyzzyva-col-num { text-align: right; opacity: 0.55; font-variant-numeric: tabular-nums; }
+.zyzzyva-col-word { font-weight: 700; letter-spacing: 0.03em; }
+.zyzzyva-row-correct .zyzzyva-col-word { color: var(--teal); }
+.zyzzyva-row-missed { background: rgba(255,122,138,0.06); }
+.zyzzyva-row-missed .zyzzyva-col-word { color: var(--clay); font-weight: 600; }
+
+/* ---------- Learn: Zyzzyva-style toolbar (Check Answers / Mark as Correct / Pause / Analyze / Letter order) ---------- */
+.zyzzyva-toolbar {
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--rail);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.zyzzyva-toolbar-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.zyzzyva-order-label { font-size: 0.82rem; opacity: 0.75; }
+.zyzzyva-order-select {
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--rail);
+  background: rgba(255,255,255,0.04);
+  color: inherit;
+  font-size: 0.86rem;
+}
+.learn-pause-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(11,13,20,0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  border-radius: 16px;
+  z-index: 5;
+}
+.learn-pause-message { font-family: var(--font-display); font-size: 1.2rem; }
+#learnSessionCard { position: relative; }
+.learn-analyze-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 1rem;
+}
+.learn-analyze-overlay .panel-card { max-width: 480px; max-height: 80vh; overflow-y: auto; width: 100%; }
+.learn-analyze-row { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
+.learn-analyze-row .la-word { font-family: var(--font-mono); font-weight: 700; }
+.learn-analyze-row .la-correct { color: var(--teal); }
+.learn-analyze-row .la-wrong { color: var(--clay); }
+.learn-analyze-summary { display: flex; gap: 0.6rem; margin-bottom: 0.8rem; flex-wrap: wrap; }
+.learn-analyze-stat { flex: 1; min-width: 90px; text-align: center; padding: 0.55rem 0.4rem; border-radius: 10px; background: rgba(255,255,255,0.03); }
+.learn-analyze-stat strong { display: block; font-size: 1.2rem; font-family: var(--font-display); }
+.learn-analyze-stat span { display: block; font-size: 0.7rem; opacity: 0.65; }
+
 .word-hooks {
   display: flex;
   align-items: center;
