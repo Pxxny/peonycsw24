@@ -776,11 +776,6 @@
           <span class="dash-action-title">Daily Challenge</span>
           <span class="dash-action-detail">การฝึกทำ Challenge จะทำให้เก่งขึ้น</span>
         </button>
-        <button type="button" class="dash-action-btn" id="dashPracticeBtn">
-          <span class="dash-action-icon">🔒</span>
-          <span class="dash-action-title">Practice</span>
-          <span class="dash-action-detail">โหมดฝึกลับ รวมทุกอย่างที่ควรฝึกวันนี้</span>
-        </button>
       </div>
     </div>
 
@@ -853,6 +848,34 @@
       <div class="session-bar"><div class="session-bar-fill" id="learnSessionBarFill" style="width:0%"></div></div>
       <div class="learn-level-dots" id="learnLevelDots"></div>
       <div id="learnSessionArea"></div>
+      <div class="zyzzyva-toolbar">
+        <div class="zyzzyva-toolbar-row">
+          <button type="button" class="btn btn-outline btn-sm" id="learnCheckAnswersBtn">Check Answers</button>
+          <button type="button" class="btn btn-outline btn-sm" id="learnMarkCorrectBtn">Mark as Correct</button>
+          <button type="button" class="btn btn-outline btn-sm" id="learnPauseBtn">Pause</button>
+          <button type="button" class="btn btn-outline btn-sm" id="learnAnalyzeBtn">Analyze Quiz...</button>
+        </div>
+        <div class="zyzzyva-toolbar-row">
+          <label class="zyzzyva-order-label" for="learnLetterOrder">Letter order:</label>
+          <select id="learnLetterOrder" class="zyzzyva-order-select">
+            <option value="alphabetical">Alphabetical</option>
+            <option value="vowel-first">Vowel First</option>
+            <option value="consonant-first">Consonant First</option>
+            <option value="random">Random</option>
+          </select>
+        </div>
+      </div>
+      <div id="learnPauseOverlay" class="learn-pause-overlay" style="display:none">
+        <div class="learn-pause-message">⏸ พักไว้ — กดเพื่อเล่นต่อ</div>
+        <button type="button" class="btn btn-primary" id="learnResumeBtn">▶ เล่นต่อ</button>
+      </div>
+      <div id="learnAnalyzeOverlay" class="learn-analyze-overlay" style="display:none">
+        <div class="panel-card">
+          <h2>📊 Analyze Quiz</h2>
+          <div id="learnAnalyzeContent"></div>
+          <div class="session-controls"><button type="button" class="btn btn-outline" id="learnAnalyzeCloseBtn">ปิด</button></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1216,6 +1239,8 @@
       <p class="panel-sub" data-i18n="settings.studySessionSub">ปรับพฤติกรรมระหว่างทำ Quiz ในเซสชันทบทวน</p>
       <label class="checkbox-field"><input type="checkbox" id="showHooksToggle" checked> <span data-i18n="settings.showHooks">แสดง Hook (Front/Back) ของคำ</span></label>
       <p class="field-hint" data-i18n="settings.showHooksHint">เมื่อเปิด: ทุกที่ที่แสดงคำศัพท์จะโชว์ตัวอักษรที่เติมหน้า/หลังคำแล้วได้เป็นคำใหม่ทันที</p>
+      <label class="checkbox-field" style="margin-top:0.7rem"><input type="checkbox" id="anagramLiveCheckToggle" checked> <span data-i18n="settings.anagramLiveCheck">ตรวจคำตอบ Anagram ทันทีที่พิมพ์</span></label>
+      <p class="field-hint" data-i18n="settings.anagramLiveCheckHint">เมื่อเปิด: ระบบบอกถูก/ผิดทันทีทุกครั้งที่พิมพ์ (แบบเดิม) เมื่อปิด: ต้องกดปุ่มส่งคำตอบ หรือกด Enter ก่อนถึงจะตรวจให้ — ใช้ได้ทั้งหน้า Learn และ Cardbox &gt; Anagram</p>
       <label class="checkbox-field" style="margin-top:0.7rem"><input type="checkbox" id="anagramAutoReshuffleToggle"> <span data-i18n="settings.anagramAutoReshuffle">สลับตัวอักษร Anagram อัตโนมัติหลังตอบ</span></label>
       <p class="field-hint" data-i18n="settings.anagramAutoReshuffleHint">เมื่อเปิด: หลังตอบครบ/ข้ามคำใน Anagram แล้ว ระหว่างรอไปคำถัดไป ตัวอักษรจะสลับที่ใหม่ให้เองทุกกี่วินาทีตามที่ตั้ง</p>
       <div class="field" style="margin-top:0.5rem;max-width:12rem">
