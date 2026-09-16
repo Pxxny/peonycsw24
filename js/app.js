@@ -181,8 +181,12 @@
       'settings.anagramAutoReshuffle': 'สลับตัวอักษร Anagram อัตโนมัติหลังตอบ',
       'settings.anagramAutoReshuffleHint': 'เมื่อเปิด: หลังตอบครบ/ข้ามคำใน Anagram แล้ว ระหว่างรอไปคำถัดไป ตัวอักษรจะสลับที่ใหม่ให้เองทุกกี่วินาทีตามที่ตั้ง',
       'settings.anagramReshuffleSeconds': 'สลับทุกกี่วินาที',
-      'settings.anagramLiveCheck': 'ตรวจคำตอบ Anagram ทันทีที่พิมพ์',
-      'settings.anagramLiveCheckHint': 'เมื่อเปิด: ระบบบอกถูก/ผิดทันทีทุกครั้งที่พิมพ์ (แบบเดิม) เมื่อปิด: ต้องกดปุ่มส่งคำตอบ หรือกด Enter ก่อนถึงจะตรวจให้ — ใช้ได้ทั้งหน้า Learn และ Cardbox > Anagram'
+      'settings.anagramLiveCheck': 'วิธีตรวจคำตอบ Anagram',
+      'settings.anagramLiveCheckHint': 'ควิซพิมพ์คำตอบมีสองจังหวะ — "ตรวจคำที่พิมพ์" กับ "ไปข้อต่อไป" เลือกได้ว่าจะให้ปุ่มไหนทำหน้าที่ไหน',
+      'settings.anagramModeLive': 'ตรวจอัตโนมัติ · Enter ไปข้อต่อไป',
+      'settings.anagramModeLiveHint': 'พิมพ์คำตอบ ระบบตรวจถูก/ผิดทันทีทุกตัวอักษร ครบแล้วกด Enter เพื่อไปข้อถัดไป',
+      'settings.anagramModeManual': 'Enter ตรวจทีละคำ · Enter อีกครั้งไปข้อต่อไป',
+      'settings.anagramModeManualHint': 'พิมพ์คำตอบแล้วกด Enter ตรวจทีละคำ · ครบแล้วกด Enter ตอนช่องว่างเพื่อส่งทั้งชุด · เร็วกว่าเพราะไม่ต้องย้ายนิ้วแต่กดเกินมาหนึ่งทีคือส่งทั้งชุดทันที'
     },
     en: {
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 Generate', 'tab.quiz': '🎯 Quiz',
@@ -290,8 +294,12 @@
       'settings.anagramAutoReshuffle': 'Auto-reshuffle Anagram tiles after answering',
       'settings.anagramAutoReshuffleHint': 'When on: after finishing or skipping an Anagram card, while waiting to move to the next one, the letter tiles reshuffle every N seconds.',
       'settings.anagramReshuffleSeconds': 'Reshuffle every (seconds)',
-      'settings.anagramLiveCheck': 'Check Anagram answer as you type',
-      'settings.anagramLiveCheckHint': 'When on: right/wrong is shown on every keystroke (old behavior). When off: you must press the submit button or Enter before it checks — applies to both the Learn tab and Cardbox > Anagram.'
+      'settings.anagramLiveCheck': 'Anagram answer-checking method',
+      'settings.anagramLiveCheckHint': 'Typed-answer quizzes have two beats — "check what you typed" and "go to next" — choose which key does which.',
+      'settings.anagramModeLive': 'Auto-check · Enter goes to next',
+      'settings.anagramModeLiveHint': 'Type your answer; right/wrong is judged on every keystroke. Once solved, press Enter to move to the next word.',
+      'settings.anagramModeManual': 'Enter checks each word · Enter again goes to next',
+      'settings.anagramModeManualHint': 'Type an answer and press Enter to check it. Once solved, press Enter again on the empty box to submit the whole card. Faster since your fingers never leave the keyboard, but one extra Enter press submits immediately.'
     }
   };
 
@@ -314,7 +322,10 @@
     showHooks: true,
     anagramCycleInterval: 3,
     anagramAutoReshuffle: false, anagramReshuffleSeconds: 3,
-    anagramLiveCheck: true, // true = judge every keystroke (old behavior); false = wait for Enter/submit button
+    // 'live'   = judge every keystroke, no Enter needed to check (old default).
+    // 'manual' = typing gives no feedback; Enter checks the current word,
+    //            then Enter again on an empty box submits/finishes the card.
+    anagramCheckMode: 'live',
     leechThreshold: 4
   };
 
@@ -571,16 +582,30 @@
       saveSettings();
     });
 
-    // anagram live-check: whether typed Anagram answers are judged on
-    // every keystroke (old behavior) or only once the learner submits
-    // (Enter / submit button). Applies to both the Learn tab and the
+    // anagram check mode: 'live' judges every keystroke (old behavior),
+    // 'manual' waits for Enter to check each word, then Enter again on an
+    // empty box to submit the card. Applies to the Learn tab and the
     // Cardbox > Anagram quiz.
-    const anagramLiveCheckToggle = document.getElementById('anagramLiveCheckToggle');
-    anagramLiveCheckToggle.checked = settings.anagramLiveCheck !== false;
-    anagramLiveCheckToggle.addEventListener('change', function () {
-      settings.anagramLiveCheck = anagramLiveCheckToggle.checked;
-      saveSettings();
+    const anagramModeBtns = {
+      live: document.getElementById('anagramModeLiveBtn'),
+      manual: document.getElementById('anagramModeManualBtn')
+    };
+    function refreshAnagramModeChips() {
+      const mode = settings.anagramCheckMode || 'live';
+      Object.keys(anagramModeBtns).forEach(function (k) {
+        anagramModeBtns[k].classList.toggle('active', mode === k);
+      });
+      document.getElementById('anagramModeLiveHint').style.display = (mode === 'live') ? '' : 'none';
+      document.getElementById('anagramModeManualHint').style.display = (mode === 'manual') ? '' : 'none';
+    }
+    Object.keys(anagramModeBtns).forEach(function (k) {
+      anagramModeBtns[k].addEventListener('click', function () {
+        settings.anagramCheckMode = k;
+        saveSettings();
+        refreshAnagramModeChips();
+      });
     });
+    refreshAnagramModeChips();
 
     // leech threshold: how many consecutive misses on one card before it
     // gets flagged as a "leech" (see updateCardResult).
@@ -1827,13 +1852,29 @@
   // ---------- tab navigation ----------
 
   let browseInitialized = false;
-  // Practice is a secret menu — locked every fresh page load, and only
-  // unlocked for the current session by typing "PRACTICE" to the AI
-  // Coach (see CoachUI.js's isPracticeUnlockPhrase). activateTab() below
-  // refuses to open the tab at all while this is false, so there is no
-  // path to it (button, coach command, or otherwise) that bypasses the
-  // secret phrase.
+  // Practice is a secret menu, unlocked by typing "PRACTICE" to the AI
+  // Coach (see CoachUI.js's isPracticeUnlockPhrase). Once unlocked it
+  // stays unlocked permanently — persisted in localStorage and re-applied
+  // on every future page load, at which point the tab button (normally
+  // display:none via .toolbar-tab-hidden) is revealed in the nav for
+  // good. activateTab() below refuses to open the tab at all while this
+  // is false, so there is no path to it (button, coach command, or
+  // otherwise) that bypasses the secret phrase before it's ever been
+  // entered once.
+  const PRACTICE_UNLOCK_KEY = 'csw24_practice_unlocked_v1';
   let practiceUnlocked = false;
+  try { practiceUnlocked = localStorage.getItem(PRACTICE_UNLOCK_KEY) === '1'; } catch (e) { /* ignore */ }
+
+  function revealPracticeTabButton() {
+    const btn = document.querySelector('.tab-btn[data-tab="practice"]');
+    if (btn) btn.classList.remove('toolbar-tab-hidden');
+  }
+
+  function persistPracticeUnlock() {
+    practiceUnlocked = true;
+    try { localStorage.setItem(PRACTICE_UNLOCK_KEY, '1'); } catch (e) { /* ignore */ }
+    revealPracticeTabButton();
+  }
 
   function initTabs() {
     const btns = document.querySelectorAll('.tab-btn');
@@ -1845,6 +1886,10 @@
     btns.forEach(function (btn) {
       btn.addEventListener('click', function () { activateTab(btn.dataset.tab); });
     });
+    // If Practice was unlocked in an earlier visit, reveal its button now
+    // rather than waiting for the coach command again — the whole point
+    // of persisting the unlock is that it only needs to happen once.
+    if (practiceUnlocked) revealPracticeTabButton();
   }
 
   // "More" menu (mobile only — the bottom bar can't fit every tab, so
@@ -3378,9 +3423,8 @@
         (validGroup.length > 1 ? '<div class="anagram-partners" id="anagramFoundList"></div>' : '') +
         '<form class="session-answer-form" id="anagramForm">' +
           '<input type="text" id="anagramInput" autocomplete="off" placeholder="' +
-            (settings.anagramLiveCheck ? 'พิมพ์คำตอบ — ตรวจให้อัตโนมัติ' : 'พิมพ์คำตอบ แล้วกด Enter หรือปุ่มส่ง') +
+            (settings.anagramCheckMode === 'manual' ? 'พิมพ์คำตอบแล้วกด Enter — Enter ช่องว่างเพื่อส่งทั้งชุด' : 'พิมพ์คำตอบ — ตรวจให้อัตโนมัติ') +
           '" autofocus>' +
-          (settings.anagramLiveCheck ? '' : '<button class="btn btn-primary" type="submit">ตรวจคำตอบ</button>') +
         '</form>' +
         '<div class="session-controls">' +
           '<button type="button" class="btn btn-outline btn-sm" id="anagramHintBtn">💡 Hint</button>' +
@@ -3633,10 +3677,11 @@
       runDrill();
     }
 
-    // Live-checks whatever is currently typed, letter by letter — no Enter
-    // or submit button needed. Fires on every keystroke; a guess is only
+    // Checks the currently typed guess against the valid answer group.
+    // In live mode this fires on every keystroke; in manual mode it only
+    // fires when the learner presses Enter. Either way, a guess is only
     // evaluated once its length matches a real candidate word, so partial
-    // typing along the way doesn't flash a false "wrong".
+    // typing along the way doesn't flash a false "wrong" in live mode.
     function checkTyped() {
       const guess = input.value.trim().toUpperCase();
       if (!guess) { feedback.textContent = ''; feedback.className = 'session-feedback'; return; }
@@ -3683,13 +3728,13 @@
         feedback.textContent = '✗ ยังไม่ถูก ลองอีกครั้ง' +
           (found.size ? ' (พบแล้ว ' + found.size + ' / ' + validGroup.length + ' คำ)' : '');
         feedback.className = 'session-feedback wrong';
-      } else if (settings.anagramLiveCheck) {
+      } else if (settings.anagramCheckMode !== 'manual') {
         // Live mode: guess is still shorter than any remaining valid word
         // — too early to judge, so stay silent instead of flashing wrong.
         feedback.textContent = '';
         feedback.className = 'session-feedback';
       } else {
-        // Deferred mode: the learner explicitly submitted this guess, so
+        // Manual mode: the learner explicitly submitted this guess, so
         // even a too-short one deserves a wrong verdict rather than silence.
         wrongStreak = true;
         feedback.textContent = '✗ ยังไม่ถูก ลองอีกครั้ง' +
@@ -3698,14 +3743,20 @@
       }
     }
 
-    if (settings.anagramLiveCheck) {
+    if (settings.anagramCheckMode === 'manual') {
+      // Manual mode: typing alone gives no feedback. Enter (native form
+      // submit) checks the currently typed word. If the box is empty when
+      // Enter is pressed, there's nothing to check — let the keystroke
+      // bubble up so the document-level session handler can treat it as
+      // "go to next" once the card is already finished.
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!input.value.trim()) return;
+        checkTyped();
+      });
+    } else {
       input.addEventListener('input', checkTyped);
       form.addEventListener('submit', function (e) { e.preventDefault(); });
-    } else {
-      // Deferred checking: typing alone gives no feedback; the guess is
-      // only judged once the learner presses Enter (native form submit)
-      // or the visible submit button.
-      form.addEventListener('submit', function (e) { e.preventDefault(); checkTyped(); });
     }
   }
 
@@ -4426,9 +4477,8 @@
         '<table class="zyzzyva-table" id="learnFoundTable"><thead><tr><th>#</th><th>คำ</th></tr></thead><tbody id="learnFoundList"></tbody></table>' +
         '<form class="session-answer-form" id="learnAnagramForm">' +
           '<input type="text" id="learnAnagramInput" autocomplete="off" placeholder="' +
-            (settings.anagramLiveCheck ? 'พิมพ์คำตอบ — ตรวจให้อัตโนมัติ' : 'พิมพ์คำตอบ แล้วกด Enter หรือปุ่มส่ง') +
+            (settings.anagramCheckMode === 'manual' ? 'พิมพ์คำตอบแล้วกด Enter — Enter ช่องว่างเพื่อส่งทั้งชุด' : 'พิมพ์คำตอบ — ตรวจให้อัตโนมัติ') +
           '" autofocus>' +
-          (settings.anagramLiveCheck ? '' : '<button class="btn btn-primary" type="submit">ตรวจคำตอบ</button>') +
         '</form>' +
         '<div class="session-controls">' +
           '<button type="button" class="btn btn-outline btn-sm" id="learnHintBtn">💡 Hint</button>' +
@@ -4527,7 +4577,7 @@
         return;
       }
       const minRemainingLen = Math.min.apply(null, validGroup.filter(function (w) { return !found.has(w); }).map(function (w) { return w.length; }));
-      if (settings.anagramLiveCheck && guess.length < minRemainingLen) {
+      if (settings.anagramCheckMode !== 'manual' && guess.length < minRemainingLen) {
         // Live mode only: too early to judge a still-growing guess.
         feedback.textContent = ''; feedback.className = 'session-feedback'; return;
       }
@@ -4553,11 +4603,19 @@
       }
     }
 
-    if (settings.anagramLiveCheck) {
+    if (settings.anagramCheckMode === 'manual') {
+      // Manual mode: typing alone gives no feedback. Enter checks the
+      // currently typed word; Enter on an empty box does nothing here and
+      // bubbles up so the document-level session handler can treat it as
+      // "go to next" once the card is already finished.
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!input.value.trim()) return;
+        checkTyped();
+      });
+    } else {
       input.addEventListener('input', checkTyped);
       form.addEventListener('submit', function (e) { e.preventDefault(); });
-    } else {
-      form.addEventListener('submit', function (e) { e.preventDefault(); checkTyped(); });
     }
   }
 
@@ -4865,6 +4923,63 @@
 
   // ---------- Dashboard ----------
 
+  // ---------- Dashboard greeting: time-of-day + random encouragement ----------
+  // Loaded from data/greetings.json (not a JS file, per request) — a
+  // one-time fetch, cached in memory for the rest of the session. Time
+  // of day comes from the device's own clock (new Date().getHours()),
+  // and the encouragement is a genuine random pick from the 100 real
+  // messages in that file — nothing here is generated or invented at
+  // runtime, just loaded and selected.
+  let greetingsDataCache = null;
+  let greetingsFetchPromise = null;
+  let dashGreetingPickCache = null;
+
+  function loadGreetingsData() {
+    if (greetingsDataCache) return Promise.resolve(greetingsDataCache);
+    if (greetingsFetchPromise) return greetingsFetchPromise;
+    greetingsFetchPromise = fetch('data/greetings.json')
+      .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+      .then(function (data) { greetingsDataCache = data; return data; })
+      .catch(function (err) {
+        console.warn('[app] Could not load data/greetings.json:', err.message);
+        return null;
+      });
+    return greetingsFetchPromise;
+  }
+
+  function timeOfDayKey() {
+    const h = new Date().getHours();
+    if (h >= 5 && h < 12) return 'morning';
+    if (h >= 12 && h < 17) return 'afternoon';
+    if (h >= 17 && h < 21) return 'evening';
+    return 'night';
+  }
+
+  function renderDashGreeting() {
+    const card = document.getElementById('dashGreetingCard');
+    const timeEl = document.getElementById('dashGreetingTime');
+    const msgEl = document.getElementById('dashGreetingMessage');
+    if (!card || !timeEl || !msgEl) return;
+    loadGreetingsData().then(function (data) {
+      if (!data) return; // fetch failed — leave the card hidden rather than show broken text
+      const lang = (settings.lang === 'en') ? 'en' : 'th';
+      const timeGreeting = data.timeGreetings[timeOfDayKey()];
+      // Pick once per page load, not on every renderDashboard() call —
+      // renderDashboard() runs often (switching tabs, finishing a card,
+      // etc.), and re-randomizing the encouragement every single time
+      // would make it feel noisy rather than like a greeting. Re-picking
+      // only happens on a fresh page load or a language change (so the
+      // displayed message is always in the right language).
+      if (!dashGreetingPickCache || dashGreetingPickCache.lang !== lang) {
+        const list = data.encouragements;
+        dashGreetingPickCache = { lang: lang, pick: list[Math.floor(Math.random() * list.length)] };
+      }
+      timeEl.textContent = (timeGreeting ? timeGreeting[lang] : '') + '!';
+      msgEl.textContent = dashGreetingPickCache.pick ? dashGreetingPickCache.pick[lang] : '';
+      card.style.display = '';
+    });
+  }
+
   function renderDashboard() {
     const box = loadCardbox();
     const now = Date.now();
@@ -4900,6 +5015,7 @@
 
     renderDashActions(box, now, dueCount);
     renderDashSuggested();
+    renderDashGreeting();
   }
 
   function statCard(num, label, cls) {
@@ -8209,8 +8325,10 @@
         // The only legitimate way practiceUnlocked ever becomes true —
         // reached exclusively via CoachUI.js's exact-keyword check
         // (isPracticeUnlockPhrase), never guessed at by intent-matching
-        // or any other bridge call.
-        practiceUnlocked = true;
+        // or any other bridge call. Persists permanently (see
+        // persistPracticeUnlock) so the tab button stays visible on
+        // every future visit, not just this session.
+        persistPracticeUnlock();
         activateTab('practice');
       },
       showToast: showToast,
