@@ -271,36 +271,50 @@
               <option value="recall">Active Recall</option>
             </select>
           </div>
-          <div class="field" id="anagramOrderField">
-            <label for="anagramOrder" data-i18n="cardbox.anagramOrder">การเรียงตัวอักษร</label>
-            <select id="anagramOrder">
-              <option value="alpha">เรียงตามตัวอักษร (A→Z)</option>
-              <option value="random">สุ่ม</option>
-            </select>
-          </div>
-          <div class="field" id="anagramCycleField">
-            <label for="anagramCycleInterval" data-i18n="cardbox.anagramCycleInterval">Cycle Interval (คำที่ข้าม/ผิดจะวนกลับมาอีกกี่คำ)</label>
-            <input type="number" id="anagramCycleInterval" min="0" max="20" value="3">
-          </div>
           <div class="field">
             <label for="studyCount" data-i18n="cardbox.studyCount">จำนวนคำที่ทบทวน</label>
             <input type="number" id="studyCount" min="1" value="10">
           </div>
-          <div class="field">
-            <label for="studyMinLen">ความยาวต่ำสุด</label>
-            <input type="number" id="studyMinLen" min="2" max="15" value="2">
-          </div>
-          <div class="field">
-            <label for="studyMaxLen">ความยาวสูงสุด</label>
-            <input type="number" id="studyMaxLen" min="2" max="15" value="15">
-          </div>
           <label class="checkbox-field"><input type="checkbox" id="dueOnlyToggle" checked> เฉพาะคำที่ถึงกำหนด</label>
+        </div>
+
+        <details class="cardbox-more">
+          <summary>ตัวเลือกเพิ่มเติม (ความยาวคำ, การเรียง Anagram)</summary>
+          <div class="control-row cardbox-more-body">
+            <div class="field" id="anagramOrderField">
+              <label for="anagramOrder" data-i18n="cardbox.anagramOrder">การเรียงตัวอักษร</label>
+              <select id="anagramOrder">
+                <option value="alpha">เรียงตามตัวอักษร (A→Z)</option>
+                <option value="random">สุ่ม</option>
+              </select>
+            </div>
+            <div class="field" id="anagramCycleField">
+              <label for="anagramCycleInterval" data-i18n="cardbox.anagramCycleInterval">Cycle Interval (คำที่ข้าม/ผิดจะวนกลับมาอีกกี่คำ)</label>
+              <input type="number" id="anagramCycleInterval" min="0" max="20" value="3">
+            </div>
+            <div class="field">
+              <label for="studyMinLen">ความยาวต่ำสุด</label>
+              <input type="number" id="studyMinLen" min="2" max="15" value="2">
+            </div>
+            <div class="field">
+              <label for="studyMaxLen">ความยาวสูงสุด</label>
+              <input type="number" id="studyMaxLen" min="2" max="15" value="15">
+            </div>
+          </div>
+        </details>
+
+        <div class="btn-row">
           <button class="btn btn-primary" id="startStudyBtn" data-i18n="cardbox.start">▶ เริ่มทบทวน</button>
           <button class="btn btn-outline" id="startAnagramReviewBtn" data-i18n="cardbox.anagramReviewStart">📖 Anagram Review</button>
         </div>
       </div>
+    </div>
 
-      <p style="margin-top:0.6rem"><strong id="cardboxCount">0</strong> คำใน Cardbox · <span id="cardboxDueCount" class="field-hint"></span></p>
+    <div class="panel-card">
+      <div class="cardbox-list-head">
+        <h2 style="font-size:1.1rem;margin:0">🗂️ รายการคำ</h2>
+        <p class="field-hint" style="margin:0"><strong id="cardboxCount">0</strong> คำใน Cardbox · <span id="cardboxDueCount"></span></p>
+      </div>
 
       <div class="control-row" id="cardboxSearchRow">
         <div class="field" style="flex:1;min-width:220px">
@@ -334,8 +348,8 @@
       <div class="btn-row" id="cardboxSelectRow" style="align-items:center">
         <label class="checkbox-field"><input type="checkbox" id="cardboxSelectAll"> <span data-i18n="common.selectAll">เลือกทั้งหมด</span></label>
         <span class="selected-count" id="cardboxSelectedCount" data-i18n="cardbox.selectedCount">เลือกแล้ว 0 คำ</span>
-        <button class="btn btn-primary" id="studySelectedBtn" data-i18n="cardbox.studySelected">▶ ทบทวนคำที่เลือก</button>
-        <button class="btn btn-outline" id="anagramReviewSelectedBtn" data-i18n="cardbox.anagramReviewSelected">📖 Anagram Review คำที่เลือก</button>
+        <button class="btn btn-primary btn-sm" id="studySelectedBtn" data-i18n="cardbox.studySelected">▶ ทบทวนคำที่เลือก</button>
+        <button class="btn btn-outline btn-sm" id="anagramReviewSelectedBtn" data-i18n="cardbox.anagramReviewSelected">📖 Anagram Review คำที่เลือก</button>
       </div>
 
       <div id="cardboxList"></div>
@@ -344,55 +358,69 @@
       </div>
     </div>
 
-    <div class="panel-card">
-      <h2 style="font-size:1.05rem">⏰ ตั้งเวลาครบกำหนดทบทวน (Due time)</h2>
-      <p class="panel-sub" style="margin-bottom:0.7rem">เลือกว่าคำที่เพิ่มเข้า Cardbox ใหม่ควรถึงกำหนดทบทวนเมื่อไหร่ (มีผลกับคำที่เพิ่มจากแท็บแบบทดสอบ / คลังคำศัพท์ / Minigame หลังจากนี้)</p>
-      <div class="field" style="margin-bottom:0.7rem">
-        <div class="chip-row" id="dueTimePresetChips">
-          <button type="button" class="mode-chip" data-due="1h">1 ชม.</button>
-          <button type="button" class="mode-chip" data-due="5h">5 ชม.</button>
-          <button type="button" class="mode-chip" data-due="12h">12 ชม.</button>
-          <button type="button" class="mode-chip active" data-due="24h">24 ชม.</button>
-          <button type="button" class="mode-chip" data-due="1d">1 วัน</button>
-          <button type="button" class="mode-chip" data-due="2d">2 วัน</button>
-          <button type="button" class="mode-chip" data-due="5d">5 วัน</button>
-          <button type="button" class="mode-chip" data-due="10d">10 วัน</button>
-          <button type="button" class="mode-chip" data-due="30d">30 วัน</button>
-          <button type="button" class="mode-chip" data-due="custom">กำหนดเอง</button>
+    <details class="panel-card cardbox-tools">
+      <summary>
+        <span class="cardbox-tools-title">⚙️ ตั้งค่า &amp; เครื่องมือ Cardbox</span>
+        <span class="field-hint">Due time · Import/Export · Groups</span>
+      </summary>
+
+      <div class="cardbox-tools-body">
+        <div class="cardbox-tools-section">
+          <h3>⏰ ตั้งเวลาครบกำหนดทบทวน (Due time)</h3>
+          <p class="panel-sub" style="margin-bottom:0.7rem">เลือกว่าคำที่เพิ่มเข้า Cardbox ใหม่ควรถึงกำหนดทบทวนเมื่อไหร่ (มีผลกับคำที่เพิ่มจากแท็บแบบทดสอบ / คลังคำศัพท์ / Minigame หลังจากนี้)</p>
+          <div class="field" style="margin-bottom:0.7rem">
+            <div class="chip-row" id="dueTimePresetChips">
+              <button type="button" class="mode-chip" data-due="1h">1 ชม.</button>
+              <button type="button" class="mode-chip" data-due="5h">5 ชม.</button>
+              <button type="button" class="mode-chip" data-due="12h">12 ชม.</button>
+              <button type="button" class="mode-chip active" data-due="24h">24 ชม.</button>
+              <button type="button" class="mode-chip" data-due="1d">1 วัน</button>
+              <button type="button" class="mode-chip" data-due="2d">2 วัน</button>
+              <button type="button" class="mode-chip" data-due="5d">5 วัน</button>
+              <button type="button" class="mode-chip" data-due="10d">10 วัน</button>
+              <button type="button" class="mode-chip" data-due="30d">30 วัน</button>
+              <button type="button" class="mode-chip" data-due="custom">กำหนดเอง</button>
+            </div>
+          </div>
+          <div class="control-row" id="dueTimeCustomRow" style="display:none">
+            <div class="field"><label for="dueTimeCustomValue">จำนวน</label><input type="number" id="dueTimeCustomValue" min="1" value="3"></div>
+            <div class="field">
+              <label for="dueTimeCustomUnit">หน่วย</label>
+              <select id="dueTimeCustomUnit">
+                <option value="h">ชั่วโมง</option>
+                <option value="d" selected>วัน</option>
+              </select>
+            </div>
+          </div>
+          <p class="field-hint">ตอนนี้: คำใหม่จะถึงกำหนดทบทวนใน <strong id="dueTimeSummary">24 ชั่วโมง</strong></p>
+        </div>
+
+        <div class="cardbox-tools-divider"></div>
+
+        <div class="cardbox-tools-section">
+          <h3>🗂️ นำเข้า / ส่งออก Cardbox</h3>
+          <p class="panel-sub" style="margin-bottom:0.7rem">เก็บ Cardbox ชุดปัจจุบันไว้เป็นไฟล์ JSON แล้วแทนที่ด้วยชุดใหม่ได้ พออยากกลับมาเรียนชุดเดิมค่อย Import กลับเข้ามา (การ Import จะ<strong>แทนที่ Cardbox ทั้งหมด</strong>ที่มีอยู่)</p>
+          <div class="btn-row">
+            <button class="btn btn-outline btn-sm" id="exportCardboxBtn">⬇ Export Cardbox (JSON)</button>
+            <label class="btn btn-outline btn-sm" for="importCardboxInput">⬆ Import Cardbox (แทนที่ทั้งหมด)</label>
+            <input type="file" id="importCardboxInput" accept=".json" class="file-input-hidden">
+          </div>
+          <p class="field-hint">💡 Import จะลบ Cardbox ปัจจุบันทิ้งก่อน — แนะนำให้ Export เก็บไว้ก่อนเสมอถ้ายังไม่อยากเสียชุดที่กำลังเรียนอยู่</p>
+        </div>
+
+        <div class="cardbox-tools-divider"></div>
+
+        <div class="cardbox-tools-section">
+          <h3 data-i18n="cardboxGroups.title">📦 Group คำศัพท์ (บันทึกไว้หลายชุด)</h3>
+          <p class="panel-sub" style="margin-bottom:0.7rem" data-i18n="cardboxGroups.sub">ติ๊กเลือกคำที่ต้องการในรายการ Cardbox ด้านบนก่อน แล้วกดปุ่มนี้เพื่อคัดลอกเฉพาะคำที่เลือกไว้เก็บเป็น "Group" (ไม่ลบของเดิม) ตั้งชื่อได้ พอเรียนชุดนี้เสร็จแล้วอยากเปลี่ยนไปชุดใหม่ก็เพิ่ม Group ไว้ก่อน แล้วค่อยโหลดกลับมาทีหลังได้</p>
+          <div class="btn-row">
+            <button class="btn btn-primary btn-sm" id="addCardboxGroupBtn" data-i18n="cardboxGroups.addBtn">➕ เพิ่ม Group จากคำที่เลือกไว้</button>
+          </div>
+          <div id="cardboxGroupsList" style="margin-top:0.7rem"></div>
         </div>
       </div>
-      <div class="control-row" id="dueTimeCustomRow" style="display:none">
-        <div class="field"><label for="dueTimeCustomValue">จำนวน</label><input type="number" id="dueTimeCustomValue" min="1" value="3"></div>
-        <div class="field">
-          <label for="dueTimeCustomUnit">หน่วย</label>
-          <select id="dueTimeCustomUnit">
-            <option value="h">ชั่วโมง</option>
-            <option value="d" selected>วัน</option>
-          </select>
-        </div>
-      </div>
-      <p class="field-hint">ตอนนี้: คำใหม่จะถึงกำหนดทบทวนใน <strong id="dueTimeSummary">24 ชั่วโมง</strong></p>
-    </div>
+    </details>
 
-    <div class="panel-card">
-      <h2 style="font-size:1.05rem">🗂️ นำเข้า / ส่งออก Cardbox</h2>
-      <p class="panel-sub" style="margin-bottom:0.7rem">เก็บ Cardbox ชุดปัจจุบันไว้เป็นไฟล์ JSON แล้วแทนที่ด้วยชุดใหม่ได้ พออยากกลับมาเรียนชุดเดิมค่อย Import กลับเข้ามา (การ Import จะ<strong>แทนที่ Cardbox ทั้งหมด</strong>ที่มีอยู่)</p>
-      <div class="btn-row">
-        <button class="btn btn-outline btn-sm" id="exportCardboxBtn">⬇ Export Cardbox (JSON)</button>
-        <label class="btn btn-outline btn-sm" for="importCardboxInput">⬆ Import Cardbox (แทนที่ทั้งหมด)</label>
-        <input type="file" id="importCardboxInput" accept=".json" class="file-input-hidden">
-      </div>
-      <p class="field-hint">💡 Import จะลบ Cardbox ปัจจุบันทิ้งก่อน — แนะนำให้ Export เก็บไว้ก่อนเสมอถ้ายังไม่อยากเสียชุดที่กำลังเรียนอยู่</p>
-    </div>
-
-    <div class="panel-card">
-      <h2 style="font-size:1.05rem" data-i18n="cardboxGroups.title">📦 Group คำศัพท์ (บันทึกไว้หลายชุด)</h2>
-      <p class="panel-sub" style="margin-bottom:0.7rem" data-i18n="cardboxGroups.sub">ติ๊กเลือกคำที่ต้องการในรายการ Cardbox ด้านบนก่อน แล้วกดปุ่มนี้เพื่อคัดลอกเฉพาะคำที่เลือกไว้เก็บเป็น "Group" (ไม่ลบของเดิม) ตั้งชื่อได้ พอเรียนชุดนี้เสร็จแล้วอยากเปลี่ยนไปชุดใหม่ก็เพิ่ม Group ไว้ก่อน แล้วค่อยโหลดกลับมาทีหลังได้</p>
-      <div class="btn-row">
-        <button class="btn btn-primary btn-sm" id="addCardboxGroupBtn" data-i18n="cardboxGroups.addBtn">➕ เพิ่ม Group จากคำที่เลือกไว้</button>
-      </div>
-      <div id="cardboxGroupsList" style="margin-top:0.7rem"></div>
-    </div>
 
     <div class="panel-card" id="studySession">
       <div class="session-progress" id="sessionProgressLabel"></div>
@@ -730,6 +758,11 @@
         <h2 class="dash-topline-title" data-i18n="dash.title">Dashboard</h2>
         <p class="dash-topline-sub" data-i18n="dash.sub">ภาพรวมความคืบหน้าในการเรียนคำศัพท์ของคุณ ข้อมูลทั้งหมดเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</p>
       </div>
+    </div>
+
+    <div class="dash-greeting-card" id="dashGreetingCard" style="display:none">
+      <div class="dash-greeting-time" id="dashGreetingTime"></div>
+      <div class="dash-greeting-message" id="dashGreetingMessage"></div>
     </div>
 
     <div class="dash-hero-row">
@@ -1235,12 +1268,21 @@
     </div>
 
     <div class="panel-card">
+      <h2>⌨️ <span data-i18n="settings.anagramLiveCheck">วิธีตรวจคำตอบ Anagram</span></h2>
+      <p class="panel-sub" data-i18n="settings.anagramLiveCheckHint">ควิซพิมพ์คำตอบมีสองจังหวะ — "ตรวจคำที่พิมพ์" กับ "ไปข้อต่อไป" เลือกได้ว่าจะให้ปุ่มไหนทำหน้าที่ไหน</p>
+      <div class="chip-row">
+        <button type="button" class="mode-chip" id="anagramModeLiveBtn" data-mode="live" data-i18n="settings.anagramModeLive">ตรวจอัตโนมัติ · Enter ไปข้อต่อไป</button>
+        <button type="button" class="mode-chip" id="anagramModeManualBtn" data-mode="manual" data-i18n="settings.anagramModeManual">Enter ตรวจทีละคำ · Enter อีกครั้งไปข้อต่อไป</button>
+      </div>
+      <p class="field-hint" id="anagramModeLiveHint" data-i18n="settings.anagramModeLiveHint">พิมพ์คำตอบ ระบบตรวจถูก/ผิดทันทีทุกตัวอักษร ครบแล้วกด Enter เพื่อไปข้อถัดไป</p>
+      <p class="field-hint" id="anagramModeManualHint" data-i18n="settings.anagramModeManualHint" style="display:none">พิมพ์คำตอบแล้วกด Enter ตรวจทีละคำ · ครบแล้วกด Enter ตอนช่องว่างเพื่อส่งทั้งชุด · เร็วกว่าเพราะไม่ต้องย้ายนิ้วแต่กดเกินมาหนึ่งทีคือส่งทั้งชุดทันที</p>
+    </div>
+
+    <div class="panel-card">
       <h2 data-i18n="settings.studySession">เซสชันทบทวน (Cardbox)</h2>
       <p class="panel-sub" data-i18n="settings.studySessionSub">ปรับพฤติกรรมระหว่างทำ Quiz ในเซสชันทบทวน</p>
       <label class="checkbox-field"><input type="checkbox" id="showHooksToggle" checked> <span data-i18n="settings.showHooks">แสดง Hook (Front/Back) ของคำ</span></label>
       <p class="field-hint" data-i18n="settings.showHooksHint">เมื่อเปิด: ทุกที่ที่แสดงคำศัพท์จะโชว์ตัวอักษรที่เติมหน้า/หลังคำแล้วได้เป็นคำใหม่ทันที</p>
-      <label class="checkbox-field" style="margin-top:0.7rem"><input type="checkbox" id="anagramLiveCheckToggle" checked> <span data-i18n="settings.anagramLiveCheck">ตรวจคำตอบ Anagram ทันทีที่พิมพ์</span></label>
-      <p class="field-hint" data-i18n="settings.anagramLiveCheckHint">เมื่อเปิด: ระบบบอกถูก/ผิดทันทีทุกครั้งที่พิมพ์ (แบบเดิม) เมื่อปิด: ต้องกดปุ่มส่งคำตอบ หรือกด Enter ก่อนถึงจะตรวจให้ — ใช้ได้ทั้งหน้า Learn และ Cardbox &gt; Anagram</p>
       <label class="checkbox-field" style="margin-top:0.7rem"><input type="checkbox" id="anagramAutoReshuffleToggle"> <span data-i18n="settings.anagramAutoReshuffle">สลับตัวอักษร Anagram อัตโนมัติหลังตอบ</span></label>
       <p class="field-hint" data-i18n="settings.anagramAutoReshuffleHint">เมื่อเปิด: หลังตอบครบ/ข้ามคำใน Anagram แล้ว ระหว่างรอไปคำถัดไป ตัวอักษรจะสลับที่ใหม่ให้เองทุกกี่วินาทีตามที่ตั้ง</p>
       <div class="field" style="margin-top:0.5rem;max-width:12rem">
