@@ -1392,13 +1392,82 @@ main {
   .letter-tile { width: 1.6rem; height: 1.6rem; font-size: 0.85rem; }
   .panel-card { padding: 1.15rem; }
   .field input[type=number] { width: 5rem; }
+  .browse-filters-summary { padding: 0.9rem 1.15rem; }
+  .browse-filters-body { padding: 0 1.15rem 1.15rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
 
-/* ---------- additions: word browser chips ---------- */
+/* ---------- additions: word browser layout ---------- */
+
+.browse-search-field,
+.browse-length-field {
+  margin-bottom: 0.9rem;
+}
+
+.browse-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+  padding-top: 0.9rem;
+  margin-top: 0.2rem;
+  border-top: 1px solid var(--rail);
+}
+.browse-toolbar-sort { min-width: 220px; margin-bottom: 0; }
+.browse-toolbar-limit { max-width: 11rem; margin-bottom: 0; }
+.browse-toolbar .btn { margin-bottom: 0.55rem; }
+
+/* Advanced filters collapse behind a <details> summary so the panel people
+   see by default is just search + length + sort — the long list of
+   start/end/contains/pattern/rack/vowel fields only appears once asked for. */
+.browse-filters-group { padding: 0; overflow: hidden; }
+.browse-filters-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.8rem;
+  padding: 1.1rem 1.6rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.browse-filters-summary::-webkit-details-marker { display: none; }
+.browse-filters-summary::before {
+  content: '▸';
+  opacity: 0.6;
+  transition: transform .15s ease;
+}
+.browse-filters-group[open] .browse-filters-summary::before {
+  transform: rotate(90deg);
+}
+.browse-filters-summary:hover { background: var(--board-2); }
+.browse-filters-summary-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+.browse-filters-summary-hint {
+  color: #767EA0;
+  font-size: 0.8rem;
+}
+.browse-filters-body {
+  padding: 0 1.6rem 1.6rem;
+  border-top: 1px solid var(--rail);
+}
+.browse-filters-subhead {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brass);
+  margin: 1.1rem 0 0.7rem;
+}
+.browse-filters-body .control-row:first-of-type,
+.browse-filters-subhead:first-child { margin-top: 0.9rem; }
+.browse-filters-note { margin: -0.4rem 0 0.7rem; }
 
 .chip-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
@@ -1625,6 +1694,24 @@ main {
   border: 0;
 }
 
+/* ---------- additions: settings page layout ---------- */
+
+.settings-subhead {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brass);
+  margin: 1.3rem 0 0.7rem;
+}
+.settings-subhead:first-of-type { margin-top: 0.2rem; }
+.settings-field { margin-bottom: 0.9rem; }
+.settings-field-last { margin-bottom: 0; }
+.settings-field-narrow { max-width: 12rem; margin-top: 0.5rem; }
+.settings-field-gap { margin-top: 0.9rem; }
+.settings-checkbox-spaced { margin-top: 0.7rem; }
+.settings-btn-row-spaced { margin-top: 0.8rem; }
+
 /* ---------- additions: mode chips (typing-game mode, lang, theme) ---------- */
 
 .mode-chip {
@@ -1680,6 +1767,100 @@ main {
 /* ---------- additions: typed-word list (typing minigame) ---------- */
 
 #tgTypedList .quiz-item { }
+
+/* =========================================================
+   Minigame tab — mode picker + setup form cleanup
+   ========================================================= */
+
+/* Mode picker: switch from a loose row of mismatched buttons to a
+   tidy segmented strip of equal-weight cards, so it reads as "pick
+   one of 5 modes" rather than a pile of CTAs. */
+.mg-mode-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+.mg-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  background: var(--board-1);
+  border: 1px solid var(--rail);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  text-align: left;
+  transition: border-color .15s ease, background .15s ease, transform .12s ease;
+}
+.mg-mode-btn:hover { border-color: var(--teal); transform: translateY(-1px); }
+.mg-mode-btn .mg-mode-icon { font-size: 1.15rem; line-height: 1; }
+.mg-mode-btn .mg-mode-label { font-size: 0.85rem; font-weight: 600; color: var(--cream); line-height: 1.25; }
+/* Active state overrides the old btn-primary/btn-outline swap that the
+   JS toggles — same classes, same JS, just restyled. */
+.mg-mode-btn.btn-primary {
+  background: linear-gradient(155deg, rgba(124,158,255,.16), rgba(124,158,255,.05));
+  border-color: var(--brass);
+  box-shadow: inset 0 0 0 1px var(--brass);
+}
+.mg-mode-btn.btn-primary .mg-mode-label { color: var(--brass); }
+.mg-mode-btn.btn-outline .mg-mode-label { color: var(--cream); }
+
+@media (max-width: 640px) {
+  .mg-mode-picker { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Each mode's setup form: give it a consistent card header (icon +
+   title + one-line description) and tighten the rhythm between rows
+   so the stacked fields don't read as a loose pile of inputs. */
+.mg-panel-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-bottom: 1.1rem;
+}
+.mg-panel-head .mg-panel-icon {
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 10px;
+  background: var(--board-1);
+  border: 1px solid var(--rail);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+.mg-panel-head h2 { margin: 0 0 0.2rem; }
+.mg-panel-head .panel-sub { margin: 0; }
+
+.mg-setup {
+  background: var(--board-1);
+  border: 1px solid var(--rail);
+  border-radius: 12px;
+  padding: 1rem 1.1rem 1.1rem;
+}
+.mg-setup .control-row:last-child,
+.mg-setup .field:last-child { margin-bottom: 0; }
+.mg-setup .control-row { margin-bottom: 0.9rem; }
+
+.mg-setup-section {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #767EA0;
+  margin: 0 0 0.55rem;
+}
+.mg-setup-section:not(:first-child) { margin-top: 0.2rem; }
+
+.mg-setup .btn-row { border-top: 1px solid var(--rail); padding-top: 0.9rem; margin-top: 0.2rem; }
+
+/* Play areas render below the setup card — give them a little air so
+   they don't butt directly against the setup box. */
+.mg-play-area:not([style*="display: none"]) { margin-top: 1rem; }
 
 /* =========================================================
    Play tab — real Scrabble board vs bot
