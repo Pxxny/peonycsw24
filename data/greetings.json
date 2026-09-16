@@ -1,0 +1,422 @@
+{
+  "timeGreetings": {
+    "morning": {
+      "th": "อรุณสวัสดิ์",
+      "en": "Good Morning"
+    },
+    "afternoon": {
+      "th": "สวัสดีตอนบ่าย",
+      "en": "Good Afternoon"
+    },
+    "evening": {
+      "th": "สวัสดีตอนเย็น",
+      "en": "Good Evening"
+    },
+    "night": {
+      "th": "สวัสดีตอนดึก",
+      "en": "Good Night"
+    }
+  },
+  "encouragements": [
+    {
+      "th": "ทุกคำที่เรียนวันนี้คือกำไรของวันพรุ่งนี้",
+      "en": "Every word you learn today is tomorrow's advantage."
+    },
+    {
+      "th": "นักเล่น Scrabble ที่เก่งไม่ได้เกิดมาเก่ง แค่ฝึกทุกวัน",
+      "en": "Great Scrabble players aren't born — they practice daily."
+    },
+    {
+      "th": "วันนี้เก่งกว่าเมื่อวานอีกนิดก็พอแล้ว",
+      "en": "A little better than yesterday is enough."
+    },
+    {
+      "th": "คำศัพท์ยากๆ วันนี้ จะกลายเป็นคำง่ายๆ ในอีกไม่กี่วัน",
+      "en": "Today's hard words become tomorrow's easy ones."
+    },
+    {
+      "th": "พร้อมพิชิตคำศัพท์ใหม่กันหรือยัง?",
+      "en": "Ready to conquer some new words?"
+    },
+    {
+      "th": "ฝึกอีกแค่ 10 นาที ก็เก่งขึ้นได้แล้ว",
+      "en": "Just 10 more minutes of practice can make a difference."
+    },
+    {
+      "th": "ทุกครั้งที่พลาด คือโอกาสในการจำให้แม่นขึ้น",
+      "en": "Every mistake is a chance to remember better."
+    },
+    {
+      "th": "ความสม่ำเสมอสำคัญกว่าความเร็ว",
+      "en": "Consistency matters more than speed."
+    },
+    {
+      "th": "เก็บคำศัพท์ทีละคำ สักวันจะกลายเป็นคลังใหญ่",
+      "en": "Collect words one at a time — one day they'll be a treasure trove."
+    },
+    {
+      "th": "วันนี้ก็เป็นวันที่ดีสำหรับการเรียนรู้",
+      "en": "Today is a great day to learn something new."
+    },
+    {
+      "th": "สมองของคุณพร้อมสำหรับคำใหม่ๆ แล้ว",
+      "en": "Your brain is ready for new words."
+    },
+    {
+      "th": "แค่เริ่มฝึกก็ชนะไปครึ่งหนึ่งแล้ว",
+      "en": "Just starting to practice is already half the win."
+    },
+    {
+      "th": "ใครๆ ก็เริ่มจากศูนย์ สิ่งสำคัญคือไม่หยุด",
+      "en": "Everyone starts at zero — what matters is not stopping."
+    },
+    {
+      "th": "อ่านคำวันนี้ อาจได้ใช้บนกระดานจริงพรุ่งนี้",
+      "en": "The word you learn today might win you a game tomorrow."
+    },
+    {
+      "th": "ทุกด่านที่ผ่าน คือทักษะที่เพิ่มขึ้นจริง",
+      "en": "Every level cleared is a real skill gained."
+    },
+    {
+      "th": "ไม่มีใครเก่งคำศัพท์โดยไม่ฝึกซ้อม",
+      "en": "No one masters vocabulary without practice."
+    },
+    {
+      "th": "สนุกกับการเรียนรู้ แล้วความเก่งจะตามมาเอง",
+      "en": "Enjoy the learning, and skill will follow."
+    },
+    {
+      "th": "ตั้งเป้าวันนี้ไว้เล็กๆ แล้วทำให้สำเร็จ",
+      "en": "Set a small goal today and complete it."
+    },
+    {
+      "th": "คำศัพท์ยาวๆ ก็แค่คำศัพท์สั้นๆ หลายคำต่อกัน",
+      "en": "A long word is just several short ones combined."
+    },
+    {
+      "th": "เก่งขึ้นทุกวัน แม้จะทีละนิดก็ตาม",
+      "en": "Getting better every day, even just a little."
+    },
+    {
+      "th": "แต้มสูงๆ บนกระดานเริ่มจากการฝึกแบบนี้แหละ",
+      "en": "High scores on the board start with practice like this."
+    },
+    {
+      "th": "ให้วันนี้เป็นวันที่คุณจำคำใหม่ได้อีกสิบคำ",
+      "en": "Let today be the day you learn ten more words."
+    },
+    {
+      "th": "ความพยายามไม่มีทางสูญเปล่า",
+      "en": "Effort is never wasted."
+    },
+    {
+      "th": "จำได้ไม่หมดไม่เป็นไร ค่อยๆ ทบทวนไปเรื่อยๆ",
+      "en": "It's okay not to remember everything — just keep reviewing."
+    },
+    {
+      "th": "ทุกคำที่จำได้ คือดาบอีกเล่มในสนามประลอง",
+      "en": "Every word remembered is another sword in your arsenal."
+    },
+    {
+      "th": "แค่ลงมือฝึกวันนี้ ก็เหนือกว่าเมื่อวานแล้ว",
+      "en": "Just practicing today already beats yesterday."
+    },
+    {
+      "th": "อยากเก่งต้องฝึก อยากฝึกก็มาเริ่มกันเลย",
+      "en": "To get good, you must practice — so let's begin."
+    },
+    {
+      "th": "คำศัพท์ที่ดูยาก มักง่ายกว่าที่คิดเสมอ",
+      "en": "Words that look hard are usually easier than they seem."
+    },
+    {
+      "th": "ทุกนาทีที่ฝึก คือการลงทุนกับตัวเอง",
+      "en": "Every minute you practice is an investment in yourself."
+    },
+    {
+      "th": "สู้ต่ออีกหน่อย แล้วคุณจะเห็นความก้าวหน้า",
+      "en": "Push a little more and you'll see the progress."
+    },
+    {
+      "th": "เรียนรู้คำใหม่วันนี้ ใช้มันให้คุ้มในเกมหน้า",
+      "en": "Learn a new word today, use it well in your next game."
+    },
+    {
+      "th": "ไม่ต้องเก่งที่สุด แค่ดีกว่าเมื่อวานพอ",
+      "en": "You don't need to be the best — just better than yesterday."
+    },
+    {
+      "th": "การฝึกฝนวันนี้ คือรากฐานของชัยชนะวันหน้า",
+      "en": "Today's practice is the foundation of tomorrow's win."
+    },
+    {
+      "th": "ทุกครั้งที่เปิดแอปนี้ คือการลงทุนกับความรู้",
+      "en": "Every time you open this app is an investment in knowledge."
+    },
+    {
+      "th": "เก็บคำศัพท์ให้ครบ แล้วกระดานจะเป็นสนามของคุณ",
+      "en": "Collect enough words, and the board becomes your playground."
+    },
+    {
+      "th": "อยากชนะบนกระดาน ต้องฝึกก่อนลงสนาม",
+      "en": "To win on the board, you must train before you play."
+    },
+    {
+      "th": "แค่กดเข้ามาฝึกวันนี้ ก็เก่งกว่าคนที่ไม่ได้ฝึกแล้ว",
+      "en": "Just showing up to practice puts you ahead of those who don't."
+    },
+    {
+      "th": "ทุกคำตอบที่ผิด สอนอะไรบางอย่างให้เราเสมอ",
+      "en": "Every wrong answer teaches us something."
+    },
+    {
+      "th": "สมาธิสั้นๆ วันนี้ ดีกว่าไม่มีสมาธิเลย",
+      "en": "A short focused session today beats none at all."
+    },
+    {
+      "th": "ฝึกฝนไปเรื่อยๆ แล้ววันหนึ่งจะเก่งแบบไม่รู้ตัว",
+      "en": "Keep practicing, and one day you'll be great without realizing it."
+    },
+    {
+      "th": "อยากรู้คำศัพท์เยอะๆ ก็เริ่มจากคำเดียวตรงนี้แหละ",
+      "en": "Wanting to know many words starts with just one, right here."
+    },
+    {
+      "th": "ทุกครั้งที่ทบทวน ความจำจะแข็งแรงขึ้นอีกนิด",
+      "en": "Every review makes your memory a little stronger."
+    },
+    {
+      "th": "เริ่มก่อนพร้อมดีกว่ารอให้พร้อมก่อนเริ่ม",
+      "en": "Starting before you're ready beats waiting until you are."
+    },
+    {
+      "th": "ฝึกสมองให้คุ้นกับคำศัพท์ แล้วมันจะช่วยคุณเอง",
+      "en": "Train your brain to know words, and it will help you naturally."
+    },
+    {
+      "th": "ทุกด่านที่ทำสำเร็จ คือหลักฐานว่าคุณทำได้",
+      "en": "Every level completed is proof that you can do it."
+    },
+    {
+      "th": "ไม่มีทางลัดสู่ความเก่ง มีแต่ทางฝึกฝนที่สม่ำเสมอ",
+      "en": "There's no shortcut to skill, only consistent practice."
+    },
+    {
+      "th": "แค่มาวันนี้ ก็ดีกว่าไม่มาแล้ว",
+      "en": "Just showing up today is already a win."
+    },
+    {
+      "th": "คำศัพท์ใหม่ที่จำได้วันนี้ อาจเปลี่ยนเกมพรุ่งนี้",
+      "en": "The new word you learn today might change tomorrow's game."
+    },
+    {
+      "th": "ฝึกฝนด้วยใจสนุก แล้วความเก่งจะตามมาเรื่อยๆ",
+      "en": "Practice with joy, and skill will keep following."
+    },
+    {
+      "th": "ทุกคำที่ฝึกวันนี้ คือก้าวเล็กๆ สู่เป้าหมายใหญ่",
+      "en": "Every word practiced today is a small step to a big goal."
+    },
+    {
+      "th": "ไม่ต้องเร่ง แค่ไม่หยุดก็พอ",
+      "en": "No need to rush — just don't stop."
+    },
+    {
+      "th": "เก่งขึ้นทุกวันที่ฝึก แม้จะไม่เห็นด้วยตาเปล่า",
+      "en": "You grow a little every day you practice, even if you can't see it."
+    },
+    {
+      "th": "จำคำศัพท์ให้แม่น แล้วความมั่นใจจะตามมา",
+      "en": "Master your words, and confidence will follow."
+    },
+    {
+      "th": "ทุกเกมที่แพ้ สอนให้เราฝึกให้หนักขึ้นอีกนิด",
+      "en": "Every game lost teaches us to train a bit harder."
+    },
+    {
+      "th": "สนุกกับตัวอักษร แล้วคำศัพท์จะสนุกกับคุณ",
+      "en": "Have fun with letters, and words will have fun with you."
+    },
+    {
+      "th": "ฝึกฝนวันนี้ เพื่อคำตอบที่ไม่ต้องคิดนานในวันหน้า",
+      "en": "Practice today so tomorrow's answers come without hesitation."
+    },
+    {
+      "th": "ทุกคำที่จำได้ คือดาวอีกดวงในกระดานของคุณ",
+      "en": "Every word learned is another star on your board."
+    },
+    {
+      "th": "เริ่มจากคำง่ายๆ แล้วค่อยไปหาคำที่ยากขึ้น",
+      "en": "Start with easy words, then work up to harder ones."
+    },
+    {
+      "th": "ไม่มีใครจำได้หมดในวันเดียว แต่ทุกวันช่วยได้เสมอ",
+      "en": "No one learns everything in a day, but every day helps."
+    },
+    {
+      "th": "ฝึกฝนของวันนี้ คือของขวัญให้ตัวเองในวันหน้า",
+      "en": "Today's practice is a gift to your future self."
+    },
+    {
+      "th": "อดทนกับคำยากๆ แล้วมันจะกลายเป็นคำโปรดของคุณ",
+      "en": "Be patient with hard words, and they'll become your favorites."
+    },
+    {
+      "th": "ทุกครั้งที่ฝึก คือการสร้างนักเล่นที่เก่งขึ้นทีละนิด",
+      "en": "Every practice session builds a slightly better player."
+    },
+    {
+      "th": "แค่ตั้งใจฝึกวันนี้ ก็เพียงพอแล้ว",
+      "en": "Just putting in effort today is enough."
+    },
+    {
+      "th": "คำศัพท์คือกำลังสำคัญของนักเล่น Scrabble",
+      "en": "Vocabulary is a Scrabble player's greatest strength."
+    },
+    {
+      "th": "ฝึกฝนไปพร้อมกับความสนุก แล้วมันจะไม่ใช่งานหนัก",
+      "en": "Practice with fun, and it won't feel like work."
+    },
+    {
+      "th": "ทุกคำใหม่ที่เรียน คือเครื่องมือใหม่ในกล่องเครื่องมือของคุณ",
+      "en": "Every new word is a new tool in your toolbox."
+    },
+    {
+      "th": "ไม่ต้องกลัวคำยาก ทุกคำเริ่มจากตัวอักษรที่คุณรู้จักอยู่แล้ว",
+      "en": "Don't fear hard words — every one starts with letters you already know."
+    },
+    {
+      "th": "เก็บชัยชนะเล็กๆ ทุกวัน แล้ววันหนึ่งจะกลายเป็นชัยชนะใหญ่",
+      "en": "Collect small wins daily, and one day they'll become a big one."
+    },
+    {
+      "th": "ฝึกฝนสม่ำเสมอ คือกุญแจสำคัญของนักเล่นเก่งทุกคน",
+      "en": "Consistent practice is the key every skilled player shares."
+    },
+    {
+      "th": "ทุกครั้งที่เปิดแอปนี้ คุณกำลังลงทุนกับอนาคตของตัวเอง",
+      "en": "Every time you open this app, you're investing in your future."
+    },
+    {
+      "th": "คำศัพท์ที่ยากที่สุด มักกลายเป็นคำที่จำได้แม่นที่สุด",
+      "en": "The hardest words often become the most memorable ones."
+    },
+    {
+      "th": "แค่ฝึกอีกหนึ่งด่าน ก็เก่งขึ้นอีกหนึ่งขั้นแล้ว",
+      "en": "Just one more level of practice makes you one step better."
+    },
+    {
+      "th": "ไม่มีวันไหนสายเกินไปที่จะเริ่มเรียนรู้",
+      "en": "It's never too late to start learning."
+    },
+    {
+      "th": "ฝึกฝนบ่อยๆ แล้วสมองจะจำคำศัพท์ได้เองโดยไม่ต้องฝืน",
+      "en": "Practice often, and your brain will remember words effortlessly."
+    },
+    {
+      "th": "ทุกคำที่ฝึกวันนี้ อาจเป็นคำตัดสินเกมในวันหน้า",
+      "en": "The word you practice today might decide tomorrow's game."
+    },
+    {
+      "th": "เก่งขึ้นไม่ต้องรีบ แค่ไม่หยุดฝึกก็พอ",
+      "en": "Improvement doesn't need to be fast — just don't stop practicing."
+    },
+    {
+      "th": "ฝึกฝนด้วยใจที่เปิดรับ แล้วคำศัพท์จะเข้ามาเอง",
+      "en": "Practice with an open mind, and words will come naturally."
+    },
+    {
+      "th": "ทุกความพยายามเล็กๆ วันนี้ คือรากฐานของความเก่งวันหน้า",
+      "en": "Every small effort today is the foundation of future skill."
+    },
+    {
+      "th": "อย่ากลัวที่จะพลาด เพราะทุกความพลาดคือบทเรียน",
+      "en": "Don't fear mistakes — every one is a lesson."
+    },
+    {
+      "th": "ฝึกฝนวันนี้ให้สนุก แล้วพรุ่งนี้จะอยากฝึกต่อ",
+      "en": "Make today's practice fun, and you'll want to continue tomorrow."
+    },
+    {
+      "th": "ทุกคำที่จำได้แม่น คือความมั่นใจที่เพิ่มขึ้นบนกระดาน",
+      "en": "Every word mastered adds to your confidence on the board."
+    },
+    {
+      "th": "เริ่มต้นวันนี้ด้วยคำศัพท์ใหม่สักคำ",
+      "en": "Start today with just one new word."
+    },
+    {
+      "th": "ฝึกฝนไม่ใช่เรื่องยาก ถ้าทำให้เป็นส่วนหนึ่งของวันทุกวัน",
+      "en": "Practice isn't hard if it becomes part of your daily routine."
+    },
+    {
+      "th": "ทุกด่านที่ผ่านไปได้ คือทักษะที่ติดตัวคุณตลอดไป",
+      "en": "Every level you clear becomes a skill you keep forever."
+    },
+    {
+      "th": "จำคำศัพท์ให้แม่น แล้วเกมจะง่ายขึ้นเยอะ",
+      "en": "Master your vocabulary, and the game gets much easier."
+    },
+    {
+      "th": "ฝึกฝนบ่อยๆ แล้วความมั่นใจจะมาเอง",
+      "en": "Practice often, and confidence will follow."
+    },
+    {
+      "th": "ทุกคำที่ฝึกวันนี้ คือเสบียงสำหรับสนามประลองวันหน้า",
+      "en": "Every word practiced today is ammunition for tomorrow's match."
+    },
+    {
+      "th": "ไม่มีใครเกิดมารู้คำศัพท์ทุกคำ แต่ทุกคนฝึกได้",
+      "en": "No one is born knowing every word, but everyone can practice."
+    },
+    {
+      "th": "แค่เริ่มต้นวันนี้ พรุ่งนี้ก็จะง่ายขึ้น",
+      "en": "Just start today, and tomorrow will be easier."
+    },
+    {
+      "th": "ฝึกฝนด้วยความอดทน แล้วผลลัพธ์จะคุ้มค่าเสมอ",
+      "en": "Practice with patience, and the results will always be worth it."
+    },
+    {
+      "th": "ทุกครั้งที่ฝึก คุณกำลังสร้างนักเล่นที่ดีกว่าเดิม",
+      "en": "Every practice session, you're building a better version of yourself."
+    },
+    {
+      "th": "คำศัพท์ที่ดูซับซ้อน มักมีความหมายที่เรียบง่าย",
+      "en": "Complex-looking words often carry simple meanings."
+    },
+    {
+      "th": "ฝึกฝนวันนี้เพื่อความมั่นใจในวันแข่งจริง",
+      "en": "Practice today for confidence on competition day."
+    },
+    {
+      "th": "ทุกคำที่เรียนรู้ คือกำแพงป้องกันความพ่ายแพ้",
+      "en": "Every word learned is a wall against defeat."
+    },
+    {
+      "th": "ไม่ต้องสมบูรณ์แบบ แค่ก้าวไปข้างหน้าทุกวันก็พอ",
+      "en": "You don't need to be perfect — just move forward every day."
+    },
+    {
+      "th": "ฝึกฝนให้เป็นนิสัย แล้วความเก่งจะเป็นผลลัพธ์ธรรมดา",
+      "en": "Make practice a habit, and skill becomes the natural result."
+    },
+    {
+      "th": "ทุกคำที่ฝึกซ้อม คือชัยชนะเล็กๆ ที่สะสมไปเรื่อยๆ",
+      "en": "Every word you drill is a small win that adds up."
+    },
+    {
+      "th": "เก่งขึ้นทีละคำ แล้ววันหนึ่งจะเก่งแบบไม่รู้ตัวว่าเริ่มตั้งแต่เมื่อไร",
+      "en": "Improve word by word, and one day you'll be great without noticing when it started."
+    },
+    {
+      "th": "ฝึกฝนวันนี้ให้ดีที่สุดเท่าที่ทำได้ พอแล้ว",
+      "en": "Practice today as best as you can — that's enough."
+    },
+    {
+      "th": "ทุกคำศัพท์ที่รู้จัก คือประตูสู่คำศัพท์คำต่อไป",
+      "en": "Every word you know opens the door to the next one."
+    }
+  ]
+}
