@@ -316,12 +316,22 @@
             <option value="rounds-desc" data-i18n="cardbox.sortRoundsDesc">จำนวนรอบเรียน: มาก→น้อย</option>
             <option value="rounds-asc" data-i18n="cardbox.sortRoundsAsc">จำนวนรอบเรียน: น้อย→มาก</option>
             <option value="alpha" data-i18n="cardbox.sortAlpha">ตัวอักษร (A→Z)</option>
+            <option value="length-asc" data-i18n="cardbox.sortLengthAsc">ความยาว: น้อยไปมาก</option>
+            <option value="length-desc" data-i18n="cardbox.sortLengthDesc">ความยาว: มากไปน้อย</option>
             <option value="prob-desc" data-i18n="cardbox.sortProbDesc">Probability: มากไปน้อย</option>
             <option value="prob-asc" data-i18n="cardbox.sortProbAsc">Probability: น้อยไปมาก</option>
             <option value="play-desc" data-i18n="cardbox.sortPlayDesc">Playability: มากไปน้อย</option>
             <option value="play-asc" data-i18n="cardbox.sortPlayAsc">Playability: น้อยไปมาก</option>
             <option value="leech-desc" data-i18n="cardboxLeech.sortLeechDesc">🐛 Leech ก่อน (ผิดติดกันมาก→น้อย)</option>
           </select>
+        </div>
+        <div class="field" id="cardboxLengthRangeField" style="min-width:200px;display:none">
+          <label data-i18n="cardbox.lengthRangeLabel">ช่วงความยาว (ตัวอักษร)</label>
+          <div style="display:flex;gap:0.4rem;align-items:center">
+            <input type="number" id="cardboxLengthMin" min="2" max="15" value="2" style="width:70px" placeholder="ต่ำสุด">
+            <span>–</span>
+            <input type="number" id="cardboxLengthMax" min="2" max="15" value="15" style="width:70px" placeholder="มากสุด">
+          </div>
         </div>
         <div class="field" style="align-self:flex-end">
           <label class="checkbox-field"><input type="checkbox" id="cardboxLeechOnly"> <span data-i18n="cardboxLeech.filterOnly">🐛 แสดงเฉพาะคำที่ติด Leech</span></label>
@@ -718,9 +728,11 @@
         <div class="control-row">
           <label class="checkbox-field"><input type="checkbox" id="tgStrict"> โหมดเข้มงวด (พิมพ์ผิดแล้วเริ่มใหม่)</label>
           <label class="checkbox-field"><input type="checkbox" id="tgShowAnagramToggle"> 🔤 โชว์ปุ่ม Anagram ระหว่างพิมพ์</label>
+          <label class="checkbox-field"><input type="checkbox" id="tgAnagramModeToggle"> 🔁 โหมด Anagram ครบชุด (ต้องพิมพ์ให้ครบทุกคำ Anagram ก่อนไปข้อต่อไป)</label>
           <button class="btn btn-primary" id="tgStartBtn" data-i18n="mini.startGame">▶ เริ่มเกม</button>
           <button class="btn btn-outline" id="tgResumeBtn" style="display:none">↩ เล่นต่อจากที่ค้างไว้</button>
         </div>
+        <div id="tgHistoryList" style="display:none;margin-top:1rem"></div>
       </div>
       <div id="typingPlay" style="display:none"></div>
       <div class="panel-card" id="tgTypedPanel" style="display:none;margin-top:1rem">
