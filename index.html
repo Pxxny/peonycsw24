@@ -261,6 +261,7 @@
       <h2 data-i18n="cardbox.title">การ์ดของฉัน (Cardbox)</h2>
       <p class="panel-sub">คำศัพท์ที่บันทึกไว้ — เลือกรูปแบบทบทวนแล้วเริ่มเรียนได้เลย ระบบใช้ Spaced Repetition (SM-2 แบบย่อ) เพื่อจัดคิวคำที่ควรทบทวน ความคืบหน้าเก็บไว้ในเครื่องอัตโนมัติ</p>
 
+      <div class="section-heading">เริ่มทบทวน</div>
       <div id="cardboxSetup">
         <div class="control-row">
           <div class="field">
@@ -271,51 +272,38 @@
               <option value="recall">Active Recall</option>
             </select>
           </div>
+          <div class="field" id="anagramOrderField">
+            <label for="anagramOrder" data-i18n="cardbox.anagramOrder">การเรียงตัวอักษร</label>
+            <select id="anagramOrder">
+              <option value="alpha">เรียงตามตัวอักษร (A→Z)</option>
+              <option value="random">สุ่ม</option>
+            </select>
+          </div>
+          <div class="field" id="anagramCycleField">
+            <label for="anagramCycleInterval" data-i18n="cardbox.anagramCycleInterval">Cycle Interval (คำที่ข้าม/ผิดจะวนกลับมาอีกกี่คำ)</label>
+            <input type="number" id="anagramCycleInterval" min="0" max="20" value="3">
+          </div>
           <div class="field">
             <label for="studyCount" data-i18n="cardbox.studyCount">จำนวนคำที่ทบทวน</label>
             <input type="number" id="studyCount" min="1" value="10">
           </div>
-          <label class="checkbox-field"><input type="checkbox" id="dueOnlyToggle" checked> เฉพาะคำที่ถึงกำหนด</label>
-        </div>
-
-        <details class="cardbox-more">
-          <summary>ตัวเลือกเพิ่มเติม (ความยาวคำ, การเรียง Anagram)</summary>
-          <div class="control-row cardbox-more-body">
-            <div class="field" id="anagramOrderField">
-              <label for="anagramOrder" data-i18n="cardbox.anagramOrder">การเรียงตัวอักษร</label>
-              <select id="anagramOrder">
-                <option value="alpha">เรียงตามตัวอักษร (A→Z)</option>
-                <option value="random">สุ่ม</option>
-              </select>
-            </div>
-            <div class="field" id="anagramCycleField">
-              <label for="anagramCycleInterval" data-i18n="cardbox.anagramCycleInterval">Cycle Interval (คำที่ข้าม/ผิดจะวนกลับมาอีกกี่คำ)</label>
-              <input type="number" id="anagramCycleInterval" min="0" max="20" value="3">
-            </div>
-            <div class="field">
-              <label for="studyMinLen">ความยาวต่ำสุด</label>
-              <input type="number" id="studyMinLen" min="2" max="15" value="2">
-            </div>
-            <div class="field">
-              <label for="studyMaxLen">ความยาวสูงสุด</label>
-              <input type="number" id="studyMaxLen" min="2" max="15" value="15">
-            </div>
+          <div class="field">
+            <label for="studyMinLen">ความยาวต่ำสุด</label>
+            <input type="number" id="studyMinLen" min="2" max="15" value="2">
           </div>
-        </details>
-
-        <div class="btn-row">
+          <div class="field">
+            <label for="studyMaxLen">ความยาวสูงสุด</label>
+            <input type="number" id="studyMaxLen" min="2" max="15" value="15">
+          </div>
+          <label class="checkbox-field"><input type="checkbox" id="dueOnlyToggle" checked> เฉพาะคำที่ถึงกำหนด</label>
           <button class="btn btn-primary" id="startStudyBtn" data-i18n="cardbox.start">▶ เริ่มทบทวน</button>
           <button class="btn btn-outline" id="startAnagramReviewBtn" data-i18n="cardbox.anagramReviewStart">📖 Anagram Review</button>
         </div>
       </div>
-    </div>
 
-    <div class="panel-card">
-      <div class="cardbox-list-head">
-        <h2 style="font-size:1.1rem;margin:0">🗂️ รายการคำ</h2>
-        <p class="field-hint" style="margin:0"><strong id="cardboxCount">0</strong> คำใน Cardbox · <span id="cardboxDueCount"></span></p>
-      </div>
+      <p style="margin-top:0.6rem"><strong id="cardboxCount">0</strong> คำใน Cardbox · <span id="cardboxDueCount" class="field-hint"></span></p>
 
+      <div class="section-heading">ค้นหา / เรียงลำดับ / กรอง</div>
       <div class="control-row" id="cardboxSearchRow">
         <div class="field" style="flex:1;min-width:220px">
           <label for="cardboxSearch" data-i18n="cardbox.searchLabel">🔍 ค้นหาคำใน Cardbox</label>
@@ -348,8 +336,8 @@
       <div class="btn-row" id="cardboxSelectRow" style="align-items:center">
         <label class="checkbox-field"><input type="checkbox" id="cardboxSelectAll"> <span data-i18n="common.selectAll">เลือกทั้งหมด</span></label>
         <span class="selected-count" id="cardboxSelectedCount" data-i18n="cardbox.selectedCount">เลือกแล้ว 0 คำ</span>
-        <button class="btn btn-primary btn-sm" id="studySelectedBtn" data-i18n="cardbox.studySelected">▶ ทบทวนคำที่เลือก</button>
-        <button class="btn btn-outline btn-sm" id="anagramReviewSelectedBtn" data-i18n="cardbox.anagramReviewSelected">📖 Anagram Review คำที่เลือก</button>
+        <button class="btn btn-primary" id="studySelectedBtn" data-i18n="cardbox.studySelected">▶ ทบทวนคำที่เลือก</button>
+        <button class="btn btn-outline" id="anagramReviewSelectedBtn" data-i18n="cardbox.anagramReviewSelected">📖 Anagram Review คำที่เลือก</button>
       </div>
 
       <div id="cardboxList"></div>
@@ -358,16 +346,14 @@
       </div>
     </div>
 
-    <details class="panel-card cardbox-tools">
-      <summary>
-        <span class="cardbox-tools-title">⚙️ ตั้งค่า &amp; เครื่องมือ Cardbox</span>
-        <span class="field-hint">Due time · Import/Export · Groups</span>
-      </summary>
+    <div class="panel-card">
+      <h2 style="font-size:1.05rem">🛠️ จัดการ Cardbox</h2>
+      <p class="panel-sub" style="margin-bottom:0.7rem">ตั้งเวลาทบทวน, นำเข้า/ส่งออก, และจัดกลุ่มคำศัพท์ — ใช้เป็นครั้งคราว</p>
 
-      <div class="cardbox-tools-body">
-        <div class="cardbox-tools-section">
-          <h3>⏰ ตั้งเวลาครบกำหนดทบทวน (Due time)</h3>
-          <p class="panel-sub" style="margin-bottom:0.7rem">เลือกว่าคำที่เพิ่มเข้า Cardbox ใหม่ควรถึงกำหนดทบทวนเมื่อไหร่ (มีผลกับคำที่เพิ่มจากแท็บแบบทดสอบ / คลังคำศัพท์ / Minigame หลังจากนี้)</p>
+      <details class="section-group">
+        <summary class="section-group-label"><span class="section-group-icon">⏰</span> ตั้งเวลาครบกำหนดทบทวน (Due time)</summary>
+        <div class="section-group-body">
+          <p class="field-hint" style="margin-bottom:0.7rem">เลือกว่าคำที่เพิ่มเข้า Cardbox ใหม่ควรถึงกำหนดทบทวนเมื่อไหร่ (มีผลกับคำที่เพิ่มจากแท็บแบบทดสอบ / คลังคำศัพท์ / Minigame หลังจากนี้)</p>
           <div class="field" style="margin-bottom:0.7rem">
             <div class="chip-row" id="dueTimePresetChips">
               <button type="button" class="mode-chip" data-due="1h">1 ชม.</button>
@@ -394,12 +380,12 @@
           </div>
           <p class="field-hint">ตอนนี้: คำใหม่จะถึงกำหนดทบทวนใน <strong id="dueTimeSummary">24 ชั่วโมง</strong></p>
         </div>
+      </details>
 
-        <div class="cardbox-tools-divider"></div>
-
-        <div class="cardbox-tools-section">
-          <h3>🗂️ นำเข้า / ส่งออก Cardbox</h3>
-          <p class="panel-sub" style="margin-bottom:0.7rem">เก็บ Cardbox ชุดปัจจุบันไว้เป็นไฟล์ JSON แล้วแทนที่ด้วยชุดใหม่ได้ พออยากกลับมาเรียนชุดเดิมค่อย Import กลับเข้ามา (การ Import จะ<strong>แทนที่ Cardbox ทั้งหมด</strong>ที่มีอยู่)</p>
+      <details class="section-group">
+        <summary class="section-group-label"><span class="section-group-icon">🗂️</span> นำเข้า / ส่งออก Cardbox</summary>
+        <div class="section-group-body">
+          <p class="field-hint" style="margin-bottom:0.7rem">เก็บ Cardbox ชุดปัจจุบันไว้เป็นไฟล์ JSON แล้วแทนที่ด้วยชุดใหม่ได้ พออยากกลับมาเรียนชุดเดิมค่อย Import กลับเข้ามา (การ Import จะ<strong>แทนที่ Cardbox ทั้งหมด</strong>ที่มีอยู่)</p>
           <div class="btn-row">
             <button class="btn btn-outline btn-sm" id="exportCardboxBtn">⬇ Export Cardbox (JSON)</button>
             <label class="btn btn-outline btn-sm" for="importCardboxInput">⬆ Import Cardbox (แทนที่ทั้งหมด)</label>
@@ -407,20 +393,19 @@
           </div>
           <p class="field-hint">💡 Import จะลบ Cardbox ปัจจุบันทิ้งก่อน — แนะนำให้ Export เก็บไว้ก่อนเสมอถ้ายังไม่อยากเสียชุดที่กำลังเรียนอยู่</p>
         </div>
+      </details>
 
-        <div class="cardbox-tools-divider"></div>
-
-        <div class="cardbox-tools-section">
-          <h3 data-i18n="cardboxGroups.title">📦 Group คำศัพท์ (บันทึกไว้หลายชุด)</h3>
-          <p class="panel-sub" style="margin-bottom:0.7rem" data-i18n="cardboxGroups.sub">ติ๊กเลือกคำที่ต้องการในรายการ Cardbox ด้านบนก่อน แล้วกดปุ่มนี้เพื่อคัดลอกเฉพาะคำที่เลือกไว้เก็บเป็น "Group" (ไม่ลบของเดิม) ตั้งชื่อได้ พอเรียนชุดนี้เสร็จแล้วอยากเปลี่ยนไปชุดใหม่ก็เพิ่ม Group ไว้ก่อน แล้วค่อยโหลดกลับมาทีหลังได้</p>
+      <details class="section-group">
+        <summary class="section-group-label"><span class="section-group-icon">📦</span> <span data-i18n="cardboxGroups.title">Group คำศัพท์ (บันทึกไว้หลายชุด)</span></summary>
+        <div class="section-group-body">
+          <p class="field-hint" style="margin-bottom:0.7rem" data-i18n="cardboxGroups.sub">ติ๊กเลือกคำที่ต้องการในรายการ Cardbox ด้านบนก่อน แล้วกดปุ่มนี้เพื่อคัดลอกเฉพาะคำที่เลือกไว้เก็บเป็น "Group" (ไม่ลบของเดิม) ตั้งชื่อได้ พอเรียนชุดนี้เสร็จแล้วอยากเปลี่ยนไปชุดใหม่ก็เพิ่ม Group ไว้ก่อน แล้วค่อยโหลดกลับมาทีหลังได้</p>
           <div class="btn-row">
             <button class="btn btn-primary btn-sm" id="addCardboxGroupBtn" data-i18n="cardboxGroups.addBtn">➕ เพิ่ม Group จากคำที่เลือกไว้</button>
           </div>
           <div id="cardboxGroupsList" style="margin-top:0.7rem"></div>
         </div>
-      </div>
-    </details>
-
+      </details>
+    </div>
 
     <div class="panel-card" id="studySession">
       <div class="session-progress" id="sessionProgressLabel"></div>
@@ -488,20 +473,69 @@
       <h2 data-i18n="browse.title">คลังคำศัพท์ทั้งหมด</h2>
       <p class="panel-sub">เรียกดูคำศัพท์ทุกคำในพจนานุกรม CSW24 (2–15 ตัวอักษร) เรียงจาก A พร้อมตัวกรองแบบละเอียด · กด <strong>/</strong> เพื่อโฟกัสช่องค้นหา</p>
 
-      <div class="field browse-search-field">
+      <div class="field" style="margin-bottom:0.9rem">
         <label for="browseWordSearch" data-i18n="browse.wordSearchLabel">🔍 ค้นหาคำศัพท์</label>
         <input type="text" id="browseWordSearch" maxlength="15" placeholder="พิมพ์คำที่ต้องการค้นหา เช่น CAT หรือบางส่วนของคำ">
       </div>
 
-      <div class="field browse-length-field">
+      <div class="field" style="margin-bottom:0.9rem">
         <label>ความยาว</label>
         <div class="chip-row" id="browseLengthChips"></div>
       </div>
 
-      <div class="browse-toolbar">
+      <details class="section-group" open>
+        <summary class="section-group-label"><span class="section-group-icon">🧩</span> ตัวกรองพื้นฐาน</summary>
+        <div class="section-group-body">
+          <div class="control-row">
+            <div class="field"><label for="filterStarts">ขึ้นต้นด้วย</label><input type="text" id="filterStarts" maxlength="15" placeholder="เช่น CAR"></div>
+            <div class="field"><label for="filterEnds">ลงท้ายด้วย</label><input type="text" id="filterEnds" maxlength="15" placeholder="เช่น ING"></div>
+            <div class="field"><label for="filterContains">มีคำว่า (Contains)</label><input type="text" id="filterContains" maxlength="15" placeholder="เช่น AT"></div>
+          </div>
+          <div class="control-row">
+            <div class="field"><label for="filterContainsAll">มีตัวอักษรครบ (Contains All)</label><input type="text" id="filterContainsAll" maxlength="15" placeholder="เช่น AEI หรือ AEI? (? = Blank)"></div>
+            <div class="field"><label for="filterScoreMin">คะแนนต่ำสุด</label><input type="number" id="filterScoreMin" min="0" placeholder="0"></div>
+            <div class="field"><label for="filterScoreMax">คะแนนสูงสุด</label><input type="number" id="filterScoreMax" min="0" placeholder="100"></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="section-group">
+        <summary class="section-group-label"><span class="section-group-icon">🧪</span> ตัวกรองขั้นสูง (Pattern / Rack / สัดส่วนสระ)</summary>
+        <div class="section-group-body">
+          <div class="control-row">
+            <div class="field">
+              <label for="filterPattern">รูปแบบคำ (Pattern)</label>
+              <input type="text" id="filterPattern" maxlength="15" placeholder="เช่น C_C หรือ ?AT">
+            </div>
+            <div class="field">
+              <label for="filterRack">เล่นได้จาก Rack (ตัวอักษรที่มี)</label>
+              <input type="text" id="filterRack" maxlength="20" placeholder="เช่น AEINRT หรือใช้ ? แทน Blank">
+            </div>
+          </div>
+          <p class="field-hint" style="margin:-0.4rem 0 0.7rem">
+            Pattern: ใช้ <code>_</code> หรือ <code>?</code> แทนตัวอักษรใดก็ได้ในตำแหน่งนั้น (ความยาวของ Pattern ต้องตรงกับคำ) ·
+            Rack: คำจะต้องประกอบขึ้นได้จากตัวอักษรที่ระบุเท่านั้น (ใช้แต่ละตัวได้ไม่เกินจำนวนที่มี ใส่ <code>?</code> เป็น Blank ใช้แทนตัวอักษรใดก็ได้)
+          </p>
+
+          <div class="control-row">
+            <div class="field">
+              <label for="filterVowelMin">สัดส่วนสระขั้นต่ำ (%)</label>
+              <input type="number" id="filterVowelMin" min="0" max="100" placeholder="0">
+            </div>
+            <div class="field">
+              <label for="filterVowelMax">สัดส่วนสระสูงสุด (%)</label>
+              <input type="number" id="filterVowelMax" min="0" max="100" placeholder="100">
+            </div>
+          </div>
+          <p class="field-hint" style="margin:-0.4rem 0 0">สัดส่วนสระ = จำนวนสระ (A E I O U) ÷ ความยาวคำ × 100 — ใช้หาคำที่มีสระเยอะ/น้อยเป็นพิเศษ</p>
+        </div>
+      </details>
+
+      <div class="section-heading">ค้นหาและแสดงผล</div>
+      <div class="btn-row">
         <button class="btn btn-primary" id="browseSearchBtn" data-i18n="browse.search">🔍 ค้นหา (Enter)</button>
         <button class="btn btn-outline btn-sm" id="browseClearBtn" data-i18n="browse.clear">ล้างตัวกรอง</button>
-        <div class="field browse-toolbar-sort">
+        <div class="field" style="min-width:220px;margin-bottom:0">
           <label for="browseSortSelect" data-i18n="browse.sortLabel">เรียงลำดับ</label>
           <select id="browseSortSelect">
             <option value="alpha">ตัวอักษร (A-Z)</option>
@@ -511,7 +545,7 @@
             <option value="play-asc">Playability: น้อยไปมาก</option>
           </select>
         </div>
-        <div class="field browse-toolbar-limit">
+        <div class="field" style="max-width:11rem;margin-bottom:0">
           <label for="browseLimitInput">จำกัดจำนวนคำที่แสดง (0 = ทั้งหมด)</label>
           <input type="number" id="browseLimitInput" min="0" step="1" placeholder="0 = ทั้งหมด" value="0">
         </div>
@@ -519,56 +553,6 @@
       <p class="field-hint" id="browseResultCount"></p>
       <div id="browseFuzzySuggest"></div>
     </div>
-
-    <details class="panel-card browse-filters-group" id="browseFiltersGroup">
-      <summary class="browse-filters-summary">
-        <span class="browse-filters-summary-title">ตัวกรองแบบละเอียด</span>
-        <span class="browse-filters-summary-hint">ขึ้นต้น/ลงท้าย/มีคำว่า · คะแนน · Pattern · Rack · สัดส่วนสระ</span>
-      </summary>
-
-      <div class="browse-filters-body">
-        <p class="browse-filters-subhead">ตัวสะกดและคะแนน</p>
-        <div class="control-row">
-          <div class="field"><label for="filterStarts">ขึ้นต้นด้วย</label><input type="text" id="filterStarts" maxlength="15" placeholder="เช่น CAR"></div>
-          <div class="field"><label for="filterEnds">ลงท้ายด้วย</label><input type="text" id="filterEnds" maxlength="15" placeholder="เช่น ING"></div>
-          <div class="field"><label for="filterContains">มีคำว่า (Contains)</label><input type="text" id="filterContains" maxlength="15" placeholder="เช่น AT"></div>
-        </div>
-        <div class="control-row">
-          <div class="field"><label for="filterContainsAll">มีตัวอักษรครบ (Contains All)</label><input type="text" id="filterContainsAll" maxlength="15" placeholder="เช่น AEI หรือ AEI? (? = Blank)"></div>
-          <div class="field"><label for="filterScoreMin">คะแนนต่ำสุด</label><input type="number" id="filterScoreMin" min="0" placeholder="0"></div>
-          <div class="field"><label for="filterScoreMax">คะแนนสูงสุด</label><input type="number" id="filterScoreMax" min="0" placeholder="100"></div>
-        </div>
-
-        <p class="browse-filters-subhead">รูปแบบและ Rack</p>
-        <div class="control-row">
-          <div class="field">
-            <label for="filterPattern">รูปแบบคำ (Pattern)</label>
-            <input type="text" id="filterPattern" maxlength="15" placeholder="เช่น C_C หรือ ?AT">
-          </div>
-          <div class="field">
-            <label for="filterRack">เล่นได้จาก Rack (ตัวอักษรที่มี)</label>
-            <input type="text" id="filterRack" maxlength="20" placeholder="เช่น AEINRT หรือใช้ ? แทน Blank">
-          </div>
-        </div>
-        <p class="field-hint browse-filters-note">
-          Pattern: ใช้ <code>_</code> หรือ <code>?</code> แทนตัวอักษรใดก็ได้ในตำแหน่งนั้น (ความยาวของ Pattern ต้องตรงกับคำ) ·
-          Rack: คำจะต้องประกอบขึ้นได้จากตัวอักษรที่ระบุเท่านั้น (ใช้แต่ละตัวได้ไม่เกินจำนวนที่มี ใส่ <code>?</code> เป็น Blank ใช้แทนตัวอักษรใดก็ได้)
-        </p>
-
-        <p class="browse-filters-subhead">สัดส่วนสระ</p>
-        <div class="control-row">
-          <div class="field">
-            <label for="filterVowelMin">สัดส่วนสระขั้นต่ำ (%)</label>
-            <input type="number" id="filterVowelMin" min="0" max="100" placeholder="0">
-          </div>
-          <div class="field">
-            <label for="filterVowelMax">สัดส่วนสระสูงสุด (%)</label>
-            <input type="number" id="filterVowelMax" min="0" max="100" placeholder="100">
-          </div>
-        </div>
-        <p class="field-hint browse-filters-note">สัดส่วนสระ = จำนวนสระ (A E I O U) ÷ ความยาวคำ × 100 — ใช้หาคำที่มีสระเยอะ/น้อยเป็นพิเศษ</p>
-      </div>
-    </details>
 
     <div class="panel-card">
       <div class="btn-row" id="browseSelectRow" style="align-items:center">
@@ -588,24 +572,19 @@
     <div class="panel-card">
       <h2 data-i18n="mini.title">🕹️ Minigame</h2>
       <p class="panel-sub">ฝึกพิมพ์คำศัพท์ให้เร็วและแม่นยำ หรือท้าทายตัวเองหาคำทั้งหมดจาก Rack ตัวอักษร</p>
-      <div class="mg-mode-picker">
-        <button class="btn mg-mode-btn btn-primary" id="gameTabTyping" data-i18n="mini.typing"><span class="mg-mode-icon">⌨️</span><span class="mg-mode-label">พิมพ์ศัพท์ Random</span></button>
-        <button class="btn mg-mode-btn btn-outline" id="gameTabRacks" data-i18n="mini.racks"><span class="mg-mode-icon">🁢</span><span class="mg-mode-label">Random Racks</span></button>
-        <button class="btn mg-mode-btn btn-outline" id="gameTabAlpha" data-i18n="mini.alpha"><span class="mg-mode-icon">🔀</span><span class="mg-mode-label">Alphagram Blitz</span></button>
-        <button class="btn mg-mode-btn btn-outline" id="gameTabMarathon" data-i18n="mini.marathon"><span class="mg-mode-icon">⚡</span><span class="mg-mode-label">Time Attack Marathon</span></button>
-        <button class="btn mg-mode-btn btn-outline" id="gameTabWordMarathon" data-i18n="mini.wordMarathon"><span class="mg-mode-icon">🏃</span><span class="mg-mode-label">Word Marathon</span></button>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="gameTabTyping" data-i18n="mini.typing">⌨️ พิมพ์ศัพท์ Random</button>
+        <button class="btn btn-outline" id="gameTabRacks" data-i18n="mini.racks">🁢 Random Racks</button>
+        <button class="btn btn-outline" id="gameTabAlpha" data-i18n="mini.alpha">🔀 Alphagram Blitz</button>
+        <button class="btn btn-outline" id="gameTabMarathon" data-i18n="mini.marathon">⚡ Time Attack Marathon</button>
+        <button class="btn btn-outline" id="gameTabWordMarathon" data-i18n="mini.wordMarathon">🏃 Word Marathon</button>
       </div>
     </div>
 
     <div class="panel-card" id="wordMarathonGamePanel" style="display:none">
-      <div class="mg-panel-head">
-        <span class="mg-panel-icon">🏃</span>
-        <div>
-          <h2>Word Marathon</h2>
-          <p class="panel-sub">โหมดฝึกความอึด แรงบันดาลใจจากนักกีฬาทีมชาติที่นั่งซ้อม Marathon 7 ตัวอักษรยาวๆ หลายชั่วโมง — เลือกความยาวคำตั้งแต่ 5-12 ตัวอักษร ตั้งเวลารวมได้ตามใจ พร้อมจุด Checkpoint ให้พักเป็นระยะ</p>
-        </div>
-      </div>
-      <div id="wmSetup" class="mg-setup">
+      <h2>🏃 Word Marathon</h2>
+      <p class="panel-sub">โหมดฝึกความอึด แรงบันดาลใจจากนักกีฬาทีมชาติที่นั่งซ้อม Marathon 7 ตัวอักษรยาวๆ หลายชั่วโมง — เลือกความยาวคำตั้งแต่ 5-12 ตัวอักษร ตั้งเวลารวมได้ตามใจ พร้อมจุด Checkpoint ให้พักเป็นระยะ</p>
+      <div id="wmSetup">
         <div class="control-row">
           <div class="field">
             <label for="wmLength">ความยาวคำ (ตัวอักษร)</label>
@@ -633,55 +612,46 @@
             <span class="field-hint">ตั้งเป็น 0 ถ้าไม่ต้องการ Checkpoint อัตโนมัติ (ยังกด "พักตอนนี้" เองได้เสมอ)</span>
           </div>
         </div>
-        <div class="btn-row">
+        <div class="control-row">
           <button class="btn btn-primary" id="wmStartBtn">▶ เริ่ม Word Marathon</button>
         </div>
       </div>
-      <div id="wmPlay" class="mg-play-area" style="display:none"></div>
+      <div id="wmPlay" style="display:none"></div>
     </div>
 
     <div class="panel-card" id="marathonGamePanel" style="display:none">
-      <div class="mg-panel-head">
-        <span class="mg-panel-icon">⚡</span>
-        <div>
-          <h2>Time Attack Marathon</h2>
-          <p class="panel-sub">ตอบต่อเนื่องหลายรอบแบบจับเวลาสั้นๆ ต่อรอบ — แต่ละรอบจะสลับโจทย์ระหว่าง Anagram / Rack / คำจาก Cardbox แบบสุ่ม ตอบให้ทันเวลาก่อนรอบจะหมดเวลาแล้วข้ามไปรอบถัดไปอัตโนมัติ</p>
-        </div>
-      </div>
-      <div id="marathonSetup" class="mg-setup">
+      <h2>⚡ Time Attack Marathon</h2>
+      <p class="panel-sub">ตอบต่อเนื่องหลายรอบแบบจับเวลาสั้นๆ ต่อรอบ — แต่ละรอบจะสลับโจทย์ระหว่าง Anagram / Rack / คำจาก Cardbox แบบสุ่ม ตอบให้ทันเวลาก่อนรอบจะหมดเวลาแล้วข้ามไปรอบถัดไปอัตโนมัติ</p>
+      <div id="marathonSetup">
         <div class="control-row">
           <div class="field"><label for="marRoundSeconds">เวลาต่อรอบ (วินาที)</label><input type="number" id="marRoundSeconds" min="5" max="60" value="12"></div>
           <div class="field"><label for="marRounds">จำนวนรอบทั้งหมด</label><input type="number" id="marRounds" min="5" max="100" value="20"></div>
         </div>
-        <div class="field" style="margin-bottom:0.9rem">
-          <label>ประเภทโจทย์ที่จะสุ่มมา</label>
-          <div class="control-row" style="margin-bottom:0">
+        <div class="section-heading">ประเภทโจทย์ที่จะสุ่มมา</div>
+        <div class="field" style="margin-bottom:0.6rem">
+          <div class="control-row">
             <label class="checkbox-field"><input type="checkbox" id="marTypeAnagram" checked> 🔀 Anagram</label>
             <label class="checkbox-field"><input type="checkbox" id="marTypeRack" checked> 🁢 Rack</label>
             <label class="checkbox-field"><input type="checkbox" id="marTypeCardbox" checked> 🗂️ คำจาก Cardbox</label>
           </div>
           <span class="field-hint">ถ้า Cardbox ว่างหรือไม่ติ๊กประเภทไหนไว้เลย ระบบจะสลับไปใช้ประเภทที่เหลืออัตโนมัติ</span>
         </div>
+        <div class="section-heading">ความยาวคำ</div>
         <div class="control-row">
           <div class="field"><label for="marMinLen">ความยาวต่ำสุด</label><input type="number" id="marMinLen" min="3" max="10" value="4"></div>
           <div class="field"><label for="marMaxLen">ความยาวสูงสุด</label><input type="number" id="marMaxLen" min="3" max="10" value="7"></div>
         </div>
-        <div class="btn-row">
+        <div class="control-row">
           <button class="btn btn-primary" id="marStartBtn">▶ เริ่ม Marathon</button>
         </div>
       </div>
-      <div id="marathonPlay" class="mg-play-area" style="display:none"></div>
+      <div id="marathonPlay" style="display:none"></div>
     </div>
 
     <div class="panel-card" id="alphaGamePanel" style="display:none">
-      <div class="mg-panel-head">
-        <span class="mg-panel-icon">🔀</span>
-        <div>
-          <h2>Alphagram Blitz</h2>
-          <p class="panel-sub">ไล่ทวนคำศัพท์ยาว 7 ตัวขึ้นไปแบบ Alphagram (ตัวอักษรเรียง A→Z) ทีละชุด — บางชุดมีคำตอบที่ถูกได้มากกว่า 1 คำ ต้องหาให้ครบทุกคำถึงจะผ่านข้อนั้น เลือกจับเวลาแบบ Time Attack หรือเล่นแบบไม่จับเวลาก็ได้</p>
-        </div>
-      </div>
-      <div id="alphaSetup" class="mg-setup">
+      <h2>🔀 Alphagram Blitz</h2>
+      <p class="panel-sub">ไล่ทวนคำศัพท์ยาว 7 ตัวขึ้นไปแบบ Alphagram (ตัวอักษรเรียง A→Z) ทีละชุด — บางชุดมีคำตอบที่ถูกได้มากกว่า 1 คำ ต้องหาให้ครบทุกคำถึงจะผ่านข้อนั้น เลือกจับเวลาแบบ Time Attack หรือเล่นแบบไม่จับเวลาก็ได้</p>
+      <div id="alphaSetup">
         <div class="field" style="margin-bottom:0.9rem">
           <label>ความยาวตัวอักษร</label>
           <div class="chip-row" id="alphaLenChips">
@@ -694,8 +664,8 @@
         <div class="control-row">
           <div class="field"><label for="alphaCount">จำนวนชุด (Alphagram)</label><input type="number" id="alphaCount" min="5" max="200" value="20"></div>
         </div>
-        <div class="field" style="margin-bottom:0.9rem">
-          <label>โหมดเวลา</label>
+        <div class="section-heading">โหมดเวลา</div>
+        <div class="field" style="margin-bottom:0.6rem">
           <div class="chip-row">
             <button type="button" class="mode-chip active" id="alphaModeUntimedBtn" data-timemode="untimed">🧘 ไม่จับเวลา</button>
             <button type="button" class="mode-chip" id="alphaModeTimeAttackBtn" data-timemode="timeattack">⏱️ Time Attack</button>
@@ -704,25 +674,21 @@
         <div class="control-row" id="alphaTimeAttackRow" style="display:none">
           <div class="field"><label for="alphaMinutes">เวลา (นาที)</label><input type="number" id="alphaMinutes" min="1" max="60" value="5"></div>
         </div>
-        <div class="btn-row">
+        <div class="section-heading">ตัวเลือกเกม</div>
+        <div class="control-row">
           <label class="checkbox-field"><input type="checkbox" id="alphaShowAnagramToggle"> 🔤 โชว์ปุ่มดูคำใบ้ (Anagram) ระหว่างเล่น</label>
           <button class="btn btn-primary" id="alphaStartBtn">▶ เริ่มเกม</button>
         </div>
       </div>
-      <div id="alphaPlay" class="mg-play-area" style="display:none"></div>
+      <div id="alphaPlay" style="display:none"></div>
     </div>
 
     <div class="panel-card" id="typingGamePanel">
-      <div class="mg-panel-head">
-        <span class="mg-panel-icon">⌨️</span>
-        <div>
-          <h2>พิมพ์ศัพท์ Random</h2>
-          <p class="panel-sub">พิมพ์คำที่ปรากฏให้ตรงทุกตัวอักษร เปิดโหมดเข้มงวดถ้าอยากให้พิมพ์ผิดแล้วเริ่มรอบใหม่ทันที</p>
-        </div>
-      </div>
-      <div id="typingSetup" class="mg-setup">
-        <div class="mg-setup-section">โหมดเลือกคำ</div>
+      <h2>⌨️ พิมพ์ศัพท์ Random</h2>
+      <p class="panel-sub">พิมพ์คำที่ปรากฏให้ตรงทุกตัวอักษร เปิดโหมดเข้มงวดถ้าอยากให้พิมพ์ผิดแล้วเริ่มรอบใหม่ทันที</p>
+      <div id="typingSetup">
         <div class="field" style="margin-bottom:0.9rem">
+          <label>โหมดเลือกคำ</label>
           <div class="chip-row">
             <button type="button" class="mode-chip active" id="tgModeRandomBtn" data-mode="random">🎲 Random</button>
             <button type="button" class="mode-chip" id="tgModeLetterBtn" data-mode="letter">🔤 พิมพ์ตาม Letter (A→Z)</button>
@@ -730,35 +696,33 @@
             <button type="button" class="mode-chip" id="tgModeSuggestedBtn" data-mode="suggested">📊 จาก Dashboard Suggestion</button>
           </div>
         </div>
-        <div class="mg-setup-section">ตัวกรองคำศัพท์</div>
+        <div class="section-heading">ตัวกรองคำ</div>
         <div class="control-row" id="tgRangeRow">
           <div class="field"><label for="tgMin">ความยาวต่ำสุด</label><input type="number" id="tgMin" min="2" max="15" value="2"></div>
           <div class="field"><label for="tgStartsWith">ขึ้นต้นด้วย (ไม่บังคับ)</label><input type="text" id="tgStartsWith" maxlength="4" placeholder="เช่น A" style="text-transform:uppercase"></div>
           <div class="field"><label for="tgMax">ความยาวสูงสุด</label><input type="number" id="tgMax" min="2" max="15" value="4"></div>
           <div class="field" id="tgCountField"><label for="tgCount">จำนวนคำ</label><input type="number" id="tgCount" min="1" value="10"></div>
         </div>
-        <div class="field" id="tgLetterNote" style="display:none;margin-bottom:0.9rem">
+        <div class="field" id="tgLetterNote" style="display:none;margin-bottom:0.6rem">
           <span class="panel-sub" style="margin:0">โหมดนี้ใช้ความยาวเดียว และเอาคำ "ทุกคำ" ที่มีความยาวนั้นมาให้พิมพ์ทั้งหมด (ไม่จำกัดจำนวน)</span>
         </div>
         <div class="control-row">
           <label class="checkbox-field"><input type="checkbox" id="tgContainsAllToggle"> 🔎 มีตัวอักษรเหล่านี้อยู่ในคำ (ไม่สนตำแหน่ง)</label>
+          <div class="field" id="tgContainsAllField" style="display:none">
+            <label for="tgContainsAllInput">ตัวอักษรที่ต้องมี (ไม่สนตำแหน่ง/ลำดับ) — ใส่ ? แทน Blank ได้</label>
+            <input type="text" id="tgContainsAllInput" placeholder="เช่น BN หรือ BN?" maxlength="12" style="text-transform:uppercase">
+            <span class="field-hint">เช่น "BN" จะเจอ BEN, BANANAS ฯลฯ · ถ้าใส่ตัวอักษรซ้ำ เช่น "NN" คำนั้นต้องมี N อย่างน้อย 2 ตัว</span>
+          </div>
         </div>
-        <div class="field" id="tgContainsAllField" style="display:none;margin-bottom:0.9rem">
-          <label for="tgContainsAllInput">ตัวอักษรที่ต้องมี (ไม่สนตำแหน่ง/ลำดับ) — ใส่ ? แทน Blank ได้</label>
-          <input type="text" id="tgContainsAllInput" placeholder="เช่น BN หรือ BN?" maxlength="12" style="text-transform:uppercase">
-          <span class="field-hint">เช่น "BN" จะเจอ BEN, BANANAS ฯลฯ · ถ้าใส่ตัวอักษรซ้ำ เช่น "NN" คำนั้นต้องมี N อย่างน้อย 2 ตัว</span>
-        </div>
-        <div class="mg-setup-section">ตัวเลือกเกม</div>
-        <div class="control-row" style="margin-bottom:0">
+        <div class="section-heading">ตัวเลือกเกม</div>
+        <div class="control-row">
           <label class="checkbox-field"><input type="checkbox" id="tgStrict"> โหมดเข้มงวด (พิมพ์ผิดแล้วเริ่มใหม่)</label>
           <label class="checkbox-field"><input type="checkbox" id="tgShowAnagramToggle"> 🔤 โชว์ปุ่ม Anagram ระหว่างพิมพ์</label>
-        </div>
-        <div class="btn-row">
           <button class="btn btn-primary" id="tgStartBtn" data-i18n="mini.startGame">▶ เริ่มเกม</button>
           <button class="btn btn-outline" id="tgResumeBtn" style="display:none">↩ เล่นต่อจากที่ค้างไว้</button>
         </div>
       </div>
-      <div id="typingPlay" class="mg-play-area" style="display:none"></div>
+      <div id="typingPlay" style="display:none"></div>
       <div class="panel-card" id="tgTypedPanel" style="display:none;margin-top:1rem">
         <h2 style="font-size:1.05rem">📋 คำที่พิมพ์ไปแล้ว</h2>
         <div class="quiz-list-head">
@@ -773,23 +737,16 @@
     </div>
 
     <div class="panel-card" id="racksGamePanel" style="display:none">
-      <div class="mg-panel-head">
-        <span class="mg-panel-icon">🁢</span>
-        <div>
-          <h2>Random Racks</h2>
-          <p class="panel-sub">สุ่มตัวอักษรมาเป็น Rack แล้วหาคำศัพท์ทั้งหมดที่ประกอบขึ้นจากตัวอักษรใน Rack นั้น</p>
-        </div>
-      </div>
-      <div id="racksSetup" class="mg-setup">
-        <div class="control-row" style="margin-bottom:0">
+      <h2>🁢 Random Racks</h2>
+      <p class="panel-sub">สุ่มตัวอักษรมาเป็น Rack แล้วหาคำศัพท์ทั้งหมดที่ประกอบขึ้นจากตัวอักษรใน Rack นั้น</p>
+      <div id="racksSetup">
+        <div class="control-row">
           <div class="field"><label for="rgSize">ขนาด Rack</label><input type="number" id="rgSize" min="4" max="10" value="7"></div>
           <label class="checkbox-field"><input type="checkbox" id="rgAllowBlank"> 🁢 มีโอกาสสุ่มได้ Blank</label>
-        </div>
-        <div class="btn-row">
           <button class="btn btn-primary" id="rgStartBtn" data-i18n="mini.newRack">▶ สุ่ม Rack ใหม่</button>
         </div>
       </div>
-      <div id="racksPlay" class="mg-play-area" style="display:none"></div>
+      <div id="racksPlay" style="display:none"></div>
     </div>
   </section>
 
@@ -1254,8 +1211,8 @@
       <h2 data-i18n="settings.title">⚙️ Setting</h2>
       <p class="panel-sub" data-i18n="settings.sub">ตั้งค่าภาษา สีเว็บ และช่วงความยาวคำแนะนำของ Dashboard</p>
 
-      <p class="settings-subhead">ภาษาและเมนู</p>
-      <div class="field settings-field">
+      <div class="section-heading">ภาษาและเมนู</div>
+      <div class="field" style="margin-bottom:1rem">
         <label data-i18n="settings.language">ภาษา / Language</label>
         <div class="chip-row">
           <button type="button" class="mode-chip" id="langThBtn" data-lang="th">ไทย</button>
@@ -1263,7 +1220,7 @@
         </div>
       </div>
 
-      <div class="field settings-field">
+      <div class="field" style="margin-bottom:1rem">
         <label>เมนูมือถือ (เมื่อจอแคบ)</label>
         <div class="chip-row" id="mobileNavStyleChips">
           <button type="button" class="mode-chip" data-nav-style="sheet">☰ เมนูเลื่อนขึ้นจากล่าง</button>
@@ -1272,26 +1229,30 @@
         <p class="field-hint">เลือกรูปแบบเมนูตอนใช้งานบนจอแคบ (มือถือ) — มีผลทันทีไม่ต้องรีเฟรช</p>
       </div>
 
-      <p class="settings-subhead">สีธีม</p>
-      <div class="field settings-field">
+      <div class="section-heading">ธีมและตัวอักษร</div>
+      <div class="field" style="margin-bottom:1rem">
         <label data-i18n="settings.themePreset">ธีมสี (Preset)</label>
         <div class="chip-row" id="themePresetChips"></div>
       </div>
 
-      <div class="control-row settings-field" id="themeCustomRow">
-        <div class="field"><label data-i18n="settings.customBoard">สีพื้นบอร์ด</label><input type="color" id="themeColorBoard" class="color-input"></div>
-        <div class="field"><label data-i18n="settings.customBrass">สีเน้น (Brass)</label><input type="color" id="themeColorBrass" class="color-input"></div>
-        <div class="field"><label data-i18n="settings.customTeal">สีเทียบรอง (Teal)</label><input type="color" id="themeColorTeal" class="color-input"></div>
-        <div class="field"><label data-i18n="settings.customCream">สีตัวหนังสือ</label><input type="color" id="themeColorCream" class="color-input"></div>
-        <button class="btn btn-outline btn-sm" id="themeResetBtn" data-i18n="settings.themeReset">↺ คืนค่าเริ่มต้น</button>
-      </div>
+      <details class="section-group">
+        <summary class="section-group-label"><span class="section-group-icon">🎨</span> ปรับสีเอง (Custom)</summary>
+        <div class="section-group-body">
+          <div class="control-row" id="themeCustomRow">
+            <div class="field"><label data-i18n="settings.customBoard">สีพื้นบอร์ด</label><input type="color" id="themeColorBoard" class="color-input"></div>
+            <div class="field"><label data-i18n="settings.customBrass">สีเน้น (Brass)</label><input type="color" id="themeColorBrass" class="color-input"></div>
+            <div class="field"><label data-i18n="settings.customTeal">สีเทียบรอง (Teal)</label><input type="color" id="themeColorTeal" class="color-input"></div>
+            <div class="field"><label data-i18n="settings.customCream">สีตัวหนังสือ</label><input type="color" id="themeColorCream" class="color-input"></div>
+            <button class="btn btn-outline btn-sm" id="themeResetBtn" data-i18n="settings.themeReset">↺ คืนค่าเริ่มต้น</button>
+          </div>
+        </div>
+      </details>
 
-      <p class="settings-subhead">ตัวอักษร</p>
-      <div class="field settings-field">
+      <div class="field" style="margin-top:0.9rem">
         <label>ตัวอักษร (Font)</label>
         <div class="chip-row" id="fontFamilyChips"></div>
       </div>
-      <div class="field settings-field">
+      <div class="field" style="margin-top:0.7rem">
         <label>ขนาดตัวอักษร (Font size)</label>
         <div class="chip-row" id="fontSizeChips">
           <button type="button" class="mode-chip" data-size="0.9">เล็ก</button>
@@ -1299,11 +1260,11 @@
           <button type="button" class="mode-chip" data-size="1.15">ใหญ่</button>
           <button type="button" class="mode-chip" data-size="1.3">ใหญ่มาก</button>
         </div>
-        <p class="field-hint">ตัวอย่าง: <span id="fontPreviewText" style="font-size:1.1em">คำศัพท์ CSW24 ABCDEFG 0123456789</span></p>
       </div>
+      <p class="field-hint" style="margin-top:0.5rem">ตัวอย่าง: <span id="fontPreviewText" style="font-size:1.1em">คำศัพท์ CSW24 ABCDEFG 0123456789</span></p>
 
-      <p class="settings-subhead">Dashboard</p>
-      <div class="field settings-field-last">
+      <div class="section-heading">Dashboard</div>
+      <div class="field">
         <label data-i18n="settings.dashRange">ช่วงความยาวคำแนะนำใน Dashboard</label>
         <div class="control-row">
           <div class="field"><label for="dashRangeMin" data-i18n="settings.min">ต่ำสุด</label><input type="number" id="dashRangeMin" min="2" max="15" value="5"></div>
@@ -1314,30 +1275,28 @@
     </div>
 
     <div class="panel-card">
-      <h2>⌨️ <span data-i18n="settings.anagramLiveCheck">วิธีตรวจคำตอบ Anagram</span></h2>
-      <p class="panel-sub" data-i18n="settings.anagramLiveCheckHint">ควิซพิมพ์คำตอบมีสองจังหวะ — "ตรวจคำที่พิมพ์" กับ "ไปข้อต่อไป" เลือกได้ว่าจะให้ปุ่มไหนทำหน้าที่ไหน</p>
+      <h2 data-i18n="settings.studySession">📚 พฤติกรรมการเรียนและ Quiz</h2>
+      <p class="panel-sub">ปรับวิธีตรวจคำตอบ Anagram และพฤติกรรมระหว่างทำ Quiz ในเซสชันทบทวน</p>
+
+      <div class="section-heading">⌨️ <span data-i18n="settings.anagramLiveCheck">วิธีตรวจคำตอบ Anagram</span></div>
+      <p class="field-hint" style="margin-bottom:0.6rem" data-i18n="settings.anagramLiveCheckHint">ควิซพิมพ์คำตอบมีสองจังหวะ — "ตรวจคำที่พิมพ์" กับ "ไปข้อต่อไป" เลือกได้ว่าจะให้ปุ่มไหนทำหน้าที่ไหน</p>
       <div class="chip-row">
         <button type="button" class="mode-chip" id="anagramModeLiveBtn" data-mode="live" data-i18n="settings.anagramModeLive">ตรวจอัตโนมัติ · Enter ไปข้อต่อไป</button>
         <button type="button" class="mode-chip" id="anagramModeManualBtn" data-mode="manual" data-i18n="settings.anagramModeManual">Enter ตรวจทีละคำ · Enter อีกครั้งไปข้อต่อไป</button>
       </div>
       <p class="field-hint" id="anagramModeLiveHint" data-i18n="settings.anagramModeLiveHint">พิมพ์คำตอบ ระบบตรวจถูก/ผิดทันทีทุกตัวอักษร ครบแล้วกด Enter เพื่อไปข้อถัดไป</p>
       <p class="field-hint" id="anagramModeManualHint" data-i18n="settings.anagramModeManualHint" style="display:none">พิมพ์คำตอบแล้วกด Enter ตรวจทีละคำ · ครบแล้วกด Enter ตอนช่องว่างเพื่อส่งทั้งชุด · เร็วกว่าเพราะไม่ต้องย้ายนิ้วแต่กดเกินมาหนึ่งทีคือส่งทั้งชุดทันที</p>
-    </div>
 
-    <div class="panel-card">
-      <h2 data-i18n="settings.studySession">เซสชันทบทวน (Cardbox)</h2>
-      <p class="panel-sub" data-i18n="settings.studySessionSub">ปรับพฤติกรรมระหว่างทำ Quiz ในเซสชันทบทวน</p>
+      <div class="section-heading" data-i18n="settings.studySession">เซสชันทบทวน (Cardbox)</div>
       <label class="checkbox-field"><input type="checkbox" id="showHooksToggle" checked> <span data-i18n="settings.showHooks">แสดง Hook (Front/Back) ของคำ</span></label>
       <p class="field-hint" data-i18n="settings.showHooksHint">เมื่อเปิด: ทุกที่ที่แสดงคำศัพท์จะโชว์ตัวอักษรที่เติมหน้า/หลังคำแล้วได้เป็นคำใหม่ทันที</p>
-
-      <label class="checkbox-field settings-checkbox-spaced"><input type="checkbox" id="anagramAutoReshuffleToggle"> <span data-i18n="settings.anagramAutoReshuffle">สลับตัวอักษร Anagram อัตโนมัติหลังตอบ</span></label>
+      <label class="checkbox-field" style="margin-top:0.7rem"><input type="checkbox" id="anagramAutoReshuffleToggle"> <span data-i18n="settings.anagramAutoReshuffle">สลับตัวอักษร Anagram อัตโนมัติหลังตอบ</span></label>
       <p class="field-hint" data-i18n="settings.anagramAutoReshuffleHint">เมื่อเปิด: หลังตอบครบ/ข้ามคำใน Anagram แล้ว ระหว่างรอไปคำถัดไป ตัวอักษรจะสลับที่ใหม่ให้เองทุกกี่วินาทีตามที่ตั้ง</p>
-      <div class="field settings-field-narrow">
+      <div class="field" style="margin-top:0.5rem;max-width:12rem">
         <label for="anagramReshuffleSeconds" data-i18n="settings.anagramReshuffleSeconds">สลับทุกกี่วินาที</label>
         <input type="number" id="anagramReshuffleSeconds" min="1" max="30" value="3">
       </div>
-
-      <div class="field settings-field-narrow settings-field-gap">
+      <div class="field" style="margin-top:0.9rem;max-width:14rem">
         <label for="leechThresholdInput" data-i18n="cardboxLeech.thresholdLabel">🐛 ผิดติดกันกี่ครั้งให้ติด Leech</label>
         <input type="number" id="leechThresholdInput" min="2" max="20" value="4">
       </div>
@@ -1345,29 +1304,34 @@
     </div>
 
     <div class="panel-card">
-      <h2 data-i18n="settings.importExport">นำเข้า / ส่งออกข้อมูล</h2>
-      <p class="panel-sub" data-i18n="settings.importExportSub">สำรองความคืบหน้าไว้เป็นไฟล์ หรือเพิ่มคำศัพท์ของคุณเองเข้าไปใช้งานร่วมกับพจนานุกรม CSW24</p>
+      <h2>💾 ข้อมูล</h2>
+      <p class="panel-sub">สำรอง นำเข้า/ส่งออกข้อมูล และตัวสำรองอัตโนมัติของเบราว์เซอร์นี้</p>
+
+      <div class="section-heading" data-i18n="settings.importExport">นำเข้า / ส่งออกข้อมูล</div>
+      <p class="field-hint" style="margin-bottom:0.6rem" data-i18n="settings.importExportSub">สำรองความคืบหน้าไว้เป็นไฟล์ หรือเพิ่มคำศัพท์ของคุณเองเข้าไปใช้งานร่วมกับพจนานุกรม CSW24</p>
       <div class="btn-row">
         <button class="btn btn-outline btn-sm" id="exportProgressBtn" data-i18n="settings.exportProgress">⬇ ส่งออกความคืบหน้า (JSON)</button>
         <label class="btn btn-outline btn-sm" for="importProgressInput" data-i18n="settings.importProgress">⬆ นำเข้าความคืบหน้า (JSON)</label>
         <input type="file" id="importProgressInput" accept=".json" class="file-input-hidden">
       </div>
-      <div class="btn-row settings-btn-row-spaced">
+      <div class="btn-row" style="margin-top:0.8rem">
         <label class="btn btn-outline btn-sm" for="importWordsInput" data-i18n="settings.importWords">⬆ นำเข้ารายการคำศัพท์ของฉัน (.txt)</label>
         <input type="file" id="importWordsInput" accept=".txt" class="file-input-hidden">
         <label class="checkbox-field"><input type="checkbox" id="includeCustomWords" checked> <span data-i18n="settings.includeCustom">รวมคำที่นำเข้าเองตอนสุ่ม/ค้นหา</span></label>
       </div>
       <p class="field-hint" id="customWordsCount"></p>
-    </div>
 
-    <div class="panel-card">
-      <h2>💾 สำรองข้อมูลอัตโนมัติ (IndexedDB)</h2>
-      <p class="panel-sub">นอกจาก localStorage แล้ว แอปจะแอบก็อปปี้ข้อมูลความคืบหน้าไปเก็บสำรองไว้ใน IndexedDB ของเบราว์เซอร์นี้ให้เป็นระยะ เผื่อไว้กรณี localStorage มีปัญหา</p>
-      <p class="field-hint" id="idbBackupStatus">กำลังตรวจสอบ...</p>
-      <div class="btn-row settings-btn-row-spaced">
-        <button class="btn btn-outline btn-sm" id="idbBackupNowBtn">💾 สำรองตอนนี้</button>
-        <button class="btn btn-outline btn-sm" id="idbRestoreBtn">♻ กู้คืนจากสำรองล่าสุด</button>
-      </div>
+      <details class="section-group">
+        <summary class="section-group-label"><span class="section-group-icon">💾</span> สำรองข้อมูลอัตโนมัติ (IndexedDB)</summary>
+        <div class="section-group-body">
+          <p class="field-hint" style="margin-bottom:0.5rem">นอกจาก localStorage แล้ว แอปจะแอบก็อปปี้ข้อมูลความคืบหน้าไปเก็บสำรองไว้ใน IndexedDB ของเบราว์เซอร์นี้ให้เป็นระยะ เผื่อไว้กรณี localStorage มีปัญหา</p>
+          <p class="field-hint" id="idbBackupStatus">กำลังตรวจสอบ...</p>
+          <div class="btn-row" style="margin-top:0.6rem">
+            <button class="btn btn-outline btn-sm" id="idbBackupNowBtn">💾 สำรองตอนนี้</button>
+            <button class="btn btn-outline btn-sm" id="idbRestoreBtn">♻ กู้คืนจากสำรองล่าสุด</button>
+          </div>
+        </div>
+      </details>
     </div>
   </section>
 
