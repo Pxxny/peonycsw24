@@ -1122,6 +1122,12 @@ main {
 #anagramFoundList.anagram-partners { margin-bottom: 0.6rem; }
 
 .session-controls { display: flex; justify-content: center; gap: 0.7rem; margin-top: 1.3rem; flex-wrap: wrap; }
+
+.tg-history-item { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.6rem 0.8rem; border: 1px solid var(--line, #E3E1F5); border-radius: 10px; margin-bottom: 0.5rem; background: var(--panel-alt, rgba(0,0,0,0.02)); }
+.tg-history-main { min-width: 0; }
+.tg-history-title { font-weight: 600; font-size: 0.92rem; }
+.tg-history-meta { font-size: 0.78rem; color: #767EA0; margin-top: 0.1rem; }
+.tg-history-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
 .session-summary { text-align: center; padding: 1.5rem 0; }
 .session-summary .big-stat { font-family: var(--font-display); font-size: 2.6rem; color: var(--brass); }
 .session-missed-block {
