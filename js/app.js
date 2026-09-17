@@ -120,6 +120,8 @@
       'cardbox.searchLabel': '🔍 ค้นหาคำใน Cardbox', 'cardbox.sortLabel': 'เรียงลำดับ',
       'cardbox.sortRecent': 'เพิ่มล่าสุดก่อน', 'cardbox.sortRoundsDesc': 'จำนวนรอบเรียน: มาก→น้อย',
       'cardbox.sortRoundsAsc': 'จำนวนรอบเรียน: น้อย→มาก', 'cardbox.sortAlpha': 'ตัวอักษร (A→Z)',
+      'cardbox.sortLengthAsc': 'ความยาว: น้อยไปมาก', 'cardbox.sortLengthDesc': 'ความยาว: มากไปน้อย',
+      'cardbox.lengthRangeLabel': 'ช่วงความยาว (ตัวอักษร)', 'cardbox.lengthMin': 'ต่ำสุด', 'cardbox.lengthMax': 'มากสุด',
       'cardbox.sortProbDesc': 'Probability: มากไปน้อย', 'cardbox.sortProbAsc': 'Probability: น้อยไปมาก',
       'cardbox.sortPlayDesc': 'Playability: มากไปน้อย', 'cardbox.sortPlayAsc': 'Playability: น้อยไปมาก',
       'cardbox.anagramReviewStart': '📖 Anagram Review', 'cardbox.anagramReviewSelected': '📖 Anagram Review คำที่เลือก',
@@ -233,6 +235,8 @@
       'cardbox.searchLabel': '🔍 Search in Cardbox', 'cardbox.sortLabel': 'Sort by',
       'cardbox.sortRecent': 'Recently added', 'cardbox.sortRoundsDesc': 'Study rounds: high→low',
       'cardbox.sortRoundsAsc': 'Study rounds: low→high', 'cardbox.sortAlpha': 'Alphabetical (A→Z)',
+      'cardbox.sortLengthAsc': 'Length: low→high', 'cardbox.sortLengthDesc': 'Length: high→low',
+      'cardbox.lengthRangeLabel': 'Length range (letters)', 'cardbox.lengthMin': 'Min', 'cardbox.lengthMax': 'Max',
       'cardbox.sortProbDesc': 'Probability: high→low', 'cardbox.sortProbAsc': 'Probability: low→high',
       'cardbox.sortPlayDesc': 'Playability: high→low', 'cardbox.sortPlayAsc': 'Playability: low→high',
       'cardbox.anagramReviewStart': '📖 Anagram Review', 'cardbox.anagramReviewSelected': '📖 Anagram Review selected',
@@ -1983,11 +1987,24 @@
     const btn = document.querySelector('.tab-btn[data-tab="' + tabName + '"]');
     const panel = document.getElementById('tab-' + tabName);
     if (!btn || !panel) return;
+    // Leaving the Minigame tab pauses an in-progress typing game's clock
+    // (same reasoning as leaving the browser tab) and checkpoints it;
+    // coming back to it resumes ticking.
+    const leavingMinigame = document.getElementById('tab-minigame') &&
+      document.getElementById('tab-minigame').classList.contains('active') && tabName !== 'minigame';
+    const enteringMinigame = tabName === 'minigame';
+    if (leavingMinigame && typeof tgIsGameInProgress === 'function' && tgIsGameInProgress()) {
+      tgPauseTimer();
+      tgSaveProgress();
+    }
     document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
     document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
     btn.classList.add('active');
     panel.classList.add('active');
     updateCurrentTabLabel(btn);
+    if (enteringMinigame && typeof tgIsGameInProgress === 'function' && tgIsGameInProgress() && !document.hidden) {
+      tgStartTimer();
+    }
     if (tabName === 'cardbox') renderCardboxTab();
     if (tabName === 'dashboard') renderDashboard();
     if (tabName === 'settings') { renderDashboard(); }
@@ -2385,7 +2402,7 @@
   // Cardbox list is paginated like the Word Browser (PAGE_SIZE per page) and
   // uses a single delegated click listener instead of one per row, so large
   // cardboxes (hundreds/thousands of cards) don't lag the UI.
-  const cardboxRenderState = { sorted: [], shown: 0, selected: loadCardboxSelection(), search: '', sort: 'recent', leechOnly: false };
+  const cardboxRenderState = { sorted: [], shown: 0, selected: loadCardboxSelection(), search: '', sort: 'recent', leechOnly: false, lengthMin: 2, lengthMax: 15 };
 
   // Persists the set of ticked words to localStorage so an accidental
   // refresh/reload doesn't lose which words the learner had picked out —
@@ -2410,6 +2427,8 @@
     if (sort === 'rounds-desc') return function (a, b) { return (b.correct + b.incorrect) - (a.correct + a.incorrect); };
     if (sort === 'rounds-asc') return function (a, b) { return (a.correct + a.incorrect) - (b.correct + b.incorrect); };
     if (sort === 'alpha') return function (a, b) { return a.word < b.word ? -1 : (a.word > b.word ? 1 : 0); };
+    if (sort === 'length-asc') return function (a, b) { return a.word.length - b.word.length || (a.word < b.word ? -1 : (a.word > b.word ? 1 : 0)); };
+    if (sort === 'length-desc') return function (a, b) { return b.word.length - a.word.length || (a.word < b.word ? -1 : (a.word > b.word ? 1 : 0)); };
     if (sort === 'prob-desc') return function (a, b) { return wordProbabilityNormalizedPct(b.word) - wordProbabilityNormalizedPct(a.word); };
     if (sort === 'prob-asc') return function (a, b) { return wordProbabilityNormalizedPct(a.word) - wordProbabilityNormalizedPct(b.word); };
     if (sort === 'play-desc') return function (a, b) { return wordPlayability(b.word) - wordPlayability(a.word); };
@@ -2438,6 +2457,10 @@
       filtered = q ? box.filter(function (c) { return c.word.indexOf(q) !== -1; }) : box.slice();
     }
     if (cardboxRenderState.leechOnly) filtered = filtered.filter(function (c) { return c.leech; });
+    if (cardboxRenderState.sort === 'length-asc' || cardboxRenderState.sort === 'length-desc') {
+      const lo = cardboxRenderState.lengthMin, hi = cardboxRenderState.lengthMax;
+      filtered = filtered.filter(function (c) { return c.word.length >= lo && c.word.length <= hi; });
+    }
     filtered.sort(cardboxSortCompare(cardboxRenderState.sort));
     return filtered;
   }
@@ -2630,8 +2653,27 @@
 
     document.getElementById('cardboxSortSelect').addEventListener('change', function (e) {
       cardboxRenderState.sort = e.target.value;
+      const isLengthSort = (e.target.value === 'length-asc' || e.target.value === 'length-desc');
+      document.getElementById('cardboxLengthRangeField').style.display = isLengthSort ? '' : 'none';
       renderCardboxTab();
     });
+
+    let cardboxLengthRangeTimer = null;
+    function onCardboxLengthRangeChange() {
+      clearTimeout(cardboxLengthRangeTimer);
+      cardboxLengthRangeTimer = setTimeout(function () {
+        const minEl = document.getElementById('cardboxLengthMin');
+        const maxEl = document.getElementById('cardboxLengthMax');
+        let lo = Math.max(2, parseInt(minEl.value, 10) || 2);
+        let hi = Math.max(2, parseInt(maxEl.value, 10) || 15);
+        if (lo > hi) { const tmp = lo; lo = hi; hi = tmp; }
+        cardboxRenderState.lengthMin = lo;
+        cardboxRenderState.lengthMax = hi;
+        renderCardboxTab();
+      }, 200);
+    }
+    document.getElementById('cardboxLengthMin').addEventListener('input', onCardboxLengthRangeChange);
+    document.getElementById('cardboxLengthMax').addEventListener('input', onCardboxLengthRangeChange);
 
     document.getElementById('cardboxLeechOnly').addEventListener('change', function (e) {
       cardboxRenderState.leechOnly = e.target.checked;
@@ -6786,9 +6828,16 @@
 
   // ---------- Minigame: typing ----------
 
-  const TG_SAVE_KEY = 'csw24_typing_progress_v1';
+  const TG_HISTORY_KEY = 'csw24_typing_history_v1';
+  const TG_HISTORY_MAX = 20;
 
-  const tg = { words: [], index: 0, strict: false, mistakes: 0, startTime: 0, timerHandle: null, mode: 'random', showAnagram: false, typed: [], typedSelected: new Set(), containsAll: '', startsWith: '' };
+  // tg.elapsedMs = accumulated *active* play time (ms), persisted across pause/resume.
+  // tg.activeSince = wall-clock timestamp (Date.now()) when the timer last started
+  //   running, or null while paused. Displayed time = elapsedMs + (running ? now - activeSince : 0).
+  // This way the clock only advances while the tab is visible/focused and a game
+  // is actually in progress — switching tabs, minimizing, or leaving the page
+  // freezes it, and it picks back up exactly where it left off.
+  const tg = { id: null, words: [], index: 0, strict: false, mistakes: 0, elapsedMs: 0, activeSince: null, timerHandle: null, mode: 'random', showAnagram: false, anagramMode: false, anagramRemaining: [], typed: [], typedSelected: new Set(), containsAll: '', startsWith: '' };
 
   function tgWordsForLetterMode(len) {
     // All words of a single chosen length, sorted A→Z.
@@ -6838,41 +6887,123 @@
     return (dashSuggestedWords || []).slice();
   }
 
-  function tgSaveProgress() {
+  function tgLoadHistory() {
     try {
-      localStorage.setItem(TG_SAVE_KEY, JSON.stringify({
-        words: tg.words, index: tg.index, mistakes: tg.mistakes, startTime: tg.startTime,
-        strict: tg.strict, showAnagram: tg.showAnagram, mode: tg.mode, containsAll: tg.containsAll,
-        startsWith: tg.startsWith, typed: tg.typed
-      }));
-    } catch (e) { /* ignore */ }
+      const raw = localStorage.getItem(TG_HISTORY_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
   }
 
-  function tgLoadProgress() {
-    try {
-      const raw = localStorage.getItem(TG_SAVE_KEY);
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      if (!data || !Array.isArray(data.words) || !data.words.length) return null;
-      if (typeof data.index !== 'number' || data.index >= data.words.length) return null;
-      return data;
-    } catch (e) { return null; }
+  function tgSaveHistory(list) {
+    try { localStorage.setItem(TG_HISTORY_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
+  }
+
+  // Snapshot the current in-progress game into its history slot (creating one
+  // if this is a fresh game). Called on every completed word and whenever the
+  // player navigates away, so "Resume" always has an up-to-date checkpoint.
+  function tgSaveProgress() {
+    if (!tg.words.length || tg.index >= tg.words.length) return;
+    if (!tg.id) tg.id = 'tg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const entry = {
+      id: tg.id, words: tg.words, index: tg.index, mistakes: tg.mistakes,
+      elapsedMs: tgElapsedMs(), strict: tg.strict, showAnagram: tg.showAnagram,
+      anagramMode: tg.anagramMode, anagramRemaining: tg.anagramRemaining, mode: tg.mode,
+      containsAll: tg.containsAll, startsWith: tg.startsWith, typed: tg.typed,
+      updatedAt: Date.now()
+    };
+    const list = tgLoadHistory();
+    const i = list.findIndex(function (e) { return e.id === tg.id; });
+    if (i !== -1) list[i] = entry; else list.unshift(entry);
+    list.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+    tgSaveHistory(list.slice(0, TG_HISTORY_MAX));
+  }
+
+  function tgRemoveFromHistory(id) {
+    tgSaveHistory(tgLoadHistory().filter(function (e) { return e.id !== id; }));
   }
 
   function tgClearProgress() {
-    localStorage.removeItem(TG_SAVE_KEY);
+    if (tg.id) tgRemoveFromHistory(tg.id);
   }
 
   function tgRefreshResumeBtn() {
     const btn = document.getElementById('tgResumeBtn');
-    if (!btn) return;
-    const saved = tgLoadProgress();
-    if (saved) {
-      btn.style.display = '';
-      btn.textContent = '↩ เล่นต่อจากที่ค้างไว้ (' + saved.index + '/' + saved.words.length + ')';
-    } else {
-      btn.style.display = 'none';
-    }
+    const listWrap = document.getElementById('tgHistoryList');
+    if (!btn && !listWrap) return;
+    const history = tgLoadHistory();
+    if (btn) btn.style.display = 'none'; // legacy single button, superseded by the history list below
+    if (!listWrap) return;
+    if (!history.length) { listWrap.style.display = 'none'; listWrap.innerHTML = ''; return; }
+    listWrap.style.display = '';
+    listWrap.innerHTML =
+      '<div class="section-heading">🕓 Game History</div>' +
+      history.map(function (e) {
+        const pct = Math.round((e.index / e.words.length) * 100);
+        const when = tgFormatRelativeTime(e.updatedAt);
+        return (
+          '<div class="tg-history-item" data-id="' + e.id + '">' +
+            '<div class="tg-history-main">' +
+              '<div class="tg-history-title">พิมพ์ไปแล้ว ' + e.index + '/' + e.words.length + ' คำ (' + pct + '%)</div>' +
+              '<div class="tg-history-meta">' + tgFormatTime(e.elapsedMs) + ' · พลาด ' + e.mistakes + ' ครั้ง · ' + when + '</div>' +
+            '</div>' +
+            '<div class="tg-history-actions">' +
+              '<button type="button" class="btn btn-outline btn-sm tg-history-resume" data-id="' + e.id + '">↩ Resume</button>' +
+              '<button type="button" class="btn btn-outline btn-sm tg-history-delete" data-id="' + e.id + '">🗑️</button>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+
+    listWrap.querySelectorAll('.tg-history-resume').forEach(function (b) {
+      b.addEventListener('click', function () { tgResumeFromHistory(b.dataset.id); });
+    });
+    listWrap.querySelectorAll('.tg-history-delete').forEach(function (b) {
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        tgRemoveFromHistory(b.dataset.id);
+        tgRefreshResumeBtn();
+      });
+    });
+  }
+
+  function tgFormatRelativeTime(ts) {
+    const diff = Date.now() - ts;
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return 'เมื่อสักครู่';
+    if (min < 60) return min + ' นาทีที่แล้ว';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + ' ชม.ที่แล้ว';
+    return Math.floor(hr / 24) + ' วันที่แล้ว';
+  }
+
+  function tgResumeFromHistory(id) {
+    const entry = tgLoadHistory().find(function (e) { return e.id === id; });
+    if (!entry) { tgRefreshResumeBtn(); return; }
+    // If a different game is currently active and unfinished, checkpoint it
+    // first so switching to another history entry doesn't lose progress.
+    if (tg.id && tg.id !== id && tg.words.length && tg.index < tg.words.length) tgSaveProgress();
+
+    tg.id = entry.id;
+    tg.words = entry.words;
+    tg.index = entry.index;
+    tg.mistakes = entry.mistakes || 0;
+    tg.elapsedMs = entry.elapsedMs || 0;
+    tg.activeSince = null;
+    tg.strict = !!entry.strict;
+    tg.showAnagram = !!entry.showAnagram;
+    tg.anagramMode = !!entry.anagramMode;
+    tg.anagramRemaining = entry.anagramRemaining || [];
+    tg.mode = entry.mode || 'random';
+    tg.containsAll = entry.containsAll || '';
+    tg.startsWith = entry.startsWith || '';
+    tg.typed = entry.typed || [];
+    tg.typedSelected = new Set();
+
+    tgStartTimer();
+    tgRenderPlay();
+    document.getElementById('typingPlay').style.display = '';
+    document.getElementById('tgTypedPanel').style.display = 'none';
   }
 
   function initTypingGame() {
@@ -6957,9 +7088,16 @@
       const containsAll = containsAllToggle.checked ? document.getElementById('tgContainsAllInput').value : '';
       if (!words.length) { showToast('ไม่พบคำศัพท์ที่ตรงกับเงื่อนไขที่เลือก'); return; }
 
+      // If the player is bailing on an unfinished game to start a new one,
+      // checkpoint the old one into history rather than discarding it —
+      // that's exactly the "got bored, want to try something else" case
+      // Game History exists for.
+      if (tgIsGameInProgress()) { tgPauseTimer(); tgSaveProgress(); }
+
       tg.words = words;
       tg.strict = document.getElementById('tgStrict').checked;
       tg.showAnagram = document.getElementById('tgShowAnagramToggle').checked;
+      tg.anagramMode = document.getElementById('tgAnagramModeToggle').checked;
       tg.containsAll = containsAll;
       tg.startsWith = startsWithPre;
       tg.typed = [];
@@ -6969,36 +7107,18 @@
       document.getElementById('tgTypedPanel').style.display = 'none';
     });
 
-    document.getElementById('tgResumeBtn').addEventListener('click', function () {
-      const saved = tgLoadProgress();
-      if (!saved) { tgRefreshResumeBtn(); return; }
-      tg.words = saved.words;
-      tg.index = saved.index;
-      tg.mistakes = saved.mistakes || 0;
-      tg.startTime = saved.startTime || Date.now();
-      tg.strict = !!saved.strict;
-      tg.showAnagram = !!saved.showAnagram;
-      tg.mode = saved.mode || 'random';
-      tg.containsAll = saved.containsAll || '';
-      tg.startsWith = saved.startsWith || '';
-      tg.typed = saved.typed || [];
-      tg.typedSelected = new Set();
-      if (tg.timerHandle) clearInterval(tg.timerHandle);
-      tg.timerHandle = setInterval(tgUpdateTimer, 500);
-      tgRenderPlay();
-      document.getElementById('typingPlay').style.display = '';
-      document.getElementById('tgTypedPanel').style.display = 'none';
-    });
-
     tgRefreshResumeBtn();
   }
 
   function tgRestart() {
+    tg.id = null; // fresh game gets its own history slot on first save
     tg.index = 0;
     tg.mistakes = 0;
-    tg.startTime = Date.now();
-    if (tg.timerHandle) clearInterval(tg.timerHandle);
-    tg.timerHandle = setInterval(tgUpdateTimer, 500);
+    tg.anagramRemaining = [];
+    tg.anagramGroup = null;
+    tg.elapsedMs = 0;
+    tg.activeSince = null;
+    tgStartTimer();
     tgSaveProgress();
     tgRenderPlay();
   }
@@ -7010,24 +7130,93 @@
     return mm + ':' + ss;
   }
 
+  // Current displayed elapsed time: accumulated active time, plus the
+  // running segment if the timer is currently ticking.
+  function tgElapsedMs() {
+    return tg.elapsedMs + (tg.activeSince ? (Date.now() - tg.activeSince) : 0);
+  }
+
+  // Start (or resume) the ticking clock. Safe to call repeatedly.
+  function tgStartTimer() {
+    if (tg.timerHandle) clearInterval(tg.timerHandle);
+    if (!tg.activeSince) tg.activeSince = Date.now();
+    tg.timerHandle = setInterval(tgUpdateTimer, 500);
+  }
+
+  // Freeze the clock: fold the running segment into elapsedMs and stop ticking.
+  // Called on tab hide, window blur, navigating off the game, or finishing.
+  function tgPauseTimer() {
+    if (tg.activeSince) {
+      tg.elapsedMs += Date.now() - tg.activeSince;
+      tg.activeSince = null;
+    }
+    if (tg.timerHandle) { clearInterval(tg.timerHandle); tg.timerHandle = null; }
+  }
+
+  function tgIsGameInProgress() {
+    return tg.words.length > 0 && tg.index < tg.words.length;
+  }
+
+  // Pause while the tab/window isn't visible or focused, resume when it is —
+  // so time away from the page never counts toward the clock. Only affects
+  // an in-progress game; harmless no-op otherwise.
+  document.addEventListener('visibilitychange', function () {
+    if (!tgIsGameInProgress()) return;
+    if (document.hidden) { tgPauseTimer(); tgSaveProgress(); }
+    else tgStartTimer();
+  });
+  window.addEventListener('blur', function () {
+    if (tgIsGameInProgress()) { tgPauseTimer(); tgSaveProgress(); }
+  });
+  window.addEventListener('focus', function () {
+    if (tgIsGameInProgress() && !document.hidden) tgStartTimer();
+  });
+  window.addEventListener('beforeunload', function () {
+    if (tgIsGameInProgress()) { tgPauseTimer(); tgSaveProgress(); }
+  });
+
   function tgUpdateTimer() {
     const el = document.getElementById('tgTimer');
-    if (el) el.textContent = tgFormatTime(Date.now() - tg.startTime);
+    if (el) el.textContent = tgFormatTime(tgElapsedMs());
   }
 
   function tgRenderPlay() {
     const word = tg.words[tg.index];
     const area = document.getElementById('typingPlay');
     const pct = Math.round((tg.index / tg.words.length) * 100);
+
+    if (tg.anagramMode) {
+      // Rebuild the required set (word itself + all its anagram partners)
+      // only when we don't already have one in progress (e.g. resuming).
+      if (!tg.anagramRemaining || !tg.anagramRemaining.length) {
+        const group = [word].concat(getAnagrams(word));
+        tg.anagramGroup = Array.from(new Set(group));
+        tg.anagramRemaining = tg.anagramGroup.slice();
+      } else if (!tg.anagramGroup) {
+        tg.anagramGroup = [word].concat(getAnagrams(word));
+      }
+    }
+
     area.innerHTML =
       '<div class="session-progress">คำที่ ' + (tg.index + 1) + ' / ' + tg.words.length +
-        ' · พลาด ' + tg.mistakes + ' ครั้ง · เวลา <span id="tgTimer">' + tgFormatTime(Date.now() - tg.startTime) + '</span></div>' +
+        ' · พลาด ' + tg.mistakes + ' ครั้ง · เวลา <span id="tgTimer">' + tgFormatTime(tgElapsedMs()) + '</span></div>' +
       '<div class="session-bar"><div class="session-bar-fill" style="width:' + pct + '%"></div></div>' +
       '<div class="session-card">' +
-        '<div class="session-prompt-label">พิมพ์คำนี้ให้ตรงทุกตัวอักษร' + (tg.strict ? ' · โหมดเข้มงวด: พิมพ์ผิด = เริ่มใหม่' : '') + '</div>' +
+        '<div class="session-prompt-label">' +
+          (tg.anagramMode ?
+            'พิมพ์ Anagram ให้ครบทุกคำ (' + (tg.anagramGroup.length - tg.anagramRemaining.length) + '/' + tg.anagramGroup.length + ')'
+            : 'พิมพ์คำนี้ให้ตรงทุกตัวอักษร') +
+          (tg.strict ? ' · โหมดเข้มงวด: พิมพ์ผิด = เริ่มใหม่' : '') +
+        '</div>' +
         '<div class="tile-word" id="tgTargetTiles">' + word.split('').map(function (ch) {
           return '<span class="letter-tile ' + lengthTileSizeClass('big', word.length) + ' type-letter">' + ch + '</span>';
         }).join('') + '</div>' +
+        (tg.anagramMode ?
+          '<div class="anagram-partners" id="tgAnagramFoundList">' + tg.anagramGroup.map(function (w) {
+            const found = tg.anagramRemaining.indexOf(w) === -1;
+            return '<span class="anagram-chip' + (found ? ' correct-letter' : '') + '">' + (found ? w : '?'.repeat(w.length)) + '</span>';
+          }).join('') + '</div>'
+          : '') +
         '<input type="text" id="tgInput" class="session-answer-form-input" autocomplete="off" autofocus>' +
         (tg.showAnagram ?
           '<div class="session-controls"><button class="btn btn-outline btn-sm" id="tgAnagramHintBtn">🔤 ดู Anagram ของคำนี้</button></div>' +
@@ -7063,6 +7252,7 @@
   }
 
   function tgHandleInput(word, input) {
+    if (tg.anagramMode) { tgHandleAnagramInput(input); return; }
     let val = input.value.toUpperCase();
     if (val.length > word.length) { val = val.slice(0, word.length); input.value = val; }
 
@@ -7101,10 +7291,73 @@
     }
   }
 
+  // Anagram-complete mode: the learner must type every word in the current
+  // word's anagram group (itself plus all partners, e.g. AAL -> AAL, ALA)
+  // before the game auto-advances to the next prompt. Any valid member of
+  // the remaining set can be typed in any order; typing something that
+  // matches none of them (once it reaches the target length) counts as a
+  // mistake, same as regular mode.
+  function tgHandleAnagramInput(input) {
+    const word = tg.words[tg.index];
+    let val = input.value.toUpperCase();
+    if (val.length > word.length) { val = val.slice(0, word.length); input.value = val; }
+
+    const tiles = document.querySelectorAll('#tgTargetTiles .letter-tile');
+    // Highlight tiles against whichever remaining word the current input
+    // could still be building toward, so partial typing doesn't flash red
+    // just because it doesn't match one particular anagram.
+    let candidate = tg.anagramRemaining.find(function (w) { return w.indexOf(val) === 0; }) ||
+      (val.length ? tg.anagramRemaining[0] : word);
+    let mismatch = val.length > 0 && !tg.anagramRemaining.some(function (w) { return w.indexOf(val) === 0; });
+    for (let i = 0; i < tiles.length; i++) {
+      tiles[i].classList.remove('correct-letter', 'wrong-letter');
+      if (i < val.length && candidate) {
+        if (val[i] === candidate[i]) tiles[i].classList.add('correct-letter');
+        else { tiles[i].classList.add('wrong-letter'); }
+      }
+    }
+
+    if (mismatch) {
+      tg.mistakes++;
+      if (tg.strict) {
+        showToast('พิมพ์ผิด! เริ่มใหม่ตั้งแต่คำแรก');
+        tg.typed = [];
+        tg.typedSelected = new Set();
+        tg.anagramRemaining = [];
+        tg.anagramGroup = null;
+        tgRestart();
+        return;
+      }
+      return;
+    }
+
+    const matchIdx = tg.anagramRemaining.indexOf(val);
+    if (matchIdx !== -1) {
+      tg.anagramRemaining.splice(matchIdx, 1);
+      tg.typed.push(val);
+      logWordEncounter(val, 'typing');
+      input.value = '';
+      tgSaveProgress();
+
+      if (!tg.anagramRemaining.length) {
+        input.disabled = true;
+        tg.index++;
+        tg.anagramGroup = null;
+        tgSaveProgress();
+        setTimeout(function () {
+          if (tg.index >= tg.words.length) tgFinish();
+          else tgRenderPlay();
+        }, 200);
+      } else {
+        tgRenderPlay();
+      }
+    }
+  }
+
   function tgFinish() {
-    if (tg.timerHandle) { clearInterval(tg.timerHandle); tg.timerHandle = null; }
+    tgPauseTimer();
+    const elapsed = tgElapsedMs();
     tgClearProgress();
-    const elapsed = Date.now() - tg.startTime;
     const area = document.getElementById('typingPlay');
     area.innerHTML =
       '<div class="session-summary">' +
