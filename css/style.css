@@ -1377,6 +1377,39 @@ main {
 .badge-desc { font-size: 0.72rem; color: #8890A8; margin-top: 0.25rem; line-height: 1.35; }
 .badge-card.badge-unlocked .badge-desc { color: #C3C8E0; }
 .badge-date { font-size: 0.65rem; color: var(--brass); margin-top: 0.4rem; }
+.badge-points {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--brass-deep);
+  background: rgba(200, 160, 90, 0.12);
+  border: 1px solid var(--brass-deep);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  margin-top: 0.35rem;
+}
+.badge-card.badge-unlocked .badge-points { color: var(--brass); border-color: var(--brass); background: rgba(200, 160, 90, 0.2); }
+
+.badge-tier-header {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--cream);
+  margin-top: 1.4rem;
+  margin-bottom: 0.2rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--rail);
+}
+.badge-tier-header:first-child { margin-top: 0.4rem; }
+.badge-tier-count { font-size: 0.75rem; color: #8890A8; font-weight: 400; }
+.badge-grid-tier { margin-top: 0.5rem; }
+.badge-card.badge-secret.badge-locked {
+  opacity: 0.4;
+  border-style: dashed;
+}
+.badge-card.badge-secret.badge-unlocked {
+  border-color: var(--brass);
+  box-shadow: 0 0 0 1px rgba(200, 160, 90, 0.25);
+}
 
 /* ---------- misc ---------- */
 
