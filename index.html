@@ -711,7 +711,7 @@
           <div class="field"><label for="tgMin">ความยาวต่ำสุด</label><input type="number" id="tgMin" min="2" max="15" value="2"></div>
           <div class="field"><label for="tgStartsWith">ขึ้นต้นด้วย (ไม่บังคับ)</label><input type="text" id="tgStartsWith" maxlength="4" placeholder="เช่น A" style="text-transform:uppercase"></div>
           <div class="field"><label for="tgMax">ความยาวสูงสุด</label><input type="number" id="tgMax" min="2" max="15" value="4"></div>
-          <div class="field" id="tgCountField"><label for="tgCount">จำนวนคำ</label><input type="number" id="tgCount" min="1" value="10"></div>
+          <div class="field" id="tgCountField"><label for="tgCount">จำนวนคำ (เว้นว่าง = สุ่มทั้งหมด)</label><input type="number" id="tgCount" min="1" placeholder="ทั้งหมด"></div>
         </div>
         <div class="field" id="tgLetterNote" style="display:none;margin-bottom:0.6rem">
           <span class="panel-sub" style="margin:0">โหมดนี้ใช้ความยาวเดียว และเอาคำ "ทุกคำ" ที่มีความยาวนั้นมาให้พิมพ์ทั้งหมด (ไม่จำกัดจำนวน)</span>
@@ -1161,8 +1161,8 @@
     <div class="panel-card">
       <h2 data-i18n="ach.title">🏆 Achievement</h2>
       <p class="panel-sub" data-i18n="ach.sub">ปลดล็อกเหรียญตราจากการเรียนและเล่นมินิเกม ข้อมูลเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</p>
-      <p class="field-hint" id="achievementSummary"></p>
-      <div class="badge-grid" id="achievementGrid"></div>
+      <div class="field-hint" id="achievementSummary"></div>
+      <div class="badge-tiers" id="achievementGrid"></div>
     </div>
   </section>
 
