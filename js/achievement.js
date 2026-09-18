@@ -403,37 +403,79 @@
 
   const TIER_ORDER = ['legacy', 'hard', 'near_impossible', 'impossible', 'secret'];
   const TIER_LABEL = {
-    legacy: { th: 'เหรียญทั่วไป', en: 'Badges' },
+    legacy: { th: '🏅 เหรียญทั่วไป', en: '🏅 Badges' },
     hard: { th: '💪 ระดับยาก', en: '💪 Hard' },
     near_impossible: { th: '🔥 ระดับโคตรยาก', en: '🔥 Near-Impossible' },
     impossible: { th: '🚫 ระดับเป็นไปไม่ได้', en: '🚫 Impossible' },
     secret: { th: '🕵️ เหรียญลับ', en: '🕵️ Secret' }
   };
+  // Sections start collapsed except the everyday "legacy" tier, so the tab
+  // opens on something manageable instead of 100 cards at once.
+  const tierOpenState = { legacy: true };
 
   function badgeCardHTML(b, lang) {
     const isUnlocked = !!unlocked[b.id];
-    const isSecret = b.tier === 'secret';
-    const cls = 'badge-card' + (isUnlocked ? ' badge-unlocked' : ' badge-locked') + (isSecret ? ' badge-secret' : '');
+    const cls = 'badge-card' + (isUnlocked ? ' badge-unlocked' : ' badge-locked');
     const dateStr = isUnlocked
       ? new Date(unlocked[b.id]).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US')
       : '';
     const pointsStr = typeof b.points === 'number'
       ? '<div class="badge-points">' + (lang === 'th' ? b.points + ' แต้ม' : b.points + ' pts') + '</div>'
       : '';
-    // Secret badges stay fully hidden (name + description) until unlocked,
-    // so finding them stays a surprise rather than a checklist.
-    const icon = isUnlocked ? b.icon : (isSecret ? '❓' : '🔒');
-    const name = isUnlocked ? b.name[lang] : (isSecret ? (lang === 'th' ? '???' : '???') : b.name[lang]);
-    const desc = isUnlocked ? b.desc[lang] : (isSecret ? (lang === 'th' ? 'เหรียญลับ — ยังไม่ปลดล็อก' : 'Secret badge — not yet unlocked') : b.desc[lang]);
     return (
       '<div class="' + cls + '">' +
-        '<div class="badge-icon">' + icon + '</div>' +
-        '<div class="badge-name">' + name + '</div>' +
-        '<div class="badge-desc">' + desc + '</div>' +
+        '<div class="badge-icon">' + (isUnlocked ? b.icon : '🔒') + '</div>' +
+        '<div class="badge-name">' + b.name[lang] + '</div>' +
+        '<div class="badge-desc">' + b.desc[lang] + '</div>' +
         pointsStr +
         (isUnlocked ? '<div class="badge-date">' + dateStr + '</div>' : '') +
       '</div>'
     );
+  }
+
+  function tierSectionHTML(tierName, tierBadges, lang) {
+    const label = TIER_LABEL[tierName] ? TIER_LABEL[tierName][lang] : tierName;
+    const unlockedInTier = tierBadges.filter(function (b) { return !!unlocked[b.id]; }).length;
+    const isOpen = !!tierOpenState[tierName];
+    const isSecretTier = tierName === 'secret';
+
+    const headerHTML =
+      '<button type="button" class="badge-tier-header' + (isOpen ? ' badge-tier-open' : '') + '" data-tier="' + tierName + '">' +
+        '<span class="badge-tier-caret">' + (isOpen ? '▾' : '▸') + '</span>' +
+        '<span class="badge-tier-label">' + label + '</span>' +
+        '<span class="badge-tier-count">' + unlockedInTier + ' / ' + tierBadges.length + '</span>' +
+      '</button>' +
+      '<div class="badge-tier-bar"><div class="badge-tier-bar-fill" style="width:' +
+        (tierBadges.length ? Math.round((unlockedInTier / tierBadges.length) * 100) : 0) + '%"></div></div>';
+
+    if (!isOpen) {
+      return '<div class="badge-tier-section">' + headerHTML + '</div>';
+    }
+
+    // Inside "secret", unlocked ones get real cards (they're earned, show
+    // them off); everything still locked collapses into one small note
+    // instead of dozens of identical "???" placeholder cards.
+    let bodyHTML;
+    if (isSecretTier) {
+      const unlockedSecrets = tierBadges.filter(function (b) { return !!unlocked[b.id]; });
+      const lockedCount = tierBadges.length - unlockedSecrets.length;
+      const lockedNoteHTML = lockedCount > 0
+        ? '<div class="badge-secret-remaining">' +
+            (lang === 'th'
+              ? '🔒 ยังมีเหรียญลับอีก ' + lockedCount + ' อันรอให้ค้นพบ — เล่นต่อไปเรื่อย ๆ แล้วจะเจอเอง'
+              : '🔒 ' + lockedCount + ' more secret badges waiting to be discovered — keep playing to find them') +
+          '</div>'
+        : '';
+      bodyHTML =
+        (unlockedSecrets.length
+          ? '<div class="badge-grid badge-grid-tier">' + unlockedSecrets.map(function (b) { return badgeCardHTML(b, lang); }).join('') + '</div>'
+          : '') +
+        lockedNoteHTML;
+    } else {
+      bodyHTML = '<div class="badge-grid badge-grid-tier">' + tierBadges.map(function (b) { return badgeCardHTML(b, lang); }).join('') + '</div>';
+    }
+
+    return '<div class="badge-tier-section">' + headerHTML + bodyHTML + '</div>';
   }
 
   function renderTab() {
@@ -449,15 +491,18 @@
 
     const summaryEl = document.getElementById('achievementSummary');
     if (summaryEl) {
+      const pct = badges.length ? Math.round((unlockedCount / badges.length) * 100) : 0;
       let text = lang === 'th'
-        ? 'ปลดล็อกแล้ว ' + unlockedCount + ' / ' + badges.length + ' เหรียญ'
-        : 'Unlocked ' + unlockedCount + ' / ' + badges.length + ' badges';
+        ? 'ปลดล็อกแล้ว ' + unlockedCount + ' / ' + badges.length + ' เหรียญ (' + pct + '%)'
+        : 'Unlocked ' + unlockedCount + ' / ' + badges.length + ' badges (' + pct + '%)';
       if (totalPoints > 0) {
         text += lang === 'th'
           ? ' · เหรียญพิเศษ ' + earnedPoints + ' / ' + totalPoints + ' แต้ม'
           : ' · Special badge points ' + earnedPoints + ' / ' + totalPoints;
       }
-      summaryEl.textContent = text;
+      summaryEl.innerHTML =
+        '<span>' + text + '</span>' +
+        '<div class="badge-overall-bar"><div class="badge-overall-bar-fill" style="width:' + pct + '%"></div></div>';
     }
 
     const byTier = {};
@@ -467,20 +512,20 @@
       byTier[t].push(b);
     });
 
-    grid.innerHTML = TIER_ORDER.filter(function (t) { return byTier[t] && byTier[t].length; }).map(function (t) {
-      const label = TIER_LABEL[t] ? TIER_LABEL[t][lang] : t;
-      const unlockedInTier = byTier[t].filter(function (b) { return !!unlocked[b.id]; }).length;
-      const headerHTML = t === 'legacy' ? '' :
-        '<div class="badge-tier-header">' + label +
-          ' <span class="badge-tier-count">(' + unlockedInTier + ' / ' + byTier[t].length + ')</span>' +
-        '</div>';
-      return (
-        headerHTML +
-        '<div class="badge-grid badge-grid-tier">' +
-          byTier[t].map(function (b) { return badgeCardHTML(b, lang); }).join('') +
-        '</div>'
-      );
-    }).join('');
+    grid.innerHTML = TIER_ORDER
+      .filter(function (t) { return byTier[t] && byTier[t].length; })
+      .map(function (t) { return tierSectionHTML(t, byTier[t], lang); })
+      .join('');
+
+    // Wire up collapse/expand toggles (re-bound every render, since
+    // innerHTML was just replaced).
+    grid.querySelectorAll('.badge-tier-header').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const tierName = btn.getAttribute('data-tier');
+        tierOpenState[tierName] = !tierOpenState[tierName];
+        renderTab();
+      });
+    });
   }
 
   // ---------- init ----------

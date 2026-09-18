@@ -7088,23 +7088,29 @@
       } else {
         let min = parseInt(document.getElementById('tgMin').value, 10) || CSW24_MIN_LEN;
         let max = parseInt(document.getElementById('tgMax').value, 10) || CSW24_MAX_LEN;
-        let count = parseInt(document.getElementById('tgCount').value, 10) || 10;
+        const countRaw = document.getElementById('tgCount').value.trim();
+        // Blank count means "no cap" — use every matching word, shuffled,
+        // instead of silently falling back to a default of 10.
+        const countSpecified = countRaw !== '';
+        let count = countSpecified ? Math.max(1, parseInt(countRaw, 10) || 1) : null;
         min = Math.max(CSW24_MIN_LEN, Math.min(min, CSW24_MAX_LEN));
         max = Math.max(CSW24_MIN_LEN, Math.min(max, CSW24_MAX_LEN));
         if (min > max) { const t2 = min; min = max; max = t2; }
-        count = Math.max(1, count);
 
         const containsAllPre = containsAllToggle.checked ? document.getElementById('tgContainsAllInput').value : '';
-        if (containsAllPre || startsWithPre) {
+        if (containsAllPre || startsWithPre || !countSpecified) {
           // Filter the full candidate pool by the substring/prefix first,
-          // then randomly sample `count` from the matches — filtering
+          // then randomly sample `count` from the matches (or take the
+          // whole shuffled pool when no count was given) — filtering
           // after picking would silently shrink the result set below
           // what the user asked for.
           let pool = [];
           for (let L = min; L <= max; L++) pool = pool.concat(lengthPool(L));
           pool = tgApplyContainsAllFilter(pool, containsAllPre);
           pool = tgApplyStartsWithFilter(pool, startsWithPre);
-          words = shuffle(pool.slice()).slice(0, Math.min(count, pool.length));
+          pool = Array.from(new Set(pool));
+          words = shuffle(pool.slice());
+          if (countSpecified) words = words.slice(0, Math.min(count, pool.length));
         } else {
           words = pickRandomWords(min, max, count);
         }
@@ -7233,7 +7239,7 @@
             : 'พิมพ์คำนี้ให้ตรงทุกตัวอักษร') +
           (tg.strict ? ' · โหมดเข้มงวด: พิมพ์ผิด = เริ่มใหม่' : '') +
         '</div>' +
-        '<div class="tile-word" id="tgTargetTiles">' + word.split('').map(function (ch) {
+        '<div class="tile-word" id="tgTargetTiles">' + (tg.anagramMode ? sortLetters(word) : word).split('').map(function (ch) {
           return '<span class="letter-tile ' + lengthTileSizeClass('big', word.length) + ' type-letter">' + ch + '</span>';
         }).join('') + '</div>' +
         (tg.anagramMode ?
