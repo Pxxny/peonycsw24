@@ -342,6 +342,7 @@
 
   function saveSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    if (window.Achievements) window.Achievements.record('settings_changed');
   }
 
   function t(key) {
@@ -1326,7 +1327,10 @@
         }
         detail.classList.add('open');
         btn.textContent = '🔤 ซ่อน Anagram';
-        if (window.Achievements) window.Achievements.record('anagram_view');
+        if (window.Achievements) {
+          window.Achievements.record('anagram_view');
+          window.Achievements.record('anagram_word_length', { length: word.length });
+        }
       });
     });
   }
@@ -1695,6 +1699,7 @@
   function removeFromCardbox(word) {
     const box = loadCardbox().filter(function (c) { return c.word !== word; });
     saveCardbox(box);
+    if (window.Achievements) window.Achievements.record('cardbox_delete');
   }
 
   // ---------- cardbox groups (saved word-selection sets) ----------
@@ -2012,6 +2017,7 @@
     if (tabName === 'stats') renderStatsTab();
     if (tabName === 'practice') renderPracticeTab();
     if (tabName === 'play' && window.PlayGame) window.PlayGame.init();
+    if (window.Achievements) window.Achievements.record('tab_visited', { tab: tabName });
     if (tabName === 'browse' && !browseInitialized) {
       browseInitialized = true;
       initBrowseChips();
@@ -2513,6 +2519,7 @@
       });
     }
     showToast(t('dueEdit.saved').replace('{word}', dueEditWord).replace('{date}', formatDueDate(card.due)));
+    if (window.Achievements) window.Achievements.record('cardbox_edit');
     closeDueEdit();
   }
 
@@ -5019,6 +5026,9 @@
       timeEl.textContent = (timeGreeting ? timeGreeting[lang] : '') + '!';
       msgEl.textContent = dashGreetingPickCache.pick ? dashGreetingPickCache.pick[lang] : '';
       card.style.display = '';
+      if (window.Achievements && dashGreetingPickCache.pick) {
+        window.Achievements.record('greeting_viewed', { id: dashGreetingPickCache.pick[lang] });
+      }
     });
   }
 
@@ -5302,6 +5312,7 @@
         if (key === 'rackbalance') openRackBalanceAnalyzer();
         if (key === 'endgame') openEndgameTrainer();
         if (key === 'parallel') openParallelFinder();
+        if (window.Achievements && key) window.Achievements.record('tab_visited', { tab: key });
       });
     });
   }
@@ -5347,6 +5358,7 @@
 
     oddsTrainerState.total++;
     if (graded.pass) oddsTrainerState.correct++;
+    if (window.Achievements) window.Achievements.record('odds_answered', { pass: !!graded.pass });
 
     resultEl.innerHTML =
       '<div class="odds-trainer-verdict ' + (graded.pass ? 'odds-trainer-pass' : 'odds-trainer-fail') + '">' +
@@ -5441,6 +5453,8 @@
       'ตัวที่เก็บไว้ (' + evalResult.kept.length + ' ตัว): สระ ' + kc.vowels + ' · พยัญชนะ ' + kc.consonants + (kc.blanks ? ' · blank ' + kc.blanks : '') + '<br>' +
       '<span class="vowel-dump-guideline">เกณฑ์: มือ 7 ตัวที่สมดุลควรมีสระ ' + window.VowelDumpTrainer.BALANCED_MIN + '-' + window.VowelDumpTrainer.BALANCED_MAX + ' ตัว (ไม่รวม blank)</span>' +
       '</div>';
+
+    if (window.Achievements) window.Achievements.record('vowel_dump_checked', { band: evalResult.keptBand });
   }
 
   function initVowelDumpUI() {
@@ -5503,6 +5517,8 @@
     html += '</div>';
 
     if (resultEl) resultEl.innerHTML = html;
+
+    if (window.Achievements) window.Achievements.record('rack_balance_viewed', { hasHardLetter: !!hl.count });
   }
 
   function initRackBalanceUI() {
@@ -5652,6 +5668,8 @@
     resultEl.innerHTML =
       '<div class="vowel-dump-verdict">✅ คำที่ทำแต้มสูงสุด: ' + best.word + ' (' + best.score + ' แต้ม)</div>' +
       '<div class="vowel-dump-detail">คำที่เกิดขึ้น: ' + best.formed.map(function (f) { return f.text; }).join(', ') + '</div>';
+
+    if (window.Achievements) window.Achievements.record('endgame_revealed');
   }
 
   function initEndgameUI() {
@@ -5697,6 +5715,7 @@
       parallelState = scenario;
       renderStaticBoard(document.getElementById('parallelBoard'), scenario.board);
       renderStaticRack(document.getElementById('parallelRack'), scenario.rack);
+      if (window.Achievements) window.Achievements.record('parallel_viewed');
     }).catch(function (err) {
       if (loading) { loading.style.display = ''; loading.textContent = '⚠️ เกิดข้อผิดพลาด: ' + err.message; }
       if (content) content.style.display = 'none';
@@ -6175,6 +6194,7 @@
       const today = new Date().toISOString().slice(0, 10);
       downloadDataUrl(url, 'csw24-progress-backup-' + today + '.json');
       showToast('ส่งออกความคืบหน้าแล้ว (' + box.length + ' คำ)');
+      if (window.Achievements) window.Achievements.record('data_exported');
     });
 
     document.getElementById('importProgressInput').addEventListener('change', function (e) {
@@ -6201,6 +6221,7 @@
           renderCardboxTab();
           renderDashboard();
           showToast('นำเข้าความคืบหน้าแล้ว (เพิ่มใหม่ ' + added + ' · อัปเดต ' + updated + ')');
+          if (window.Achievements) window.Achievements.record('data_imported');
         } catch (err) {
           showToast('ไฟล์ไม่ถูกต้อง ไม่สามารถนำเข้าได้');
         }
@@ -6917,6 +6938,10 @@
     if (i !== -1) list[i] = entry; else list.unshift(entry);
     list.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
     tgSaveHistory(list.slice(0, TG_HISTORY_MAX));
+    // Keep the on-screen "Game History" list live: every save (new game,
+    // word completed, tab switch away) should be reflected immediately
+    // instead of waiting for the player to leave and re-enter the tab.
+    tgRefreshResumeBtn();
   }
 
   function tgRemoveFromHistory(id) {
@@ -7303,31 +7328,26 @@
     if (val.length > word.length) { val = val.slice(0, word.length); input.value = val; }
 
     const tiles = document.querySelectorAll('#tgTargetTiles .letter-tile');
-    // Highlight tiles against whichever remaining word the current input
-    // could still be building toward, so partial typing doesn't flash red
-    // just because it doesn't match one particular anagram.
+    // Anagram mode gives no red/wrong feedback while typing — the point of
+    // the mode is figuring out which valid word to land on, so we only ever
+    // light up tiles green as they match a candidate. A keystroke that
+    // doesn't fit any remaining word just doesn't light up; the player
+    // backspaces and keeps going instead of being told "wrong" every time.
     let candidate = tg.anagramRemaining.find(function (w) { return w.indexOf(val) === 0; }) ||
       (val.length ? tg.anagramRemaining[0] : word);
     let mismatch = val.length > 0 && !tg.anagramRemaining.some(function (w) { return w.indexOf(val) === 0; });
     for (let i = 0; i < tiles.length; i++) {
       tiles[i].classList.remove('correct-letter', 'wrong-letter');
-      if (i < val.length && candidate) {
+      if (i < val.length && candidate && !mismatch) {
         if (val[i] === candidate[i]) tiles[i].classList.add('correct-letter');
-        else { tiles[i].classList.add('wrong-letter'); }
       }
     }
 
     if (mismatch) {
-      tg.mistakes++;
-      if (tg.strict) {
-        showToast('พิมพ์ผิด! เริ่มใหม่ตั้งแต่คำแรก');
-        tg.typed = [];
-        tg.typedSelected = new Set();
-        tg.anagramRemaining = [];
-        tg.anagramGroup = null;
-        tgRestart();
-        return;
-      }
+      // No mistake counted and no strict-mode restart here: in Anagram
+      // mode "wrong" isn't meaningful mid-keystroke (the player may just
+      // be partway into a different valid anagram), so we silently let
+      // them keep typing/backspacing instead of penalizing every attempt.
       return;
     }
 
@@ -7374,7 +7394,12 @@
     });
     tgRenderTypedPanel();
     tgRefreshResumeBtn();
-    if (window.Achievements) window.Achievements.record('typing_win');
+    if (window.Achievements) {
+      window.Achievements.record('typing_round_complete', { mistakes: tg.mistakes });
+      window.Achievements.record('typing_win', {
+        words: tg.words.length, mistakes: tg.mistakes, elapsedMs: elapsed
+      });
+    }
   }
 
   // ---------- Minigame typing: "typed words so far" review + save panel ----------
@@ -8558,6 +8583,7 @@
     if (window.Achievements) {
       window.Achievements.init();
       window.Achievements.renderTab();
+      window.Achievements.record('app_opened');
     }
     renderCardboxTab();
     renderCardboxGroups();

@@ -21,6 +21,8 @@
     sessionsCompleted: 0,
     masteredCount: 0,
     hasPerfectSession: false,
+    perfectSessionCount: 0,
+    leechCount: 0,
     anagramViews: 0,
     typingWins: 0,
     racksCorrectTotal: 0,
@@ -28,7 +30,42 @@
     marathonCompleted: 0,
     marathonBestStreak: 0,
     lastActiveDay: null,   // 'YYYY-MM-DD'
-    dayStreak: 0
+    dayStreak: 0,
+    hasNightOwlPlay: false,   // played/studied 02:00–04:59 local time
+    hasEarlyBirdPlay: false,  // played/studied 05:00–05:59 local time
+    hasQNoU: false,           // Cardbox contains a word with Q but no U
+    hasPangramWord: false,    // Cardbox contains a 7+ letter word with 7+ distinct letters
+    typingMistakesTotal: 0,   // lifetime mistakes across Typing minigame rounds
+    bestTypingWordsPerSec: 0, // best (words / second) rate in a finished Typing round, 3+ words
+
+    // --- extended tracking for the 100-badge set ---
+    oddsAnswered: 0,          // total Odds Trainer questions graded
+    oddsCorrect: 0,           // total Odds Trainer questions passed
+    oddsCorrectStreak: 0,     // current consecutive-correct streak, Odds Trainer
+    oddsBestStreak: 0,        // best consecutive-correct streak, Odds Trainer
+    vowelDumpChecked: 0,      // total Vowel Dump Practice checks submitted
+    vowelDumpBalanced: 0,     // total checks that landed in the "balanced" band
+    rackBalanceViews: 0,      // total Rack Balance Analyzer racks drawn
+    rackBalanceHardLetterViews: 0, // racks drawn containing a J/Q/X/Z
+    endgameRevealed: 0,       // total Endgame Trainer answers revealed
+    parallelViews: 0,         // total Parallel Play Finder scenarios viewed
+    botGamesPlayed: 0,        // completed games vs the bot in Play Game
+    botGamesWon: 0,           // games vs the bot that the learner won
+    botHighestScoringMove: 0, // highest single-move score achieved vs the bot
+    tabsVisited: {},          // map of tab name -> true, every tab ever opened
+    cardboxDeleted: 0,        // words removed from Cardbox
+    settingsChanged: 0,       // number of times app settings were changed
+    marathonAbandonedZero: 0, // marathon sessions ended with 0 correct
+    sessionsAtExactly1: 0,    // review sessions completed with exactly 1 card
+    typingRoundsCompleted: 0, // total finished Typing minigame rounds
+    typingCleanRounds: 0,     // Typing rounds finished with 0 mistakes
+    greetingsViewed: {},      // map of greeting id/text -> true, every greeting ever shown
+    exportCount: 0,           // number of times Cardbox/progress was exported
+    importCount: 0,           // number of times data was imported
+    appOpenCount: 0,          // total number of times the app was opened/loaded
+    anagramLongestWord: 0,    // longest word length ever viewed in Anagram
+    cardboxEditCount: 0,      // number of manual edits to a Cardbox entry
+    hasUsedAllPracticeModes: false // computed flag: every practice mode opened at least once
   };
 
   let stats = null;
@@ -96,6 +133,19 @@
       const box = raw ? JSON.parse(raw) : [];
       stats.cardboxTotal = box.length;
       stats.masteredCount = box.filter(function (c) { return c.status === 'mastered'; }).length;
+      stats.leechCount = box.filter(function (c) { return !!c.leech; }).length;
+
+      let qNoUCount = 0;
+      let pangramCount = 0;
+      for (let i = 0; i < box.length; i++) {
+        const w = (box[i].word || '').toUpperCase();
+        if (w.indexOf('Q') !== -1 && w.indexOf('U') === -1) qNoUCount++;
+        if (w.length >= 7 && new Set(w.split('')).size === w.length) pangramCount++;
+      }
+      stats._qNoUCount = qNoUCount;
+      stats._pangramCount = pangramCount;
+      if (qNoUCount >= 1) stats.hasQNoU = true;
+      if (pangramCount >= 1) stats.hasPangramWord = true;
     } catch (e) { /* ignore, keep previous values */ }
   }
 
@@ -103,7 +153,30 @@
 
   function evaluateAndUnlock() {
     const newlyUnlocked = [];
-    (global.CSW24_BADGES || []).forEach(function (badge) {
+    const allBadges = global.CSW24_BADGES || [];
+    // "Completionist" needs to know how many *other* badges are unlocked so
+    // far, computed fresh each pass rather than stored as a regular stat.
+    stats.otherBadgesUnlockedCount = allBadges.filter(function (b) {
+      return b.id !== 'the_completionist' && !!unlocked[b.id];
+    }).length;
+    stats.otherBadgesTotalCount = allBadges.filter(function (b) { return b.id !== 'the_completionist'; }).length;
+
+    // Tier-completion flags, recomputed fresh each pass (mirrors the
+    // completionist pattern above) so "secret" badges can react to whole
+    // tiers being cleared without storing brittle counters.
+    function tierComplete(tierName) {
+      const tierBadges = allBadges.filter(function (b) { return b.tier === tierName; });
+      return tierBadges.length > 0 && tierBadges.every(function (b) { return !!unlocked[b.id]; });
+    }
+    stats._hardTierComplete = tierComplete('hard');
+    stats._nearImpossibleComplete = tierComplete('near_impossible');
+
+    // "Every other badge unlocked" for the final secret badge.
+    const secretHundredId = 'secret_hundred_percent';
+    stats._allOtherUnlocked = allBadges.filter(function (b) { return b.id !== secretHundredId; })
+      .every(function (b) { return !!unlocked[b.id]; });
+
+    allBadges.forEach(function (badge) {
       if (unlocked[badge.id]) return;
       let earned = false;
       try { earned = !!badge.check(stats); } catch (e) { earned = false; }
@@ -124,9 +197,16 @@
 
   // ---------- event recording (called from app.js) ----------
 
+  function touchOddHourPlay() {
+    const hour = new Date().getHours();
+    if (hour >= 2 && hour < 5) stats.hasNightOwlPlay = true;
+    else if (hour === 5) stats.hasEarlyBirdPlay = true;
+  }
+
   function record(eventName, payload) {
     if (!stats) init();
     touchDayStreak();
+    touchOddHourPlay();
 
     switch (eventName) {
       case 'cardbox_add':
@@ -137,6 +217,10 @@
         refreshFromCardbox();
         if (payload && payload.total >= 5 && payload.incorrect === 0) {
           stats.hasPerfectSession = true;
+          stats.perfectSessionCount++;
+        }
+        if (payload && payload.total === 1) {
+          stats.sessionsAtExactly1++;
         }
         break;
       case 'card_reviewed':
@@ -147,6 +231,13 @@
         break;
       case 'typing_win':
         stats.typingWins++;
+        if (payload) {
+          if (typeof payload.mistakes === 'number') stats.typingMistakesTotal += payload.mistakes;
+          if (payload.words >= 3 && payload.elapsedMs > 0) {
+            const wps = payload.words / (payload.elapsedMs / 1000);
+            stats.bestTypingWordsPerSec = Math.max(stats.bestTypingWordsPerSec, wps);
+          }
+        }
         break;
       case 'racks_correct':
         stats.racksCorrectTotal += (payload && payload.count) || 1;
@@ -164,10 +255,82 @@
         if (payload && typeof payload.bestStreak === 'number') {
           stats.marathonBestStreak = Math.max(stats.marathonBestStreak, payload.bestStreak);
         }
+        if (payload && payload.rounds === 0) stats.marathonAbandonedZero++;
+        break;
+      case 'odds_answered':
+        stats.oddsAnswered++;
+        if (payload && payload.pass) {
+          stats.oddsCorrect++;
+          stats.oddsCorrectStreak++;
+          stats.oddsBestStreak = Math.max(stats.oddsBestStreak, stats.oddsCorrectStreak);
+        } else {
+          stats.oddsCorrectStreak = 0;
+        }
+        break;
+      case 'vowel_dump_checked':
+        stats.vowelDumpChecked++;
+        if (payload && payload.band === 'balanced') stats.vowelDumpBalanced++;
+        break;
+      case 'rack_balance_viewed':
+        stats.rackBalanceViews++;
+        if (payload && payload.hasHardLetter) stats.rackBalanceHardLetterViews++;
+        break;
+      case 'endgame_revealed':
+        stats.endgameRevealed++;
+        break;
+      case 'parallel_viewed':
+        stats.parallelViews++;
+        break;
+      case 'bot_game_complete':
+        stats.botGamesPlayed++;
+        if (payload && payload.won) stats.botGamesWon++;
+        if (payload && typeof payload.bestMoveScore === 'number') {
+          stats.botHighestScoringMove = Math.max(stats.botHighestScoringMove, payload.bestMoveScore);
+        }
+        break;
+      case 'tab_visited':
+        if (payload && payload.tab) stats.tabsVisited[payload.tab] = true;
+        break;
+      case 'cardbox_delete':
+        stats.cardboxDeleted++;
+        refreshFromCardbox();
+        break;
+      case 'cardbox_edit':
+        stats.cardboxEditCount++;
+        break;
+      case 'settings_changed':
+        stats.settingsChanged++;
+        break;
+      case 'typing_round_complete':
+        stats.typingRoundsCompleted++;
+        if (payload && payload.mistakes === 0) stats.typingCleanRounds++;
+        break;
+      case 'greeting_viewed':
+        if (payload && payload.id) stats.greetingsViewed[payload.id] = true;
+        break;
+      case 'data_exported':
+        stats.exportCount++;
+        break;
+      case 'data_imported':
+        stats.importCount++;
+        break;
+      case 'app_opened':
+        stats.appOpenCount++;
+        break;
+      case 'anagram_word_length':
+        if (payload && typeof payload.length === 'number') {
+          stats.anagramLongestWord = Math.max(stats.anagramLongestWord, payload.length);
+        }
+        break;
+      case 'session_duration':
         break;
       default:
         break;
     }
+
+    // "all practice modes opened" — recomputed fresh each time tabsVisited changes
+    const ALL_PRACTICE_MODES = ['odds', 'voweldump', 'rackbalance', 'endgame', 'parallel'];
+    stats.hasUsedAllPracticeModes = ALL_PRACTICE_MODES.every(function (m) { return !!stats.tabsVisited[m]; });
 
     saveStats();
     return evaluateAndUnlock();
@@ -238,6 +401,41 @@
 
   // ---------- Achievements tab rendering ----------
 
+  const TIER_ORDER = ['legacy', 'hard', 'near_impossible', 'impossible', 'secret'];
+  const TIER_LABEL = {
+    legacy: { th: 'เหรียญทั่วไป', en: 'Badges' },
+    hard: { th: '💪 ระดับยาก', en: '💪 Hard' },
+    near_impossible: { th: '🔥 ระดับโคตรยาก', en: '🔥 Near-Impossible' },
+    impossible: { th: '🚫 ระดับเป็นไปไม่ได้', en: '🚫 Impossible' },
+    secret: { th: '🕵️ เหรียญลับ', en: '🕵️ Secret' }
+  };
+
+  function badgeCardHTML(b, lang) {
+    const isUnlocked = !!unlocked[b.id];
+    const isSecret = b.tier === 'secret';
+    const cls = 'badge-card' + (isUnlocked ? ' badge-unlocked' : ' badge-locked') + (isSecret ? ' badge-secret' : '');
+    const dateStr = isUnlocked
+      ? new Date(unlocked[b.id]).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US')
+      : '';
+    const pointsStr = typeof b.points === 'number'
+      ? '<div class="badge-points">' + (lang === 'th' ? b.points + ' แต้ม' : b.points + ' pts') + '</div>'
+      : '';
+    // Secret badges stay fully hidden (name + description) until unlocked,
+    // so finding them stays a surprise rather than a checklist.
+    const icon = isUnlocked ? b.icon : (isSecret ? '❓' : '🔒');
+    const name = isUnlocked ? b.name[lang] : (isSecret ? (lang === 'th' ? '???' : '???') : b.name[lang]);
+    const desc = isUnlocked ? b.desc[lang] : (isSecret ? (lang === 'th' ? 'เหรียญลับ — ยังไม่ปลดล็อก' : 'Secret badge — not yet unlocked') : b.desc[lang]);
+    return (
+      '<div class="' + cls + '">' +
+        '<div class="badge-icon">' + icon + '</div>' +
+        '<div class="badge-name">' + name + '</div>' +
+        '<div class="badge-desc">' + desc + '</div>' +
+        pointsStr +
+        (isUnlocked ? '<div class="badge-date">' + dateStr + '</div>' : '') +
+      '</div>'
+    );
+  }
+
   function renderTab() {
     const grid = document.getElementById('achievementGrid');
     if (!grid) return;
@@ -245,25 +443,41 @@
     const badges = global.CSW24_BADGES || [];
     const unlockedCount = badges.filter(function (b) { return !!unlocked[b.id]; }).length;
 
+    const pointBadges = badges.filter(function (b) { return typeof b.points === 'number'; });
+    const totalPoints = pointBadges.reduce(function (sum, b) { return sum + b.points; }, 0);
+    const earnedPoints = pointBadges.reduce(function (sum, b) { return sum + (unlocked[b.id] ? b.points : 0); }, 0);
+
     const summaryEl = document.getElementById('achievementSummary');
     if (summaryEl) {
-      summaryEl.textContent = lang === 'th'
+      let text = lang === 'th'
         ? 'ปลดล็อกแล้ว ' + unlockedCount + ' / ' + badges.length + ' เหรียญ'
         : 'Unlocked ' + unlockedCount + ' / ' + badges.length + ' badges';
+      if (totalPoints > 0) {
+        text += lang === 'th'
+          ? ' · เหรียญพิเศษ ' + earnedPoints + ' / ' + totalPoints + ' แต้ม'
+          : ' · Special badge points ' + earnedPoints + ' / ' + totalPoints;
+      }
+      summaryEl.textContent = text;
     }
 
-    grid.innerHTML = badges.map(function (b) {
-      const isUnlocked = !!unlocked[b.id];
-      const cls = 'badge-card' + (isUnlocked ? ' badge-unlocked' : ' badge-locked');
-      const dateStr = isUnlocked
-        ? new Date(unlocked[b.id]).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US')
-        : '';
+    const byTier = {};
+    badges.forEach(function (b) {
+      const t = b.tier || 'legacy';
+      if (!byTier[t]) byTier[t] = [];
+      byTier[t].push(b);
+    });
+
+    grid.innerHTML = TIER_ORDER.filter(function (t) { return byTier[t] && byTier[t].length; }).map(function (t) {
+      const label = TIER_LABEL[t] ? TIER_LABEL[t][lang] : t;
+      const unlockedInTier = byTier[t].filter(function (b) { return !!unlocked[b.id]; }).length;
+      const headerHTML = t === 'legacy' ? '' :
+        '<div class="badge-tier-header">' + label +
+          ' <span class="badge-tier-count">(' + unlockedInTier + ' / ' + byTier[t].length + ')</span>' +
+        '</div>';
       return (
-        '<div class="' + cls + '">' +
-          '<div class="badge-icon">' + (isUnlocked ? b.icon : '🔒') + '</div>' +
-          '<div class="badge-name">' + b.name[lang] + '</div>' +
-          '<div class="badge-desc">' + b.desc[lang] + '</div>' +
-          (isUnlocked ? '<div class="badge-date">' + dateStr + '</div>' : '') +
+        headerHTML +
+        '<div class="badge-grid badge-grid-tier">' +
+          byTier[t].map(function (b) { return badgeCardHTML(b, lang); }).join('') +
         '</div>'
       );
     }).join('');
@@ -271,14 +485,28 @@
 
   // ---------- init ----------
 
+  function freshDefault(key) {
+    const v = DEFAULT_STATS[key];
+    if (v && typeof v === 'object') return {};
+    return v;
+  }
+
   function init() {
-    stats = loadJSON(STATS_KEY, null) || Object.assign({}, DEFAULT_STATS);
-    // patch any keys missing from an older save
-    Object.keys(DEFAULT_STATS).forEach(function (k) {
-      if (!(k in stats)) stats[k] = DEFAULT_STATS[k];
-    });
+    const loaded = loadJSON(STATS_KEY, null);
+    if (loaded) {
+      stats = loaded;
+      // patch any keys missing from an older save (fresh objects, not shared refs)
+      Object.keys(DEFAULT_STATS).forEach(function (k) {
+        if (!(k in stats)) stats[k] = freshDefault(k);
+      });
+    } else {
+      stats = {};
+      Object.keys(DEFAULT_STATS).forEach(function (k) { stats[k] = freshDefault(k); });
+    }
     unlocked = loadJSON(UNLOCKED_KEY, {});
     refreshFromCardbox();
+    const ALL_PRACTICE_MODES = ['odds', 'voweldump', 'rackbalance', 'endgame', 'parallel'];
+    stats.hasUsedAllPracticeModes = ALL_PRACTICE_MODES.every(function (m) { return !!stats.tabsVisited[m]; });
     saveStats();
   }
 
