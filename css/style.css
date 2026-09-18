@@ -1352,6 +1352,8 @@ main {
 
 /* ---------- achievement badges tab ---------- */
 
+.badge-tiers { margin-top: 0.2rem; }
+
 .badge-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -1390,25 +1392,69 @@ main {
 }
 .badge-card.badge-unlocked .badge-points { color: var(--brass); border-color: var(--brass); background: rgba(200, 160, 90, 0.2); }
 
-.badge-tier-header {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  color: var(--cream);
-  margin-top: 1.4rem;
-  margin-bottom: 0.2rem;
-  padding-bottom: 0.3rem;
+#achievementSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.badge-overall-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--board-1);
+  border: 1px solid var(--rail);
+  overflow: hidden;
+}
+.badge-overall-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brass-deep), var(--brass));
+  border-radius: 999px;
+  transition: width .3s ease;
+}
+
+.badge-tier-section {
+  margin-top: 1.1rem;
+  padding-bottom: 0.2rem;
   border-bottom: 1px solid var(--rail);
 }
-.badge-tier-header:first-child { margin-top: 0.4rem; }
-.badge-tier-count { font-size: 0.75rem; color: #8890A8; font-weight: 400; }
-.badge-grid-tier { margin-top: 0.5rem; }
-.badge-card.badge-secret.badge-locked {
-  opacity: 0.4;
-  border-style: dashed;
+.badge-tier-section:first-child { margin-top: 0.6rem; }
+.badge-tier-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.1rem;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  color: var(--cream);
+  text-align: left;
 }
-.badge-card.badge-secret.badge-unlocked {
-  border-color: var(--brass);
-  box-shadow: 0 0 0 1px rgba(200, 160, 90, 0.25);
+.badge-tier-header:hover { color: var(--brass); }
+.badge-tier-caret { font-size: 0.75rem; color: #8890A8; width: 0.9em; flex-shrink: 0; }
+.badge-tier-label { flex: 1; }
+.badge-tier-count { font-size: 0.78rem; color: #8890A8; font-weight: 400; }
+.badge-tier-open .badge-tier-count { color: var(--brass-deep); }
+.badge-tier-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--board-1);
+  margin: 0 0.1rem 0.7rem;
+  overflow: hidden;
+}
+.badge-tier-bar-fill {
+  height: 100%;
+  background: var(--brass-deep);
+  border-radius: 999px;
+  transition: width .3s ease;
+}
+.badge-grid-tier { margin-bottom: 0.6rem; }
+.badge-secret-remaining {
+  font-size: 0.78rem;
+  color: #8890A8;
+  padding: 0.6rem 0.1rem 0.9rem;
+  font-style: italic;
 }
 
 /* ---------- misc ---------- */
