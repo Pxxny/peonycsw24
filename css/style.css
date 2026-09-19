@@ -22,6 +22,8 @@
   --teal-deep: #2FB57E;
   --clay: #FF7A8A;
   --clay-deep: #E8536A;
+  --field-bg: #F4F5FA;   /* typing boxes / dropdowns: fixed light surface */
+  --field-text: #000000; /* ...always black text, regardless of theme --cream/--ink */
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -474,8 +476,8 @@ main {
 }
 
 .field input[type=number], .field select {
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--field-bg);
+  color: var(--field-text);
   border: none;
   border-radius: 7px;
   padding: 0.55rem 0.7rem;
@@ -648,7 +650,7 @@ main {
 /* ---------- odds trainer ---------- */
 .odds-trainer-question { padding: .8rem; border-radius: 10px; background: rgba(255,255,255,.03); font-weight: 600; margin-bottom: .7rem; line-height: 1.5; }
 .odds-trainer-answer-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .7rem; }
-.odds-trainer-answer-row input { width: 90px; padding: .5rem .6rem; border-radius: 8px; border: 1px solid var(--rail); background: rgba(255,255,255,.04); color: inherit; font-size: 1rem; }
+.odds-trainer-answer-row input { width: 90px; padding: .5rem .6rem; border-radius: 8px; border: 1px solid var(--rail); background: var(--field-bg); color: var(--field-text); font-size: 1rem; }
 .odds-trainer-result { min-height: 1.5rem; }
 .odds-trainer-verdict { font-weight: 700; margin-bottom: .3rem; }
 .odds-trainer-pass { color: var(--teal); }
@@ -967,8 +969,8 @@ main {
   padding: 0.35rem 0.6rem;
   border-radius: 8px;
   border: 1px solid var(--rail);
-  background: rgba(255,255,255,0.04);
-  color: inherit;
+  background: var(--field-bg);
+  color: var(--field-text);
   font-size: 0.86rem;
 }
 .learn-pause-overlay {
@@ -1199,8 +1201,8 @@ main {
   padding: 0.6rem 0.8rem;
   border-radius: 7px;
   border: none;
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--field-bg);
+  color: var(--field-text);
   width: 14rem;
   text-align: center;
 }
@@ -1796,8 +1798,8 @@ main {
   padding: 0.6rem 0.8rem;
   border-radius: 7px;
   border: none;
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--field-bg);
+  color: var(--field-text);
   width: 14rem;
   text-align: center;
   margin-top: 0.4rem;
@@ -1909,8 +1911,8 @@ main {
   padding: 0.5rem;
   border-radius: 8px;
   border: 1px solid var(--rail);
-  background: var(--board-2);
-  color: var(--cream);
+  background: var(--field-bg);
+  color: var(--field-text);
 }
 
 .play-coinflip-result {
@@ -2187,7 +2189,7 @@ main {
 .wd-cardbox-note { font-size: 0.8rem; opacity: 0.75; margin-bottom: 0.4rem; }
 .wd-note-input {
   width: 100%; min-height: 60px; margin-top: 0.8rem; border-radius: 8px;
-  border: 1px solid var(--rail); background: var(--board-2); color: var(--cream);
+  border: 1px solid var(--rail); background: var(--field-bg); color: var(--field-text);
   padding: 0.5rem; font-family: inherit; font-size: 0.85rem;
 }
 .wd-plus-slot { display: inline-flex; align-items: center; justify-content: center;
@@ -2261,7 +2263,7 @@ main {
 }
 .play-summary-table td:last-child { text-align: right; font-family: var(--font-mono); }
 .play-summary-table tr:last-child td { border-bottom: none; }
-.play-manual-score input { width: 80px; padding: 0.3rem; border-radius: 6px; border: 1px solid var(--rail); background: var(--board-2); color: var(--cream); }
+.play-manual-score input { width: 80px; padding: 0.3rem; border-radius: 6px; border: 1px solid var(--rail); background: var(--field-bg); color: var(--field-text); }
 
 .play-actions { flex-wrap: wrap; }
 
@@ -2458,8 +2460,8 @@ main {
   display: flex; gap: 0.5rem; padding: 0.7rem 1rem; border-top: 1px solid var(--rail);
 }
 #coachInput {
-  flex: 1; background: var(--board-2); border: 1px solid var(--rail); border-radius: 8px;
-  padding: 0.5rem 0.7rem; color: var(--cream); font-family: var(--font-body); font-size: 0.85rem;
+  flex: 1; background: var(--field-bg); border: 1px solid var(--rail); border-radius: 8px;
+  padding: 0.5rem 0.7rem; color: var(--field-text); font-family: var(--font-body); font-size: 0.85rem;
 }
 #coachForm button[type="submit"] {
   background: var(--brass); color: #0D1020; border: none; border-radius: 8px;
@@ -2591,3 +2593,49 @@ main {
 }
 .coach-mistake-action-btn:hover { background: var(--brass); color: #0D1020; }
 .coach-mistake-action-btn:disabled { opacity: 0.6; cursor: default; background: transparent; color: #8890A8; border-color: var(--rail); }
+
+
+/* ---------- form controls: always black text on a light surface ----------
+   The native <select> popup is drawn by the browser with a light background,
+   so text inherited from the (possibly white) theme colour became invisible.
+   Force a fixed light surface + black text for every text-entry control and
+   for the <option> rows of every dropdown, independent of the active theme. */
+select,
+textarea,
+input[type=text],
+input[type=search],
+input[type=number],
+input[type=email],
+input[type=password],
+input[type=url],
+input:not([type]) {
+  color: var(--field-text);
+  background-color: var(--field-bg);
+  color-scheme: light;
+}
+select option,
+select optgroup {
+  color: var(--field-text);
+  background-color: var(--field-bg);
+}
+select:disabled,
+input:disabled,
+textarea:disabled { opacity: 0.6; }
+::placeholder { color: #6B7089; opacity: 1; }
+
+
+/* ---------- Typing minigame: tap-the-tiles input ---------- */
+.letter-tile.tg-tappable {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform .08s ease, opacity .15s ease, filter .15s ease;
+}
+.letter-tile.tg-tappable:hover { filter: brightness(1.08); }
+.letter-tile.tg-tappable:active { transform: translateY(2px) scale(.96); }
+.letter-tile.tg-tile-used { opacity: .3; cursor: default; filter: grayscale(.6); pointer-events: auto; }
+.letter-tile.tg-tile-used:active { transform: none; }
+.tg-tap-controls { display: flex; gap: .5rem; justify-content: center; margin-top: .5rem; }
+#tgInput[readonly] { caret-color: transparent; cursor: default; }
