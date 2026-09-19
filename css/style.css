@@ -785,7 +785,124 @@ main {
 .anagram-detail.open { display: block; }
 .anagram-detail .key-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.55rem; flex-wrap: wrap; }
 .anagram-detail .key-label { color: #8890A8; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.anagram-partners { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.anagram-partners { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.anagram-progress-count {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--brass);
+  margin-bottom: 0.15rem;
+}
+.anagram-found-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+.anagram-found-word {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--teal);
+}
+
+/* ---------- Typing minigame: Anagram browse (flashcard navigator) ---------- */
+.tg-browse-card { padding: 1rem; margin: 0.9rem 0; }
+.tg-browse-meta {
+  font-size: 0.85rem;
+  color: var(--teal);
+  margin-bottom: 0.8rem;
+}
+.tg-browse-tiles {
+  justify-content: center;
+  margin-bottom: 0.9rem;
+}
+.tg-browse-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+.tg-browse-icon-spacer { flex: 1 1 auto; }
+.tg-browse-icon-btn {
+  flex: 0 0 auto;
+  min-width: 2.6rem;
+  height: 2.6rem;
+  padding: 0 0.6rem;
+  background: var(--brass);
+  border: none;
+  border-radius: 8px;
+  color: #151A2E;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tg-browse-icon-btn:hover { filter: brightness(1.08); }
+.tg-browse-icon-btn:active { filter: brightness(0.92); }
+.tg-browse-icon-btn-active { background: var(--teal); box-shadow: 0 0 0 2px var(--teal-deep); }
+.tg-browse-reveal-area {
+  min-height: 2rem;
+  max-height: 45vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.6rem;
+}
+.tg-browse-navbar {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+.tg-browse-nav-btn {
+  flex: 0 0 auto;
+  width: 2.6rem;
+  min-height: 2.6rem;
+  background: var(--board-2);
+  border: 1px solid var(--rail);
+  border-radius: 8px;
+  color: var(--cream);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tg-browse-nav-btn:hover { border-color: var(--teal); }
+.tg-browse-nav-btn:active { background: var(--board-1); }
+.tg-browse-nav-label {
+  flex: 1 1 auto;
+  min-height: 2.6rem;
+  background: var(--board-1);
+  border: 1px solid var(--rail);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.06em;
+  color: var(--cream);
+  padding: 0.4rem 0.6rem;
+}
+.tg-browse-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+  font-size: 0.82rem;
+  color: var(--brass);
+}
+.tg-browse-status-count { font-weight: 700; color: var(--brass); flex-shrink: 0; }
 
 .browse-fuzzy-suggest { margin-top: 0.6rem; padding: 0.7rem 0.9rem; background: var(--board-2); border: 1px dashed var(--rail); border-radius: 10px; font-size: 0.85rem; }
 .browse-fuzzy-suggest .fuzzy-label { color: #8890A8; margin-bottom: 0.4rem; }
@@ -1123,11 +1240,11 @@ main {
 
 .session-controls { display: flex; justify-content: center; gap: 0.7rem; margin-top: 1.3rem; flex-wrap: wrap; }
 
-.tg-history-item { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.6rem 0.8rem; border: 1px solid var(--line, #E3E1F5); border-radius: 10px; margin-bottom: 0.5rem; background: var(--panel-alt, rgba(0,0,0,0.02)); }
-.tg-history-main { min-width: 0; }
-.tg-history-title { font-weight: 600; font-size: 0.92rem; }
+.tg-history-item { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.6rem 0.8rem; border: 1px solid var(--line, #E3E1F5); border-radius: 10px; margin-bottom: 0.5rem; background: var(--panel-alt, rgba(0,0,0,0.02)); flex-wrap: wrap; }
+.tg-history-main { min-width: 0; flex: 1 1 12rem; }
+.tg-history-title { font-weight: 600; font-size: 0.92rem; word-break: break-word; }
 .tg-history-meta { font-size: 0.78rem; color: #767EA0; margin-top: 0.1rem; }
-.tg-history-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.tg-history-actions { display: flex; gap: 0.4rem; flex-shrink: 0; flex-wrap: wrap; }
 .session-summary { text-align: center; padding: 1.5rem 0; }
 .session-summary .big-stat { font-family: var(--font-display); font-size: 2.6rem; color: var(--brass); }
 .session-missed-block {
@@ -1669,6 +1786,7 @@ main {
 
 .letter-tile.correct-letter { background: var(--teal); color: #151A2E; box-shadow: 0 2px 0 var(--teal-deep); }
 .letter-tile.wrong-letter { background: var(--clay); color: var(--cream); box-shadow: 0 2px 0 var(--clay-deep); }
+.letter-tile.typed-letter { background: #454C68; color: var(--cream); box-shadow: 0 2px 0 #333952; }
 
 #tgInput {
   font-family: var(--font-mono);
@@ -1740,6 +1858,19 @@ main {
   border: 1px solid rgba(255,255,255,0.25);
   flex-shrink: 0;
 }
+
+/* ---------- additions: grouped tile color chips ---------- */
+.tile-theme-group-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8890A8;
+  margin: 0.7rem 0 0.3rem;
+}
+.tile-theme-group-label:first-child { margin-top: 0.2rem; }
+.tile-theme-group-row { margin-bottom: 0.2rem; }
+.tile-swatch { border-radius: 4px; }
 
 /* ---------- additions: color inputs (custom theme) ---------- */
 
