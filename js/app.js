@@ -174,8 +174,8 @@
       'settings.themeReset': '↺ คืนค่าเริ่มต้น', 'settings.dashRange': 'ช่วงความยาวคำแนะนำใน Dashboard',
       'settings.min': 'ต่ำสุด', 'settings.max': 'สูงสุด', 'settings.count': 'จำนวนคำ',
       'settings.importExport': 'นำเข้า / ส่งออกข้อมูล',
-      'settings.importExportSub': 'สำรองความคืบหน้าไว้เป็นไฟล์ หรือเพิ่มคำศัพท์ของคุณเองเข้าไปใช้งานร่วมกับพจนานุกรม CSW24',
-      'settings.exportProgress': '⬇ ส่งออกความคืบหน้า (JSON)', 'settings.importProgress': '⬆ นำเข้าความคืบหน้า (JSON)',
+      'settings.importExportSub': 'สำรองความคืบหน้าทั้งหมด (Cardbox, ประวัติเกม, ประวัติคำศัพท์, บันทึก, เป้าหมายรายวัน, ความสำเร็จ ฯลฯ) ไว้เป็นไฟล์เดียว หรือเพิ่มคำศัพท์ของคุณเองเข้าไปใช้งานร่วมกับพจนานุกรม CSW24',
+      'settings.exportProgress': '⬇ ส่งออกความคืบหน้าทั้งหมด (JSON)', 'settings.importProgress': '⬆ นำเข้าความคืบหน้าทั้งหมด (JSON)',
       'settings.importWords': '⬆ นำเข้ารายการคำศัพท์ของฉัน (.txt)', 'settings.includeCustom': 'รวมคำที่นำเข้าเองตอนสุ่ม/ค้นหา',
       'settings.studySession': 'เซสชันทบทวน (Cardbox)',
       'settings.studySessionSub': 'ปรับพฤติกรรมระหว่างทำ Quiz ในเซสชันทบทวน',
@@ -290,8 +290,8 @@
       'settings.themeReset': '↺ Reset to default', 'settings.dashRange': 'Dashboard suggested-word length range',
       'settings.min': 'Min', 'settings.max': 'Max', 'settings.count': 'Count',
       'settings.importExport': 'Import / Export data',
-      'settings.importExportSub': 'Back up your progress to a file, or add your own words to use alongside the CSW24 dictionary.',
-      'settings.exportProgress': '⬇ Export progress (JSON)', 'settings.importProgress': '⬆ Import progress (JSON)',
+      'settings.importExportSub': 'Back up all progress (Cardbox, game history, word history, notes, daily goals, achievements, etc.) to a single file, or add your own words to use alongside the CSW24 dictionary.',
+      'settings.exportProgress': '⬇ Export all progress (JSON)', 'settings.importProgress': '⬆ Import all progress (JSON)',
       'settings.importWords': '⬆ Import my word list (.txt)', 'settings.includeCustom': 'Include imported words in randomize/search',
       'settings.studySession': 'Study session (Cardbox)',
       'settings.studySessionSub': 'Adjust behavior while taking Quizzes in a review session.',
@@ -394,7 +394,10 @@
     // 'manual' = typing gives no feedback; Enter checks the current word,
     //            then Enter again on an empty box submits/finishes the card.
     anagramCheckMode: 'live',
-    leechThreshold: 4
+    leechThreshold: 4,
+    // Typing minigame: true = tap the tiles to fill the answer box (no keyboard
+    // needed); false = type on the keyboard as usual.
+    tgTapTiles: false
   };
 
   function loadSettings() {
@@ -6300,24 +6303,185 @@
 
   // ---------- Import / Export ----------
 
+  // ---- Full progress export/import ----------------------------------------
+  // Exports EVERY csw24_* localStorage key (cardbox, groups, selection, learn
+  // log, word history, notes, unfamiliar list, custom words, daily goals,
+  // typing + minigame/game history, achievements, settings ...). Because it is
+  // prefix-based, any key added later (e.g. csw24_game_history_v1) is
+  // included automatically with no further changes here.
+
+  const PROGRESS_FORMAT = 'csw24-progress';
+  const PROGRESS_VERSION = 2;
+  // Device/session bookkeeping — never exported or overwritten on import.
+  const PROGRESS_EXCLUDE = { 'csw24_auth_last_uid_v1': 1, 'csw24_auth_oauth_pending_v1': 1 };
+
+  function collectProgressData() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || key.indexOf('csw24_') !== 0 || PROGRESS_EXCLUDE[key]) continue;
+      const raw = localStorage.getItem(key);
+      // Store parsed JSON when possible so the file is human-readable;
+      // plain strings (e.g. 'alphabetical', '1') are stored as-is.
+      try { data[key] = { json: JSON.parse(raw) }; }
+      catch (e) { data[key] = { text: raw }; }
+    }
+    return data;
+  }
+
+  function progressSummary(data) {
+    const parts = [];
+    const cb = data['csw24_cardbox_v1'];
+    if (cb && Array.isArray(cb.json)) parts.push(cb.json.length + ' คำใน Cardbox');
+    const gh = data['csw24_game_history_v1'];
+    if (gh && gh.json) {
+      const n = Array.isArray(gh.json) ? gh.json.length : (gh.json.sessions ? gh.json.sessions.length : 0);
+      if (n) parts.push(n + ' เกมในประวัติ');
+    }
+    parts.push(Object.keys(data).length + ' ชุดข้อมูล');
+    return parts.join(' · ');
+  }
+
+  // Merge rules per key. Anything not listed here is replaced by the file's value.
+  function mergeProgressValue(key, incoming, current) {
+    // Cardbox: per-word merge, incoming wins (same semantics as before).
+    if (key === 'csw24_cardbox_v1' && Array.isArray(incoming)) {
+      const byWord = {};
+      (Array.isArray(current) ? current : []).forEach(function (c) { if (c && c.word) byWord[c.word] = c; });
+      incoming.forEach(function (item) {
+        if (!item || !item.word) return;
+        const word = String(item.word).toUpperCase();
+        const card = Object.assign(newCard(word), item, { word: word });
+        patchLegacyCard(card);
+        byWord[word] = card;
+      });
+      return Object.keys(byWord).map(function (w) { return byWord[w]; });
+    }
+    // Union of plain string lists (custom words, unfamiliar words, selection).
+    if ((key === 'csw24_custom_words_v1' || key === 'csw24_unfamiliar_v1' || key === 'csw24_cardbox_selection_v1') &&
+        Array.isArray(incoming) && Array.isArray(current)) {
+      const seen = new Set(current);
+      incoming.forEach(function (w) { seen.add(w); });
+      return Array.from(seen);
+    }
+    // Append-only logs / history arrays: union, de-duplicated by JSON identity.
+    if (Array.isArray(incoming) && Array.isArray(current) &&
+        (key === 'csw24_learn_log_v1' || key === 'csw24_typing_history_v1' || /game_history|minigame/i.test(key))) {
+      const seen = new Set();
+      const out = [];
+      current.concat(incoming).forEach(function (item) {
+        const id = JSON.stringify(item);
+        if (seen.has(id)) return;
+        seen.add(id);
+        out.push(item);
+      });
+      if (key === 'csw24_learn_log_v1') {
+        out.sort(function (x, y) { return ((x && x.t) || 0) - ((y && y.t) || 0); });
+        if (out.length > LEARN_LOG_CAP) out.splice(0, out.length - LEARN_LOG_CAP);
+      }
+      return out;
+    }
+    // Word history: { WORD: [{t, mode}, ...] } — union each word's event list.
+    if (key === 'csw24_word_history_v1' && incoming && current &&
+        typeof incoming === 'object' && typeof current === 'object') {
+      const out = Object.assign({}, current);
+      Object.keys(incoming).forEach(function (w) {
+        const a = Array.isArray(out[w]) ? out[w] : [];
+        const b = Array.isArray(incoming[w]) ? incoming[w] : [];
+        const seen = new Set();
+        out[w] = a.concat(b).filter(function (ev) {
+          const id = JSON.stringify(ev);
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        }).sort(function (x, y) { return ((x && x.t) || 0) - ((y && y.t) || 0); });
+      });
+      return out;
+    }
+    // Object maps (notes, daily goals): shallow merge, incoming wins.
+    if (incoming && current && typeof incoming === 'object' && typeof current === 'object' &&
+        !Array.isArray(incoming) && !Array.isArray(current) &&
+        (key === 'csw24_word_notes_v1' || key === 'csw24_daily_goal_v1')) {
+      return Object.assign({}, current, incoming);
+    }
+    return incoming;
+  }
+
+  function readStored(key) {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return undefined;
+    try { return JSON.parse(raw); } catch (e) { return raw; }
+  }
+
+  function applyProgressData(data) {
+    let keysWritten = 0;
+    Object.keys(data).forEach(function (key) {
+      if (key.indexOf('csw24_') !== 0 || PROGRESS_EXCLUDE[key]) return; // stay inside our namespace
+      const entry = data[key];
+      if (!entry || typeof entry !== 'object') return;
+      if ('json' in entry) {
+        const current = readStored(key);
+        const merged = current === undefined ? entry.json : mergeProgressValue(key, entry.json, current);
+        localStorage.setItem(key, JSON.stringify(merged));
+      } else if ('text' in entry) {
+        localStorage.setItem(key, String(entry.text));
+      } else {
+        return;
+      }
+      keysWritten++;
+    });
+    return keysWritten;
+  }
+
   function initImportExport() {
     document.getElementById('exportProgressBtn').addEventListener('click', function () {
-      const box = loadCardbox();
-      const blob = new Blob([JSON.stringify(box, null, 2)], { type: 'application/json' });
+      const data = collectProgressData();
+      const payload = {
+        format: PROGRESS_FORMAT,
+        version: PROGRESS_VERSION,
+        exportedAt: new Date().toISOString(),
+        data: data
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const today = new Date().toISOString().slice(0, 10);
       downloadDataUrl(url, 'csw24-progress-backup-' + today + '.json');
-      showToast('ส่งออกความคืบหน้าแล้ว (' + box.length + ' คำ)');
+      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+      showToast('ส่งออกความคืบหน้าแล้ว (' + progressSummary(data) + ')');
       if (window.Achievements) window.Achievements.record('data_exported');
     });
 
     document.getElementById('importProgressInput').addEventListener('change', function (e) {
       const file = e.target.files[0];
       if (!file) return;
+      const input = e.target;
       const reader = new FileReader();
       reader.onload = function () {
         try {
           const imported = JSON.parse(reader.result);
+
+          // --- New full-progress format ---
+          if (imported && !Array.isArray(imported) && imported.format === PROGRESS_FORMAT && imported.data) {
+            const summary = progressSummary(imported.data);
+            if (!window.confirm('นำเข้าความคืบหน้าจากไฟล์นี้? (' + summary + ')\nข้อมูลจะถูกรวมเข้ากับข้อมูลปัจจุบัน และหน้าจะโหลดใหม่')) {
+              input.value = '';
+              return;
+            }
+            // Take a safety snapshot first so a bad import can be undone
+            // from Settings → IndexedDB restore.
+            const finish = function () {
+              const n = applyProgressData(imported.data);
+              showToast('นำเข้าความคืบหน้าแล้ว (' + n + ' ชุดข้อมูล) กำลังโหลดหน้าใหม่...');
+              if (window.Achievements) window.Achievements.record('data_imported');
+              setTimeout(function () { window.location.reload(); }, 1200);
+            };
+            const snap = (typeof idbBackupNow === 'function') ? idbBackupNow() : null;
+            if (snap && snap.then) snap.then(finish, finish); else finish();
+            input.value = '';
+            return;
+          }
+
+          // --- Legacy format: plain array of cardbox cards ---
           if (!Array.isArray(imported)) throw new Error('bad format');
           const box = loadCardbox();
           const byWord = {};
@@ -6339,7 +6503,7 @@
         } catch (err) {
           showToast('ไฟล์ไม่ถูกต้อง ไม่สามารถนำเข้าได้');
         }
-        e.target.value = '';
+        input.value = '';
       };
       reader.readAsText(file);
     });
@@ -7168,6 +7332,7 @@
     tg.showAnagram = !!entry.showAnagram;
     tg.anagramMode = !!entry.anagramMode;
     tg.anagramRemaining = entry.anagramRemaining || [];
+    tg.anagramGroup = null; // recomputed from the current word in tgRenderPlay
     tg.mode = entry.mode || 'random';
     tg.containsAll = entry.containsAll || '';
     tg.startsWith = entry.startsWith || '';
@@ -7297,6 +7462,17 @@
       document.getElementById('tgTypedPanel').style.display = 'none';
     });
 
+    const tapToggle = document.getElementById('tgTapTilesToggle');
+    if (tapToggle) {
+      tapToggle.checked = !!settings.tgTapTiles;
+      tapToggle.addEventListener('change', function () {
+        settings.tgTapTiles = tapToggle.checked;
+        saveSettings();
+        // Apply immediately if a round is on screen.
+        if (tgIsGameInProgress() && document.getElementById('tgInput')) tgRenderPlay();
+      });
+    }
+
     tgRefreshResumeBtn();
   }
 
@@ -7384,6 +7560,63 @@
     tgRenderBrowse();
   }
 
+  // ---------- Typing minigame: tap-the-tiles input ----------
+  // When settings.tgTapTiles is on, tapping a target tile appends that letter
+  // to the answer box (no keyboard needed). Everything downstream — mistake
+  // counting, strict mode, anagram matching, auto-advance — is reused by
+  // firing the same code path the keyboard 'input' event uses, so both input
+  // methods behave identically.
+  function tgApplyTapValue(word, input, val) {
+    input.value = val;
+    tgHandleInput(word, input);
+    tgSyncTapTileState(input);
+  }
+
+  // Grays out tiles that are already "used up" by the letters currently in the
+  // box (multiset — 2 tiles of the same letter allow 2 taps of that letter),
+  // so it's obvious which tiles are still available.
+  function tgSyncTapTileState(input) {
+    if (!settings.tgTapTiles) return;
+    const tiles = document.querySelectorAll('#tgTargetTiles .letter-tile');
+    if (!tiles.length) return;
+    const val = (input && input.value ? input.value : '').toUpperCase();
+    const used = {};
+    for (let i = 0; i < val.length; i++) used[val[i]] = (used[val[i]] || 0) + 1;
+    tiles.forEach(function (tile) {
+      const ch = tile.firstChild ? tile.firstChild.textContent : '';
+      if (used[ch] > 0) { tile.classList.add('tg-tile-used'); used[ch]--; }
+      else tile.classList.remove('tg-tile-used');
+    });
+  }
+
+  function tgWireTapTiles(word, input) {
+    const wrap = document.getElementById('tgTargetTiles');
+    if (!wrap) return;
+    const maxLen = word.length;
+
+    wrap.addEventListener('click', function (e) {
+      const tile = e.target.closest('.letter-tile');
+      if (!tile || !wrap.contains(tile) || input.disabled) return;
+      if (tile.classList.contains('tg-tile-used')) return; // already placed
+      const ch = tile.firstChild ? tile.firstChild.textContent.trim().toUpperCase() : '';
+      if (!ch || input.value.length >= maxLen) return;
+      tgApplyTapValue(word, input, input.value + ch);
+    });
+
+    const backBtn = document.getElementById('tgTapBackBtn');
+    if (backBtn) backBtn.addEventListener('click', function () {
+      if (input.disabled || !input.value) return;
+      tgApplyTapValue(word, input, input.value.slice(0, -1));
+    });
+    const clearBtn = document.getElementById('tgTapClearBtn');
+    if (clearBtn) clearBtn.addEventListener('click', function () {
+      if (input.disabled || !input.value) return;
+      tgApplyTapValue(word, input, '');
+    });
+
+    tgSyncTapTileState(input);
+  }
+
   function tgRenderPlay() {
     const word = tg.words[tg.index];
     const area = document.getElementById('typingPlay');
@@ -7394,15 +7627,19 @@
     tg.inlineBrowseOpen = false;
 
     if (tg.anagramMode) {
-      // Rebuild the required set (word itself + all its anagram partners)
-      // only when we don't already have one in progress (e.g. resuming).
-      if (!tg.anagramRemaining || !tg.anagramRemaining.length) {
-        const group = [word].concat(getAnagrams(word));
-        tg.anagramGroup = Array.from(new Set(group));
-        tg.anagramRemaining = tg.anagramGroup.slice();
-      } else if (!tg.anagramGroup) {
-        tg.anagramGroup = [word].concat(getAnagrams(word));
-      }
+      // The required set (word itself + all its anagram partners) is ALWAYS
+      // derived from the current word, never trusted from cached state —
+      // tg.anagramGroup can be left over from a different word or a different
+      // game (e.g. after resuming from Game History), which used to make the
+      // counter read "0 / 1" and skip to the next word after a single answer.
+      const group = Array.from(new Set([word].concat(getAnagrams(word))));
+      const saved = Array.isArray(tg.anagramRemaining) ? tg.anagramRemaining : [];
+      const kept = Array.from(new Set(saved)).filter(function (w) { return group.indexOf(w) !== -1; });
+      tg.anagramGroup = group;
+      // Keep in-progress state only if it is a valid non-empty subset of THIS
+      // word's group (resuming mid-group). Anything else — empty, stale,
+      // or containing words that don't belong — starts the group over.
+      tg.anagramRemaining = (kept.length && kept.length === saved.length) ? kept : group.slice();
     }
 
     area.innerHTML =
@@ -7417,7 +7654,7 @@
           (tg.strict ? ' · โหมดเข้มงวด: พิมพ์ผิด = เริ่มใหม่' : '') +
         '</div>' +
         '<div class="tile-word" id="tgTargetTiles">' + (tg.anagramMode ? sortLetters(word) : word).split('').map(function (ch) {
-          return '<span class="letter-tile ' + lengthTileSizeClass('big', word.length) + ' type-letter">' + ch +
+          return '<span class="letter-tile ' + lengthTileSizeClass('big', word.length) + ' type-letter' + (settings.tgTapTiles ? ' tg-tappable' : '') + '">' + ch +
             '<span class="pv">' + (SCRABBLE_VALUES[ch] || '') + '</span></span>';
         }).join('') + '</div>' +
         (tg.anagramMode ?
@@ -7434,7 +7671,14 @@
           '</div>'
           : '') +
         '<div id="tgBrowse"></div>' +
-        '<input type="text" id="tgInput" class="session-answer-form-input" autocomplete="off" autofocus>' +
+        '<input type="text" id="tgInput" class="session-answer-form-input" autocomplete="off" autofocus' +
+          (settings.tgTapTiles ? ' readonly inputmode="none"' : '') + '>' +
+        (settings.tgTapTiles ?
+          '<div class="tg-tap-controls">' +
+            '<button type="button" class="btn btn-outline btn-sm" id="tgTapBackBtn" title="ลบตัวสุดท้าย">⌫ ลบ</button>' +
+            '<button type="button" class="btn btn-outline btn-sm" id="tgTapClearBtn" title="ล้างทั้งหมด">✕ ล้าง</button>' +
+          '</div>'
+          : '') +
         (tg.showAnagram ?
           '<div class="session-controls"><button class="btn btn-outline btn-sm" id="tgAnagramHintBtn">🔤 ดู Anagram ของคำนี้</button></div>' +
           '<div class="anagram-detail" id="tgAnagramHintDetail"></div>'
@@ -7443,7 +7687,9 @@
 
     const input = document.getElementById('tgInput');
     input.addEventListener('input', function () { tgHandleInput(word, input); });
-    input.focus();
+    if (!settings.tgTapTiles) input.focus(); // don't pop the on-screen keyboard in tap mode
+
+    if (settings.tgTapTiles) tgWireTapTiles(word, input);
 
     tgRenderStandaloneBrowse();
 
@@ -7506,6 +7752,18 @@
     }
   }
 
+  // Counter shown at the right of the browse card's status line. While an
+  // Anagram-complete round is running it must match the play screen's
+  // "found / total" (words already typed for this group); otherwise it keeps
+  // the original meaning (how many answers have been revealed via 👁).
+  function tgBrowseFoundCount(group) {
+    if (tg.anagramMode && tgBrowse.standalone && Array.isArray(tg.anagramRemaining) && tg.anagramRemaining.length) {
+      const found = group.filter(function (w) { return tg.anagramRemaining.indexOf(w) === -1; }).length;
+      return tgBrowse.listOpen ? group.length : found;
+    }
+    return tgBrowse.listOpen ? group.length : 0;
+  }
+
   function tgRenderBrowse() {
     const area = document.getElementById('tgBrowse');
     if (!area) return;
@@ -7552,7 +7810,7 @@
         '<div class="tg-browse-status">' +
           '<span>Anagram ' + (tgBrowse.index + 1) + '/' + tgBrowse.words.length +
             ': Quizzing for ' + group.length + ' word' + (group.length === 1 ? '' : 's') + ' in CSW24</span>' +
-          '<span class="tg-browse-status-count">' + (tgBrowse.listOpen ? group.length : 0) + '/' + group.length + '</span>' +
+          '<span class="tg-browse-status-count">' + tgBrowseFoundCount(group) + '/' + group.length + '</span>' +
         '</div>' +
         (tgBrowse.standalone ? '' :
           '<button type="button" class="btn btn-outline btn-sm" id="tgBrowseCloseBtn" style="margin-top:0.8rem">✕ ปิดรายการ Anagram</button>') +
