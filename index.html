@@ -1247,6 +1247,12 @@
         <div class="chip-row" id="themePresetChips"></div>
       </div>
 
+      <div class="field" style="margin-bottom:1rem">
+        <label data-i18n="settings.tilePreset">สี Tile ตัวอักษร</label>
+        <div id="tilePresetChips"></div>
+        <p class="field-hint" data-i18n="settings.tilePresetHint">เลือกสีของตัวต่อตัวอักษรแยกจากธีมพื้นบอร์ด เช่น ไม้ เมทัลลิก ทอง หิน และอื่นๆ</p>
+      </div>
+
       <details class="section-group">
         <summary class="section-group-label"><span class="section-group-icon">🎨</span> ปรับสีเอง (Custom)</summary>
         <div class="section-group-body">
@@ -1495,6 +1501,14 @@
   window.Motion = { animate, stagger };
   window.dispatchEvent(new Event('esm-libs-ready'));
 </script>
+
+<!-- Google Login + cloud progress sync. auth.js is the standalone logic
+     module (Supabase Auth + Postgres); auth-ui.js only talks to
+     window.Auth and owns the header widget + import-guest-progress
+     modal. Safe no-op until SUPABASE_URL/SUPABASE_ANON_KEY in
+     js/auth.js are filled in. -->
+<script src="js/auth.js"></script>
+<script src="js/auth-ui.js"></script>
 
 <script src="js/words-data.js"></script>
 <script src="js/BoardSystem/RackManage.js"></script>
