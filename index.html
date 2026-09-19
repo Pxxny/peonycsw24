@@ -462,7 +462,7 @@
       <div class="field" id="addWordsField" style="position:relative">
         <label for="addWordsInput" data-i18n="cardbox.addLabel">คำศัพท์ (บรรทัดละคำ)</label>
         <textarea id="addWordsInput" rows="6" spellcheck="false" autocomplete="off" autocapitalize="characters"
-          style="text-transform:uppercase;width:100%;background:var(--cream);color:var(--ink);border:none;border-radius:7px;padding:0.6rem 0.7rem;font-family:var(--font-mono);font-size:0.95rem;resize:vertical"
+          style="text-transform:uppercase;width:100%;background:var(--field-bg);color:var(--field-text);border:none;border-radius:7px;padding:0.6rem 0.7rem;font-family:var(--font-mono);font-size:0.95rem;resize:vertical"
           placeholder="เช่น&#10;AEROBE&#10;HOUSE CAT"></textarea>
         <div id="addWordsSuggest" class="add-words-suggest" style="display:none"></div>
       </div>
@@ -728,6 +728,7 @@
         <div class="control-row">
           <label class="checkbox-field"><input type="checkbox" id="tgStrict"> โหมดเข้มงวด (พิมพ์ผิดแล้วเริ่มใหม่)</label>
           <label class="checkbox-field"><input type="checkbox" id="tgShowAnagramToggle"> 🔤 โชว์ปุ่ม Anagram ระหว่างพิมพ์</label>
+          <label class="checkbox-field"><input type="checkbox" id="tgTapTilesToggle"> 👆 กด Tile เพื่อใส่ตัวอักษร (ไม่ต้องใช้คีย์บอร์ด)</label>
           <label class="checkbox-field"><input type="checkbox" id="tgAnagramModeToggle"> 🔁 โหมด Anagram ครบชุด (ต้องพิมพ์ให้ครบทุกคำ Anagram ก่อนไปข้อต่อไป)</label>
           <button class="btn btn-primary" id="tgStartBtn" data-i18n="mini.startGame">▶ เริ่มเกม</button>
           <button class="btn btn-outline" id="tgResumeBtn" style="display:none">↩ เล่นต่อจากที่ค้างไว้</button>
@@ -1328,8 +1329,8 @@
       <div class="section-heading" data-i18n="settings.importExport">นำเข้า / ส่งออกข้อมูล</div>
       <p class="field-hint" style="margin-bottom:0.6rem" data-i18n="settings.importExportSub">สำรองความคืบหน้าไว้เป็นไฟล์ หรือเพิ่มคำศัพท์ของคุณเองเข้าไปใช้งานร่วมกับพจนานุกรม CSW24</p>
       <div class="btn-row">
-        <button class="btn btn-outline btn-sm" id="exportProgressBtn" data-i18n="settings.exportProgress">⬇ ส่งออกความคืบหน้า (JSON)</button>
-        <label class="btn btn-outline btn-sm" for="importProgressInput" data-i18n="settings.importProgress">⬆ นำเข้าความคืบหน้า (JSON)</label>
+        <button class="btn btn-outline btn-sm" id="exportProgressBtn" data-i18n="settings.exportProgress">⬇ ส่งออกความคืบหน้าทั้งหมด (JSON)</button>
+        <label class="btn btn-outline btn-sm" for="importProgressInput" data-i18n="settings.importProgress">⬆ นำเข้าความคืบหน้าทั้งหมด (JSON)</label>
         <input type="file" id="importProgressInput" accept=".json" class="file-input-hidden">
       </div>
       <div class="btn-row" style="margin-top:0.8rem">
