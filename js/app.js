@@ -168,6 +168,7 @@
       'dash.suggestedRefresh': '🔁 สุ่มใหม่ (ไม่รอ refresh หน้า)',
       'settings.title': '⚙️ Setting', 'settings.sub': 'ตั้งค่าภาษา สีเว็บ และช่วงความยาวคำแนะนำของ Dashboard',
       'settings.language': 'ภาษา / Language', 'settings.themePreset': 'ธีมสี (Preset)',
+      'settings.tilePreset': 'สี Tile ตัวอักษร', 'settings.tilePresetHint': 'เลือกสีของตัวต่อตัวอักษรแยกจากธีมพื้นบอร์ด เช่น ไม้ เมทัลลิก ทอง หิน และอื่นๆ',
       'settings.customBoard': 'สีพื้นบอร์ด', 'settings.customBrass': 'สีเน้น (Brass)',
       'settings.customTeal': 'สีเทียบรอง (Teal)', 'settings.customCream': 'สีตัวหนังสือ',
       'settings.themeReset': '↺ คืนค่าเริ่มต้น', 'settings.dashRange': 'ช่วงความยาวคำแนะนำใน Dashboard',
@@ -283,6 +284,7 @@
       'dash.suggestedRefresh': '🔁 Reshuffle (without reloading)',
       'settings.title': '⚙️ Settings', 'settings.sub': 'Set language, site colors, and the Dashboard suggested-word length range.',
       'settings.language': 'Language / ภาษา', 'settings.themePreset': 'Color theme (presets)',
+      'settings.tilePreset': 'Letter tile color', 'settings.tilePresetHint': 'Pick the letter tile color separately from the board theme — wood, metallic, gold, stone, and more.',
       'settings.customBoard': 'Board color', 'settings.customBrass': 'Accent (brass)',
       'settings.customTeal': 'Secondary (teal)', 'settings.customCream': 'Text color',
       'settings.themeReset': '↺ Reset to default', 'settings.dashRange': 'Dashboard suggested-word length range',
@@ -315,10 +317,72 @@
     { id: 'clay', name: { th: 'อำพันอุ่น', en: 'Warm Amber' }, board0: '#160F0A', board1: '#211710', board2: '#2E2116', rail: '#4A3527', brass: '#E2A13C', brassDeep: '#B3791F', teal: '#6FBF9C', tealDeep: '#4E9573', cream: '#F7EEE1' }
   ];
 
+  // Tile color themes: separate from the board theme above — these only
+  // recolor the letter tiles themselves (--tile/--tile-edge/--tile-shadow/
+  // --ink/--ink-soft), grouped into families (wood, metallic, gold, stone,
+  // and a mixed "other" set) so the tiles can look like a different
+  // physical material independent of the overall board palette.
+  const TILE_THEME_GROUPS = [
+    { id: 'classic', name: { th: 'คลาสสิก', en: 'Classic' } },
+    { id: 'wood', name: { th: 'ไม้', en: 'Wood' } },
+    { id: 'metallic', name: { th: 'เมทัลลิก', en: 'Metallic' } },
+    { id: 'gold', name: { th: 'ทอง', en: 'Gold' } },
+    { id: 'stone', name: { th: 'หิน', en: 'Stone' } },
+    { id: 'other', name: { th: 'อื่นๆ', en: 'Other' } }
+  ];
+
+  const TILE_THEMES = [
+    // --- classic (4) ---
+    { id: 'tile-ivory', group: 'classic', name: { th: 'งาช้าง (Default)', en: 'Ivory (Default)' }, tile: '#E6E8F4', tileEdge: '#B7BCDA', tileShadow: '#7C82A8', ink: '#1D2136', inkSoft: '#454B68' },
+    { id: 'tile-cream', group: 'classic', name: { th: 'ครีมนวล', en: 'Soft Cream' }, tile: '#F5EFDF', tileEdge: '#DCCFA8', tileShadow: '#A9997A', ink: '#3A2E1C', inkSoft: '#6B5B3E' },
+    { id: 'tile-charcoal', group: 'classic', name: { th: 'ถ่านดำ', en: 'Charcoal' }, tile: '#4A4F5E', tileEdge: '#333743', tileShadow: '#1E212B', ink: '#F2F3F8', inkSoft: '#C6C9D6' },
+    { id: 'tile-paper', group: 'classic', name: { th: 'กระดาษเก่า', en: 'Old Paper' }, tile: '#EDE3C8', tileEdge: '#C8B888', tileShadow: '#9A8A5C', ink: '#3E3420', inkSoft: '#6E5F3E' },
+
+    // --- wood (6) ---
+    { id: 'tile-oak', group: 'wood', name: { th: 'ไม้โอ๊ค', en: 'Oak Wood' }, tile: '#D3A56D', tileEdge: '#A9793F', tileShadow: '#7A5628', ink: '#3A2410', inkSoft: '#5E3E1E' },
+    { id: 'tile-walnut', group: 'wood', name: { th: 'ไม้วอลนัท', en: 'Walnut' }, tile: '#8C6239', tileEdge: '#63421F', tileShadow: '#402A13', ink: '#F3E7D4', inkSoft: '#D9C2A0' },
+    { id: 'tile-mahogany', group: 'wood', name: { th: 'ไม้มะฮอกกานี', en: 'Mahogany' }, tile: '#7A3B2E', tileEdge: '#54261C', tileShadow: '#341811', ink: '#F5E4DC', inkSoft: '#DBB8AC' },
+    { id: 'tile-birch', group: 'wood', name: { th: 'ไม้เบิร์ช', en: 'Birch' }, tile: '#E8D9B5', tileEdge: '#C7AE7C', tileShadow: '#9C8352', ink: '#3E2F16', inkSoft: '#6B5730' },
+    { id: 'tile-teakwood', group: 'wood', name: { th: 'ไม้สัก', en: 'Teakwood' }, tile: '#A87848', tileEdge: '#7C5730', tileShadow: '#523A1D', ink: '#2E1E0C', inkSoft: '#54401F' },
+    { id: 'tile-ebony', group: 'wood', name: { th: 'ไม้มะเกลือ', en: 'Ebony Wood' }, tile: '#2E241D', tileEdge: '#1A140F', tileShadow: '#0D0A07', ink: '#EFE2CE', inkSoft: '#C4B49A' },
+
+    // --- metallic (6) ---
+    { id: 'tile-silver', group: 'metallic', name: { th: 'เงิน', en: 'Silver' }, tile: '#D7DBE3', tileEdge: '#A6ACBB', tileShadow: '#767C8C', ink: '#20232B', inkSoft: '#4A4F5C' },
+    { id: 'tile-steel', group: 'metallic', name: { th: 'เหล็กกล้า', en: 'Steel' }, tile: '#8E97A6', tileEdge: '#636D7E', tileShadow: '#40475400', ink: '#F4F6FA', inkSoft: '#D2D6E0' },
+    { id: 'tile-bronze', group: 'metallic', name: { th: 'ทองแดง (บรอนซ์)', en: 'Bronze' }, tile: '#B0805A', tileEdge: '#82593A', tileShadow: '#573A24', ink: '#2C1B0E', inkSoft: '#553A24' },
+    { id: 'tile-copper', group: 'metallic', name: { th: 'ทองแดง', en: 'Copper' }, tile: '#C57B54', tileEdge: '#9C5A38', tileShadow: '#6E3E24', ink: '#2C1608', inkSoft: '#552E17' },
+    { id: 'tile-gunmetal', group: 'metallic', name: { th: 'ปืนดำ', en: 'Gunmetal' }, tile: '#3F4750', tileEdge: '#2A3038', tileShadow: '#181C22', ink: '#E8EBEF', inkSoft: '#B7BEC8' },
+    { id: 'tile-platinum', group: 'metallic', name: { th: 'พลาตินัม', en: 'Platinum' }, tile: '#E3E1DA', tileEdge: '#BCB9AD', tileShadow: '#8D8A7E', ink: '#292722', inkSoft: '#54514A' },
+
+    // --- gold (5) ---
+    { id: 'tile-gold', group: 'gold', name: { th: 'ทองคำ', en: 'Gold' }, tile: '#EFC75E', tileEdge: '#C79A2A', tileShadow: '#93701A', ink: '#3A2A05', inkSoft: '#63490D' },
+    { id: 'tile-rosegold', group: 'gold', name: { th: 'โรสโกลด์', en: 'Rose Gold' }, tile: '#E8B4A0', tileEdge: '#C68A72', tileShadow: '#9A6350', ink: '#3A1E14', inkSoft: '#5F3C2C' },
+    { id: 'tile-antiquegold', group: 'gold', name: { th: 'ทองโบราณ', en: 'Antique Gold' }, tile: '#B4933E', tileEdge: '#87692A', tileShadow: '#5C4718', ink: '#2A2005', inkSoft: '#4E3C0F' },
+    { id: 'tile-champagne', group: 'gold', name: { th: 'แชมเปญ', en: 'Champagne' }, tile: '#F0DFB8', tileEdge: '#D0B87D', tileShadow: '#A08C55', ink: '#3B2E12', inkSoft: '#645022' },
+    { id: 'tile-gildedblack', group: 'gold', name: { th: 'ทองบนดำ', en: 'Gilded Black' }, tile: '#2A2416', tileEdge: '#EFC75E', tileShadow: '#141108', ink: '#EFC75E', inkSoft: '#B99A3E' },
+
+    // --- stone (5) ---
+    { id: 'tile-marble', group: 'stone', name: { th: 'หินอ่อน', en: 'Marble' }, tile: '#EDEDF0', tileEdge: '#C7C8D2', tileShadow: '#9A9BA8', ink: '#282A33', inkSoft: '#565964' },
+    { id: 'tile-granite', group: 'stone', name: { th: 'หินแกรนิต', en: 'Granite' }, tile: '#6E6E72', tileEdge: '#4C4C50', tileShadow: '#2F2F32', ink: '#EDEDEF', inkSoft: '#BFBFC4' },
+    { id: 'tile-slatestone', group: 'stone', name: { th: 'หินชนวน', en: 'Slate Stone' }, tile: '#586570', tileEdge: '#3C4650', tileShadow: '#252C33', ink: '#EBEFF2', inkSoft: '#B9C2CA' },
+    { id: 'tile-sandstone', group: 'stone', name: { th: 'หินทราย', en: 'Sandstone' }, tile: '#D8C09A', tileEdge: '#B49768', tileShadow: '#8A6E46', ink: '#372B16', inkSoft: '#5F4C2A' },
+    { id: 'tile-obsidian', group: 'stone', name: { th: 'หินออบซิเดียน', en: 'Obsidian' }, tile: '#221F29', tileEdge: '#141219', tileShadow: '#09080C', ink: '#DCD6E6', inkSoft: '#A79FBB' },
+
+    // --- other (7 gem / seasonal / pastel tones, to round the set out) ---
+    { id: 'tile-jade', group: 'other', name: { th: 'หยก', en: 'Jade' }, tile: '#6FBF9C', tileEdge: '#4A9976', tileShadow: '#2F6C50', ink: '#0F2A1E', inkSoft: '#1F4E38' },
+    { id: 'tile-ruby', group: 'other', name: { th: 'ทับทิม', en: 'Ruby' }, tile: '#C24352', tileEdge: '#962734', tileShadow: '#651620', ink: '#F9E4E6', inkSoft: '#E0B0B6' },
+    { id: 'tile-sapphire', group: 'other', name: { th: 'ไพลิน', en: 'Sapphire' }, tile: '#3C64B0', tileEdge: '#274787', tileShadow: '#182D58', ink: '#E7EDFB', inkSoft: '#B4C4EA' },
+    { id: 'tile-amethyst', group: 'other', name: { th: 'อเมทิสต์', en: 'Amethyst' }, tile: '#8E62C4', tileEdge: '#6A439D', tileShadow: '#48296E', ink: '#F3EAFA', inkSoft: '#D3BCEC' },
+    { id: 'tile-mint', group: 'other', name: { th: 'มินต์พาสเทล', en: 'Pastel Mint' }, tile: '#CDEFE0', tileEdge: '#9FD3BC', tileShadow: '#6FA98E', ink: '#173327', inkSoft: '#33574A' },
+    { id: 'tile-blush', group: 'other', name: { th: 'ชมพูพีช', en: 'Peach Blush' }, tile: '#F5CFC2', tileEdge: '#E0A491', tileShadow: '#B87765', ink: '#3A1D14', inkSoft: '#623A2C' },
+    { id: 'tile-neon', group: 'other', name: { th: 'นีออนไซเบอร์', en: 'Cyber Neon' }, tile: '#1A1E2B', tileEdge: '#00E5C7', tileShadow: '#0A0C13', ink: '#00E5C7', inkSoft: '#0FA593' }
+  ];
+
   let settings = {
     lang: 'th',
     themePreset: 'felt',
     customColors: null, // {board,brass,teal,cream} or null
+    tilePreset: 'tile-ivory',
     dashMin: 5, dashMax: 9, dashCount: 12,
     dueTimePreset: '24h', // 1h,5h,12h,24h,1d,2d,5d,10d,30d,custom
     dueTimeCustomValue: 3, dueTimeCustomUnit: 'd',
@@ -399,6 +463,16 @@
     }
   }
 
+  function applyTileTheme() {
+    const root = document.documentElement.style;
+    const t = TILE_THEMES.find(function (p) { return p.id === settings.tilePreset; }) || TILE_THEMES[0];
+    root.setProperty('--tile', t.tile);
+    root.setProperty('--tile-edge', t.tileEdge);
+    root.setProperty('--tile-shadow', t.tileShadow);
+    root.setProperty('--ink', t.ink);
+    root.setProperty('--ink-soft', t.inkSoft);
+  }
+
   function shadeColor(hex, percent) {
     hex = (hex || '#000000').replace('#', '');
     if (hex.length === 3) hex = hex.split('').map(function (c) { return c + c; }).join('');
@@ -439,6 +513,44 @@
       refreshPresetChips();
     }
 
+    // tile color chips — grouped by material family (classic, wood,
+    // metallic, gold, stone, other)
+    const tileWrap = document.getElementById('tilePresetChips');
+
+    function refreshTileChips() {
+      if (!tileWrap) return;
+      tileWrap.querySelectorAll('.theme-preset-chip').forEach(function (btn) {
+        btn.classList.toggle('active', settings.tilePreset === btn.dataset.tile);
+      });
+    }
+
+    function renderTileChips() {
+      if (!tileWrap) return;
+      tileWrap.innerHTML = TILE_THEME_GROUPS.map(function (g) {
+        const themesInGroup = TILE_THEMES.filter(function (t) { return t.group === g.id; });
+        if (!themesInGroup.length) return '';
+        return (
+          '<div class="tile-theme-group-label">' + (g.name[settings.lang] || g.name.th) + '</div>' +
+          '<div class="chip-row tile-theme-group-row">' +
+            themesInGroup.map(function (t) {
+              return '<button type="button" class="theme-preset-chip" data-tile="' + t.id + '">' +
+                '<span class="theme-preset-swatch tile-swatch" style="background:linear-gradient(160deg,' + t.tile + ',' + t.tileEdge + ')"></span>' +
+                (t.name[settings.lang] || t.name.th) + '</button>';
+            }).join('') +
+          '</div>'
+        );
+      }).join('');
+      tileWrap.querySelectorAll('.theme-preset-chip').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          settings.tilePreset = btn.dataset.tile;
+          saveSettings();
+          applyTileTheme();
+          refreshTileChips();
+        });
+      });
+      refreshTileChips();
+    }
+
     // language chips
     const langBtns = { th: document.getElementById('langThBtn'), en: document.getElementById('langEnBtn') };
     function refreshLangChips() {
@@ -451,6 +563,7 @@
         refreshLangChips();
         applyI18n();
         renderPresetChips();
+        renderTileChips();
         renderDashboard();
         renderCardboxTab();
         renderCardboxGroups();
@@ -460,6 +573,7 @@
 
     // theme preset chips (initial render)
     renderPresetChips();
+    renderTileChips();
 
     // custom color pickers
     const boardInput = document.getElementById('themeColorBoard');
@@ -6859,6 +6973,10 @@
   // is actually in progress — switching tabs, minimizing, or leaving the page
   // freezes it, and it picks back up exactly where it left off.
   const tg = { id: null, words: [], index: 0, strict: false, mistakes: 0, elapsedMs: 0, activeSince: null, timerHandle: null, mode: 'random', showAnagram: false, anagramMode: false, anagramRemaining: [], typed: [], typedSelected: new Set(), containsAll: '', startsWith: '' };
+  // Read-only flashcard browser over a generated word list: page through
+  // each word's alphagram and see every dictionary anagram of it, without
+  // affecting the active typing/quiz game state above.
+  const tgBrowse = { words: [], index: 0, listOpen: false, alphagram: '', partners: [], fromGame: false, displayOrder: 'alpha', shuffledLetters: null };
 
   function tgWordsForLetterMode(len) {
     // All words of a single chosen length, sorted A→Z.
@@ -6935,7 +7053,14 @@
     };
     const list = tgLoadHistory();
     const i = list.findIndex(function (e) { return e.id === tg.id; });
-    if (i !== -1) list[i] = entry; else list.unshift(entry);
+    if (i !== -1) {
+      // Preserve any custom name the player set — a fresh progress
+      // checkpoint shouldn't silently wipe it out.
+      if (list[i].name) entry.name = list[i].name;
+      list[i] = entry;
+    } else {
+      list.unshift(entry);
+    }
     list.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
     tgSaveHistory(list.slice(0, TG_HISTORY_MAX));
     // Keep the on-screen "Game History" list live: every save (new game,
@@ -6966,14 +7091,16 @@
       history.map(function (e) {
         const pct = Math.round((e.index / e.words.length) * 100);
         const when = tgFormatRelativeTime(e.updatedAt);
+        const autoTitle = 'พิมพ์ไปแล้ว ' + e.index + '/' + e.words.length + ' คำ (' + pct + '%)';
         return (
           '<div class="tg-history-item" data-id="' + e.id + '">' +
             '<div class="tg-history-main">' +
-              '<div class="tg-history-title">พิมพ์ไปแล้ว ' + e.index + '/' + e.words.length + ' คำ (' + pct + '%)</div>' +
+              '<div class="tg-history-title">' + (e.name ? escapeHtml(e.name) : autoTitle) + '</div>' +
               '<div class="tg-history-meta">' + tgFormatTime(e.elapsedMs) + ' · พลาด ' + e.mistakes + ' ครั้ง · ' + when + '</div>' +
             '</div>' +
             '<div class="tg-history-actions">' +
               '<button type="button" class="btn btn-outline btn-sm tg-history-resume" data-id="' + e.id + '">↩ Resume</button>' +
+              '<button type="button" class="btn btn-outline btn-sm tg-history-rename" data-id="' + e.id + '">✏️ เปลี่ยนชื่อ</button>' +
               '<button type="button" class="btn btn-outline btn-sm tg-history-delete" data-id="' + e.id + '">🗑️</button>' +
             '</div>' +
           '</div>'
@@ -6983,6 +7110,12 @@
     listWrap.querySelectorAll('.tg-history-resume').forEach(function (b) {
       b.addEventListener('click', function () { tgResumeFromHistory(b.dataset.id); });
     });
+    listWrap.querySelectorAll('.tg-history-rename').forEach(function (b) {
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        tgRenameHistoryEntry(b.dataset.id);
+      });
+    });
     listWrap.querySelectorAll('.tg-history-delete').forEach(function (b) {
       b.addEventListener('click', function (ev) {
         ev.stopPropagation();
@@ -6990,6 +7123,22 @@
         tgRefreshResumeBtn();
       });
     });
+  }
+
+  function tgRenameHistoryEntry(id) {
+    const list = tgLoadHistory();
+    const entry = list.find(function (e) { return e.id === id; });
+    if (!entry) return;
+    const pct = Math.round((entry.index / entry.words.length) * 100);
+    const current = entry.name || ('พิมพ์ไปแล้ว ' + entry.index + '/' + entry.words.length + ' คำ (' + pct + '%)');
+    const next = window.prompt('ตั้งชื่อสำหรับเกมนี้:', current);
+    if (next === null) return; // cancelled
+    const trimmed = next.trim();
+    // Empty input reverts to the auto-generated progress title instead of
+    // saving a blank name.
+    entry.name = trimmed ? trimmed.slice(0, 60) : null;
+    tgSaveHistory(list);
+    tgRefreshResumeBtn();
   }
 
   function tgFormatRelativeTime(ts) {
@@ -7063,7 +7212,10 @@
       containsAllField.style.display = containsAllToggle.checked ? '' : 'none';
     });
 
-    document.getElementById('tgStartBtn').addEventListener('click', function () {
+    // Shared word-generation logic: reads the current setup form and
+    // returns the matching word list, or null (with a toast already shown)
+    // if nothing matched. Used by both "Start game" and "Browse Anagrams".
+    function tgGenerateWordsFromSetup() {
       let words;
       const startsWithPre = document.getElementById('tgStartsWith').value.trim();
       if (tg.mode === 'letter') {
@@ -7078,13 +7230,13 @@
         const containsAllPre = containsAllToggle.checked ? document.getElementById('tgContainsAllInput').value : '';
         if (containsAllPre) words = tgApplyContainsAllFilter(words, containsAllPre);
         if (startsWithPre) words = tgApplyStartsWithFilter(words, startsWithPre);
-        if (!words.length) { showToast('Cardbox ยังไม่มีคำศัพท์ที่ตรงเงื่อนไข'); return; }
+        if (!words.length) { showToast('Cardbox ยังไม่มีคำศัพท์ที่ตรงเงื่อนไข'); return null; }
       } else if (tg.mode === 'suggested') {
         words = tgWordsFromSuggested();
         const containsAllPre = containsAllToggle.checked ? document.getElementById('tgContainsAllInput').value : '';
         if (containsAllPre) words = tgApplyContainsAllFilter(words, containsAllPre);
         if (startsWithPre) words = tgApplyStartsWithFilter(words, startsWithPre);
-        if (!words.length) { showToast('ยังไม่มีคำแนะนำจาก Dashboard ที่ตรงเงื่อนไข'); return; }
+        if (!words.length) { showToast('ยังไม่มีคำแนะนำจาก Dashboard ที่ตรงเงื่อนไข'); return null; }
       } else {
         let min = parseInt(document.getElementById('tgMin').value, 10) || CSW24_MIN_LEN;
         let max = parseInt(document.getElementById('tgMax').value, 10) || CSW24_MAX_LEN;
@@ -7116,8 +7268,15 @@
         }
       }
 
+      if (!words.length) { showToast('ไม่พบคำศัพท์ที่ตรงกับเงื่อนไขที่เลือก'); return null; }
+      return words;
+    }
+
+    document.getElementById('tgStartBtn').addEventListener('click', function () {
+      const words = tgGenerateWordsFromSetup();
+      if (!words) return;
+      const startsWithPre = document.getElementById('tgStartsWith').value.trim();
       const containsAll = containsAllToggle.checked ? document.getElementById('tgContainsAllInput').value : '';
-      if (!words.length) { showToast('ไม่พบคำศัพท์ที่ตรงกับเงื่อนไขที่เลือก'); return; }
 
       // If the player is bailing on an unfinished game to start a new one,
       // checkpoint the old one into history rather than discarding it —
@@ -7149,6 +7308,7 @@
     tg.anagramGroup = null;
     tg.elapsedMs = 0;
     tg.activeSince = null;
+    tg.inlineBrowseOpen = false;
     tgStartTimer();
     tgSaveProgress();
     tgRenderPlay();
@@ -7211,10 +7371,27 @@
     if (el) el.textContent = tgFormatTime(tgElapsedMs());
   }
 
+  // Standalone flashcard navigator, always visible above the answer
+  // input during a typing round. Independent of any button — it renders
+  // every time the play screen renders, tracking the current word.
+  function tgRenderStandaloneBrowse() {
+    tgBrowse.words = tg.words;
+    tgBrowse.index = tg.index;
+    tgBrowse.listOpen = false;
+    tgBrowse.standalone = true;
+    tgBrowse.displayOrder = 'alpha';
+    tgBrowse.shuffledLetters = null;
+    tgRenderBrowse();
+  }
+
   function tgRenderPlay() {
     const word = tg.words[tg.index];
     const area = document.getElementById('typingPlay');
     const pct = Math.round((tg.index / tg.words.length) * 100);
+
+    // Collapse any inline Anagram browser left open from the previous
+    // word — it doesn't auto-refresh to the new word, so start closed.
+    tg.inlineBrowseOpen = false;
 
     if (tg.anagramMode) {
       // Rebuild the required set (word itself + all its anagram partners)
@@ -7235,19 +7412,28 @@
       '<div class="session-card">' +
         '<div class="session-prompt-label">' +
           (tg.anagramMode ?
-            'พิมพ์ Anagram ให้ครบทุกคำ (' + (tg.anagramGroup.length - tg.anagramRemaining.length) + '/' + tg.anagramGroup.length + ')'
+            'พิมพ์ Anagram ให้ครบทุกคำ'
             : 'พิมพ์คำนี้ให้ตรงทุกตัวอักษร') +
           (tg.strict ? ' · โหมดเข้มงวด: พิมพ์ผิด = เริ่มใหม่' : '') +
         '</div>' +
         '<div class="tile-word" id="tgTargetTiles">' + (tg.anagramMode ? sortLetters(word) : word).split('').map(function (ch) {
-          return '<span class="letter-tile ' + lengthTileSizeClass('big', word.length) + ' type-letter">' + ch + '</span>';
+          return '<span class="letter-tile ' + lengthTileSizeClass('big', word.length) + ' type-letter">' + ch +
+            '<span class="pv">' + (SCRABBLE_VALUES[ch] || '') + '</span></span>';
         }).join('') + '</div>' +
         (tg.anagramMode ?
-          '<div class="anagram-partners" id="tgAnagramFoundList">' + tg.anagramGroup.map(function (w) {
-            const found = tg.anagramRemaining.indexOf(w) === -1;
-            return '<span class="anagram-chip' + (found ? ' correct-letter' : '') + '">' + (found ? w : '?'.repeat(w.length)) + '</span>';
-          }).join('') + '</div>'
+          '<div class="anagram-partners" id="tgAnagramFoundList">' +
+            '<div class="anagram-progress-count">' + (tg.anagramGroup.length - tg.anagramRemaining.length) + ' / ' + tg.anagramGroup.length + '</div>' +
+            (tg.anagramGroup.length - tg.anagramRemaining.length > 0
+              ? '<div class="anagram-found-list">' +
+                  tg.anagramGroup.filter(function (w) { return tg.anagramRemaining.indexOf(w) === -1; })
+                    .sort()
+                    .map(function (w) { return '<div class="anagram-found-word">' + w + '</div>'; })
+                    .join('') +
+                '</div>'
+              : '') +
+          '</div>'
           : '') +
+        '<div id="tgBrowse"></div>' +
         '<input type="text" id="tgInput" class="session-answer-form-input" autocomplete="off" autofocus>' +
         (tg.showAnagram ?
           '<div class="session-controls"><button class="btn btn-outline btn-sm" id="tgAnagramHintBtn">🔤 ดู Anagram ของคำนี้</button></div>' +
@@ -7258,6 +7444,8 @@
     const input = document.getElementById('tgInput');
     input.addEventListener('input', function () { tgHandleInput(word, input); });
     input.focus();
+
+    tgRenderStandaloneBrowse();
 
     if (tg.showAnagram) {
       const hintBtn = document.getElementById('tgAnagramHintBtn');
@@ -7280,6 +7468,163 @@
         input.focus();
       });
     }
+  }
+
+  // ---------- Typing minigame: read-only Anagram browser ----------
+  // A Hoot/Zyzzyva-style flashcard navigator: page through the words
+  // generated by the setup form above. Big letter tiles up top (always
+  // visible), an icon row to reshuffle/sort/reveal, the revealed word
+  // list in the middle, and a compact prev/next navbar + status line at
+  // the bottom — mirroring the reference app's layout exactly instead of
+  // hiding everything behind one collapsible label.
+  function tgBrowseMetaLine() {
+    // "Quizzing Anagrams: <source description> : Flashcards" — describes
+    // whatever the setup form was configured to generate.
+    let desc;
+    if (tg.mode === 'letter') desc = 'Length  Len:' + (tgBrowse.words[0] ? tgBrowse.words[0].length : '') + '-' + (tgBrowse.words[0] ? tgBrowse.words[0].length : '');
+    else if (tg.mode === 'cardbox') desc = 'Cardbox';
+    else if (tg.mode === 'suggested') desc = 'Dashboard Suggestion';
+    else desc = 'Length  Len:' + document.getElementById('tgMin').value + '-' + document.getElementById('tgMax').value;
+    return 'Quizzing Anagrams:  ' + desc + '  : Flashcards';
+  }
+
+  // Moving through the standalone navigator drives the actual quiz —
+  // jumping to a word there re-targets what's being typed (tiles,
+  // input, progress) to match, instead of just changing what's on
+  // display in the browse card. In the legacy modal-browse path (not
+  // currently reachable from the UI, kept for compatibility) it only
+  // re-renders the browse card itself.
+  function tgBrowseNavigate() {
+    if (tgBrowse.standalone) {
+      tg.index = tgBrowse.index;
+      tg.anagramRemaining = [];
+      tg.anagramGroup = null;
+      tgSaveProgress();
+      tgRenderPlay();
+    } else {
+      tgRenderBrowse();
+    }
+  }
+
+  function tgRenderBrowse() {
+    const area = document.getElementById('tgBrowse');
+    if (!area) return;
+    const word = tgBrowse.words[tgBrowse.index];
+    // All dictionary words sharing this word's letter set, word itself
+    // included — sorted, matching the "found words" list style used
+    // elsewhere in Typing mode.
+    const group = Array.from(new Set([word].concat(getAnagrams(word)))).sort();
+    tgBrowse.alphagram = sortLetters(word);
+    tgBrowse.partners = group;
+    if (tgBrowse.displayOrder !== 'shuffled') tgBrowse.displayOrder = 'alpha';
+    const displayLetters = tgBrowse.displayOrder === 'shuffled'
+      ? (tgBrowse.shuffledLetters || (tgBrowse.shuffledLetters = shuffle(tgBrowse.alphagram.split(''))))
+      : tgBrowse.alphagram.split('');
+
+    area.innerHTML =
+      '<div class="panel-card tg-browse-card">' +
+        '<div class="tg-browse-meta">' + tgBrowseMetaLine() + '</div>' +
+        '<div class="tile-word tg-browse-tiles" id="tgBrowseTiles">' + displayLetters.map(function (ch) {
+          return '<span class="letter-tile ' + lengthTileSizeClass('big', displayLetters.length) + '">' + ch +
+            '<span class="pv">' + (SCRABBLE_VALUES[ch] || '') + '</span></span>';
+        }).join('') + '</div>' +
+        '<div class="tg-browse-icon-row">' +
+          '<button type="button" class="tg-browse-icon-btn" id="tgBrowseShuffleBtn" title="สลับลำดับตัวอักษร">🔀</button>' +
+          '<button type="button" class="tg-browse-icon-btn" id="tgBrowseSortBtn" title="เรียง A→Z">A›Z</button>' +
+          '<div class="tg-browse-icon-spacer"></div>' +
+          '<button type="button" class="tg-browse-icon-btn" id="tgBrowseClearBtn" title="ล้าง/ปิดรายการที่เปิดอยู่">⊗</button>' +
+          '<button type="button" class="tg-browse-icon-btn' + (tgBrowse.listOpen ? ' tg-browse-icon-btn-active' : '') + '" id="tgBrowseRevealBtn" title="แสดง/ซ่อนคำตอบ">👁</button>' +
+        '</div>' +
+        '<div class="tg-browse-reveal-area" id="tgBrowseRevealArea">' +
+          (tgBrowse.listOpen
+            ? (tgBrowse.partners.length
+                ? tgBrowse.partners.map(function (w) { return '<div class="anagram-found-word">' + w + '</div>'; }).join('')
+                : '<div class="no-anagram">ไม่มีคำอื่นที่เป็น Anagram ของคำนี้ในพจนานุกรม</div>')
+            : '') +
+        '</div>' +
+        '<div class="tg-browse-navbar">' +
+          '<button type="button" class="tg-browse-nav-btn" id="tgBrowseFirstBtn" title="อันแรกสุด">⏮</button>' +
+          '<button type="button" class="tg-browse-nav-btn" id="tgBrowsePrevBtn" title="อันก่อนหน้า">‹</button>' +
+          '<div class="tg-browse-nav-label">' + tgBrowse.alphagram + '</div>' +
+          '<button type="button" class="tg-browse-nav-btn" id="tgBrowseNextBtn" title="อันต่อไป">›</button>' +
+          '<button type="button" class="tg-browse-nav-btn" id="tgBrowseLastBtn" title="อันสุดท้าย">⏭</button>' +
+        '</div>' +
+        '<div class="tg-browse-status">' +
+          '<span>Anagram ' + (tgBrowse.index + 1) + '/' + tgBrowse.words.length +
+            ': Quizzing for ' + group.length + ' word' + (group.length === 1 ? '' : 's') + ' in CSW24</span>' +
+          '<span class="tg-browse-status-count">' + (tgBrowse.listOpen ? group.length : 0) + '/' + group.length + '</span>' +
+        '</div>' +
+        (tgBrowse.standalone ? '' :
+          '<button type="button" class="btn btn-outline btn-sm" id="tgBrowseCloseBtn" style="margin-top:0.8rem">✕ ปิดรายการ Anagram</button>') +
+      '</div>';
+
+    document.getElementById('tgBrowseFirstBtn').addEventListener('click', function () {
+      tgBrowse.index = 0; tgBrowse.listOpen = false; tgBrowse.shuffledLetters = null;
+      tgBrowseNavigate();
+    });
+    document.getElementById('tgBrowsePrevBtn').addEventListener('click', function () {
+      tgBrowse.index = Math.max(0, tgBrowse.index - 1); tgBrowse.listOpen = false; tgBrowse.shuffledLetters = null;
+      tgBrowseNavigate();
+    });
+    document.getElementById('tgBrowseNextBtn').addEventListener('click', function () {
+      tgBrowse.index = Math.min(tgBrowse.words.length - 1, tgBrowse.index + 1); tgBrowse.listOpen = false; tgBrowse.shuffledLetters = null;
+      tgBrowseNavigate();
+    });
+    document.getElementById('tgBrowseLastBtn').addEventListener('click', function () {
+      tgBrowse.index = tgBrowse.words.length - 1; tgBrowse.listOpen = false; tgBrowse.shuffledLetters = null;
+      tgBrowseNavigate();
+    });
+    document.getElementById('tgBrowseShuffleBtn').addEventListener('click', function () {
+      tgBrowse.displayOrder = 'shuffled';
+      tgBrowse.shuffledLetters = shuffle(tgBrowse.alphagram.split(''));
+      tgRenderBrowse();
+    });
+    document.getElementById('tgBrowseSortBtn').addEventListener('click', function () {
+      tgBrowse.displayOrder = 'alpha';
+      tgBrowse.shuffledLetters = null;
+      tgRenderBrowse();
+    });
+    document.getElementById('tgBrowseRevealBtn').addEventListener('click', function () {
+      tgBrowse.listOpen = !tgBrowse.listOpen;
+      tgRenderBrowse();
+    });
+    document.getElementById('tgBrowseClearBtn').addEventListener('click', function () {
+      tgBrowse.listOpen = false;
+      tgRenderBrowse();
+    });
+    const closeBtn = document.getElementById('tgBrowseCloseBtn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function () {
+        area.style.display = 'none';
+        area.innerHTML = '';
+        if (tgBrowse.inline) {
+          // Opened in place, underneath the toggle in the play screen —
+          // just collapse back to the toggle and resume the round.
+          tg.inlineBrowseOpen = false;
+          const toggle = document.getElementById('tgInlineBrowseToggle');
+          if (toggle) {
+            const label = toggle.querySelector('.tg-inline-browse-toggle-label');
+            const caret = toggle.querySelector('.tg-inline-browse-caret');
+            if (label) label.textContent = '📖 ดูรายการ Anagram ทั้งหมด';
+            if (caret) caret.textContent = '▼';
+          }
+          if (tgIsGameInProgress()) tgStartTimer();
+          const input = document.getElementById('tgInput');
+          if (input) input.focus();
+        } else if (tgBrowse.fromGame) {
+          // Came from an in-progress typing round — go back to it instead
+          // of the setup form, and resume the timer we paused on the way in.
+          document.getElementById('typingPlay').style.display = '';
+          if (tgIsGameInProgress()) tgStartTimer();
+          tgRenderPlay();
+        } else {
+          document.getElementById('typingSetup').style.display = '';
+        }
+      });
+    }
+
+    if (!tgBrowse.inline && !tgBrowse.standalone) document.getElementById('typingSetup').style.display = 'none';
+    area.style.display = '';
   }
 
   function tgHandleInput(word, input) {
@@ -7314,6 +7659,7 @@
       tg.typed.push(word);
       logWordEncounter(word, 'typing');
       tg.index++;
+      tg.inlineBrowseOpen = false;
       tgSaveProgress();
       setTimeout(function () {
         if (tg.index >= tg.words.length) tgFinish();
@@ -7334,20 +7680,41 @@
     if (val.length > word.length) { val = val.slice(0, word.length); input.value = val; }
 
     const tiles = document.querySelectorAll('#tgTargetTiles .letter-tile');
-    // Anagram mode gives no red/wrong feedback while typing — the point of
-    // the mode is figuring out which valid word to land on, so we only ever
-    // light up tiles green as they match a candidate. A keystroke that
-    // doesn't fit any remaining word just doesn't light up; the player
-    // backspaces and keeps going instead of being told "wrong" every time.
-    let candidate = tg.anagramRemaining.find(function (w) { return w.indexOf(val) === 0; }) ||
-      (val.length ? tg.anagramRemaining[0] : word);
-    let mismatch = val.length > 0 && !tg.anagramRemaining.some(function (w) { return w.indexOf(val) === 0; });
-    for (let i = 0; i < tiles.length; i++) {
-      tiles[i].classList.remove('correct-letter', 'wrong-letter');
-      if (i < val.length && candidate && !mismatch) {
-        if (val[i] === candidate[i]) tiles[i].classList.add('correct-letter');
-      }
+    // Anagram mode gives no red/wrong feedback while typing, and no green
+    // "correct" feedback either — green would reveal that the letter you
+    // just typed matches some specific candidate word's position, which
+    // gives away which anagram you're on track for. Instead we gray out
+    // whichever GIVEN tiles match the letters actually typed so far,
+    // treating the given letters as a pool (multiset). This is purely
+    // "can these keystrokes be spelled from the tiles on screen" — it must
+    // NOT be gated on whether the typed prefix matches a real remaining
+    // word (that's a separate, stricter check used below to detect
+    // dead-end mismatches), or letters that are valid but just don't
+    // happen to start any remaining word yet (e.g. a second repeated
+    // letter) would wrongly fail to gray out.
+    const displayLetters = (tg.anagramMode ? sortLetters(word) : word).split('');
+    const usedTileIdx = {};
+    const typedCounts = {};
+    for (let i = 0; i < val.length; i++) {
+      typedCounts[val[i]] = (typedCounts[val[i]] || 0) + 1;
     }
+    let spellable = true;
+    Object.keys(typedCounts).forEach(function (ch) {
+      let remaining = typedCounts[ch];
+      for (let i = 0; i < displayLetters.length && remaining > 0; i++) {
+        if (displayLetters[i] === ch && !usedTileIdx[i]) {
+          usedTileIdx[i] = true;
+          remaining--;
+        }
+      }
+      if (remaining > 0) spellable = false; // typed more of `ch` than is available on the tiles
+    });
+    for (let i = 0; i < tiles.length; i++) {
+      tiles[i].classList.remove('correct-letter', 'wrong-letter', 'typed-letter');
+      if (spellable && usedTileIdx[i]) tiles[i].classList.add('typed-letter');
+    }
+
+    let mismatch = val.length > 0 && !tg.anagramRemaining.some(function (w) { return w.indexOf(val) === 0; });
 
     if (mismatch) {
       // No mistake counted and no strict-mode restart here: in Anagram
@@ -7369,6 +7736,7 @@
         input.disabled = true;
         tg.index++;
         tg.anagramGroup = null;
+        tg.inlineBrowseOpen = false;
         tgSaveProgress();
         setTimeout(function () {
           if (tg.index >= tg.words.length) tgFinish();
@@ -8547,6 +8915,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     loadSettings();
     applyTheme();
+    applyTileTheme();
     applyFontSettings();
     loadCustomWords();
     initTabs();
