@@ -7329,8 +7329,8 @@
     tg.elapsedMs = entry.elapsedMs || 0;
     tg.activeSince = null;
     tg.strict = !!entry.strict;
-    tg.showAnagram = !!entry.showAnagram;
     tg.anagramMode = !!entry.anagramMode;
+    tg.showAnagram = tg.anagramMode; // merged with hard mode (old saves that only had showAnagram no longer show the panel)
     tg.anagramRemaining = entry.anagramRemaining || [];
     tg.anagramGroup = null; // recomputed from the current word in tgRenderPlay
     tg.mode = entry.mode || 'random';
@@ -7451,8 +7451,9 @@
 
       tg.words = words;
       tg.strict = document.getElementById('tgStrict').checked;
-      tg.showAnagram = document.getElementById('tgShowAnagramToggle').checked;
+      // Hard mode and the Anagram panel/button are one merged option.
       tg.anagramMode = document.getElementById('tgAnagramModeToggle').checked;
+      tg.showAnagram = tg.anagramMode;
       tg.containsAll = containsAll;
       tg.startsWith = startsWithPre;
       tg.typed = [];
@@ -7626,8 +7627,10 @@
     // word — it doesn't auto-refresh to the new word, so start closed.
     tg.inlineBrowseOpen = false;
 
-    if (tg.anagramMode) {
-      // The required set (word itself + all its anagram partners) is ALWAYS
+    {
+      // Every round — in both display modes — requires the WHOLE anagram
+      // group (the word itself + all its partners) before advancing.
+      // The required set is ALWAYS
       // derived from the current word, never trusted from cached state —
       // tg.anagramGroup can be left over from a different word or a different
       // game (e.g. after resuming from Game History), which used to make the
@@ -7641,6 +7644,14 @@
       // or containing words that don't belong — starts the group over.
       tg.anagramRemaining = (kept.length && kept.length === saved.length) ? kept : group.slice();
     }
+    const grpTotal = tg.anagramGroup.length;
+    const grpFound = grpTotal - tg.anagramRemaining.length;
+    // Plain (copy-the-word) mode: once the displayed word is done but partners
+    // remain, we are in the "find the remaining anagrams" phase.
+    const partnerPhase = !tg.anagramMode && tg.anagramRemaining.indexOf(word) === -1;
+    // The found-words panel (x / y counter + list) and the Anagram browser
+    // card only appear when the "show Anagram" toggle is ticked.
+    const showGroup = !!tg.showAnagram && (tg.anagramMode || grpTotal > 1);
 
     area.innerHTML =
       '<div class="session-progress">คำที่ ' + (tg.index + 1) + ' / ' + tg.words.length +
@@ -7650,6 +7661,8 @@
         '<div class="session-prompt-label">' +
           (tg.anagramMode ?
             'พิมพ์ Anagram ให้ครบทุกคำ'
+            : partnerPhase ? 'พิมพ์ Anagram ที่เหลือให้ครบทุกคำ'
+            : grpTotal > 1 ? 'พิมพ์คำนี้ให้ตรงทุกตัวอักษร แล้วพิมพ์ Anagram ที่เหลือให้ครบ (' + grpTotal + ' คำ)'
             : 'พิมพ์คำนี้ให้ตรงทุกตัวอักษร') +
           (tg.strict ? ' · โหมดเข้มงวด: พิมพ์ผิด = เริ่มใหม่' : '') +
         '</div>' +
@@ -7657,10 +7670,10 @@
           return '<span class="letter-tile ' + lengthTileSizeClass('big', word.length) + ' type-letter' + (settings.tgTapTiles ? ' tg-tappable' : '') + '">' + ch +
             '<span class="pv">' + (SCRABBLE_VALUES[ch] || '') + '</span></span>';
         }).join('') + '</div>' +
-        (tg.anagramMode ?
+        (showGroup ?
           '<div class="anagram-partners" id="tgAnagramFoundList">' +
-            '<div class="anagram-progress-count">' + (tg.anagramGroup.length - tg.anagramRemaining.length) + ' / ' + tg.anagramGroup.length + '</div>' +
-            (tg.anagramGroup.length - tg.anagramRemaining.length > 0
+            '<div class="anagram-progress-count">' + grpFound + ' / ' + grpTotal + '</div>' +
+            (grpFound > 0
               ? '<div class="anagram-found-list">' +
                   tg.anagramGroup.filter(function (w) { return tg.anagramRemaining.indexOf(w) === -1; })
                     .sort()
@@ -7670,7 +7683,7 @@
               : '') +
           '</div>'
           : '') +
-        '<div id="tgBrowse"></div>' +
+        (tg.showAnagram ? '<div id="tgBrowse"></div>' : '') +
         '<input type="text" id="tgInput" class="session-answer-form-input" autocomplete="off" autofocus' +
           (settings.tgTapTiles ? ' readonly inputmode="none"' : '') + '>' +
         (settings.tgTapTiles ?
@@ -7691,7 +7704,7 @@
 
     if (settings.tgTapTiles) tgWireTapTiles(word, input);
 
-    tgRenderStandaloneBrowse();
+    if (tg.showAnagram) tgRenderStandaloneBrowse();
 
     if (tg.showAnagram) {
       const hintBtn = document.getElementById('tgAnagramHintBtn');
@@ -7757,7 +7770,7 @@
   // "found / total" (words already typed for this group); otherwise it keeps
   // the original meaning (how many answers have been revealed via 👁).
   function tgBrowseFoundCount(group) {
-    if (tg.anagramMode && tgBrowse.standalone && Array.isArray(tg.anagramRemaining) && tg.anagramRemaining.length) {
+    if (tgBrowse.standalone && Array.isArray(tg.anagramRemaining) && tg.anagramRemaining.length) {
       const found = group.filter(function (w) { return tg.anagramRemaining.indexOf(w) === -1; }).length;
       return tgBrowse.listOpen ? group.length : found;
     }
@@ -7886,7 +7899,10 @@
   }
 
   function tgHandleInput(word, input) {
-    if (tg.anagramMode) { tgHandleAnagramInput(input); return; }
+    if (!Array.isArray(tg.anagramRemaining)) tg.anagramRemaining = [];
+    // Anagram mode, or plain mode after the displayed word was already typed
+    // (only its partners are left): match against the remaining set.
+    if (tg.anagramMode || tg.anagramRemaining.indexOf(word) === -1) { tgHandleAnagramInput(input); return; }
     let val = input.value.toUpperCase();
     if (val.length > word.length) { val = val.slice(0, word.length); input.value = val; }
 
@@ -7913,10 +7929,21 @@
     }
 
     if (val === word) {
-      input.disabled = true;
       tg.typed.push(word);
       logWordEncounter(word, 'typing');
+      const doneIdx = tg.anagramRemaining.indexOf(word);
+      if (doneIdx !== -1) tg.anagramRemaining.splice(doneIdx, 1);
+      // Other anagrams of this word still to type -> stay on this prompt
+      // (re-render shows "1 / N" and the found list); do NOT advance yet.
+      if (tg.anagramRemaining.length) {
+        input.value = '';
+        tgSaveProgress();
+        tgRenderPlay();
+        return;
+      }
+      input.disabled = true;
       tg.index++;
+      tg.anagramGroup = null;
       tg.inlineBrowseOpen = false;
       tgSaveProgress();
       setTimeout(function () {

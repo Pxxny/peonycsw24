@@ -19,6 +19,9 @@
       notConfigured: 'ยังไม่ได้ตั้งค่า Google Login สำหรับเว็บนี้',
       signInFailed: 'เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง',
       signedInAs: 'เข้าสู่ระบบแล้ว',
+      menuProfile: 'โปรไฟล์',
+      menuStats: 'สถิติ',
+      menuSettings: 'ตั้งค่า',
       importTitle: '📥 นำเข้าความคืบหน้าแบบ Guest',
       importBody: 'เจอความคืบหน้าที่เล่นแบบ Guest อยู่ในเบราว์เซอร์นี้ ต้องการนำเข้าเข้าบัญชีนี้ไหม? (Cardbox, XP, Streak, Achievement และอื่นๆ)',
       importConfirm: '📥 นำเข้าเลย',
@@ -36,6 +39,9 @@
       notConfigured: 'Google Login is not configured for this site yet.',
       signInFailed: 'Sign-in failed, please try again.',
       signedInAs: 'Signed in as',
+      menuProfile: 'Profile',
+      menuStats: 'Stats',
+      menuSettings: 'Settings',
       importTitle: '📥 Import guest progress',
       importBody: 'Found progress saved as a guest in this browser. Import it into this account? (Cardbox, XP, Streak, Achievements, and more)',
       importConfirm: '📥 Import',
@@ -147,6 +153,9 @@
       '.auth-menu-item { display:block; width:100%; text-align:left; padding:.5rem .6rem; border-radius:7px;',
       '  background:transparent; border:none; color: var(--cream); font-size:.8rem; cursor:pointer; }',
       '.auth-menu-item:hover { background: var(--board-2); }',
+      '.auth-menu-sep { height:1px; margin:.35rem .2rem; background: var(--rail); }',
+      '.auth-menu-item-danger { color:#f87171; }',
+      '.auth-menu-item-danger:hover { background: rgba(248,113,113,.12); }',
       '@media (max-width: 860px) { .auth-widget { margin-top:.7rem; } }'
     ].join('\n');
     document.head.appendChild(style);
@@ -202,15 +211,17 @@
           '</span>' +
         '</button>' +
         '<div class="auth-menu-panel" id="authMenuPanel" hidden>' +
-          '<button type="button" class="auth-menu-item" data-tab="dashboard" id="authMenuDashboard">📊 Dashboard</button>' +
-          '<button type="button" class="auth-menu-item" id="authMenuSignOut">🚪 ' + escapeHtml(tr('signOut')) + '</button>' +
+          '<button type="button" class="auth-menu-item" data-tab="dashboard" id="authMenuProfile">👤 ' + escapeHtml(tr('menuProfile')) + '</button>' +
+          '<button type="button" class="auth-menu-item" data-tab="stats" id="authMenuStats">📈 ' + escapeHtml(tr('menuStats')) + '</button>' +
+          '<button type="button" class="auth-menu-item" data-tab="settings" id="authMenuSettings">⚙️ ' + escapeHtml(tr('menuSettings')) + '</button>' +
+          '<div class="auth-menu-sep"></div>' +
+          '<button type="button" class="auth-menu-item auth-menu-item-danger" id="authMenuSignOut">🚪 ' + escapeHtml(tr('signOut')) + '</button>' +
         '</div>' +
       '</div>';
 
     const profileBtn = document.getElementById('authProfileBtn');
     const panel = document.getElementById('authMenuPanel');
     const signOutBtn = document.getElementById('authMenuSignOut');
-    const dashBtn = document.getElementById('authMenuDashboard');
 
     if (profileBtn) profileBtn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -221,13 +232,20 @@
       if (menuOpen) { menuOpen = false; if (panel) panel.hidden = true; }
     });
     if (signOutBtn) signOutBtn.addEventListener('click', function () {
-      window.Auth.signOut();
-    });
-    if (dashBtn) dashBtn.addEventListener('click', function () {
-      const tabBtn = document.querySelector('.tab-btn[data-tab="dashboard"]');
-      if (tabBtn) tabBtn.click();
       menuOpen = false;
       panel.hidden = true;
+      window.Auth.signOut();
+    });
+
+    // Profile / Stats / Settings all just switch to an existing tab —
+    // wired generically off data-tab so this stays in sync if tab ids change.
+    panel.querySelectorAll('.auth-menu-item[data-tab]').forEach(function (item) {
+      item.addEventListener('click', function () {
+        const tabBtn = document.querySelector('.tab-btn[data-tab="' + item.getAttribute('data-tab') + '"]');
+        if (tabBtn) tabBtn.click();
+        menuOpen = false;
+        panel.hidden = true;
+      });
     });
   }
 
