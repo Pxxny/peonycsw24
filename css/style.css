@@ -2639,3 +2639,142 @@ textarea:disabled { opacity: 0.6; }
 .letter-tile.tg-tile-used:active { transform: none; }
 .tg-tap-controls { display: flex; gap: .5rem; justify-content: center; margin-top: .5rem; }
 #tgInput[readonly] { caret-color: transparent; cursor: default; }
+
+/* ---------- avatar frame picker + toast ---------- */
+
+.modal-overlay { opacity: 0; transition: opacity .2s ease; }
+.modal-overlay[hidden] { display: none; opacity: 0; }
+.modal-overlay:not([hidden]) { display: flex; }
+.modal-overlay.modal-overlay-show { opacity: 1; }
+
+.frame-picker-box {
+  max-width: 640px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  gap: .8rem;
+  transform: scale(.94) translateY(8px);
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.modal-overlay-show .frame-picker-box { transform: scale(1) translateY(0); }
+
+.frame-picker-head { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; }
+.frame-picker-head h2 { margin: 0; }
+.frame-picker-count { font-size: .78rem; color: var(--brass); font-weight: 700; white-space: nowrap; }
+
+.frame-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: .6rem;
+  overflow-y: auto;
+  padding: .2rem .1rem .4rem;
+  flex: 1;
+}
+
+.frame-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  padding: .6rem .4rem;
+  border-radius: 12px;
+  border: 1px solid var(--rail);
+  background: var(--board-2);
+  cursor: pointer;
+  text-align: center;
+  transition: transform .12s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.frame-card:hover { transform: translateY(-2px); border-color: var(--brass); }
+.frame-card-equipped { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal), 0 4px 16px rgba(74,222,156,.25); }
+.frame-card-locked { opacity: .62; cursor: default; }
+.frame-card-locked:hover { transform: none; border-color: var(--rail); }
+
+.frame-card-swatch {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 2px 8px rgba(0,0,0,.3);
+  flex: 0 0 auto;
+}
+.frame-card-lock { font-size: .85rem; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+
+.frame-card-name { font-size: .74rem; font-weight: 700; color: var(--cream); line-height: 1.2; }
+.frame-card-method {
+  font-size: .62rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--brass);
+  font-weight: 700;
+}
+.frame-card-desc { font-size: .66rem; color: #8890A8; line-height: 1.25; }
+.frame-card-badge {
+  font-size: .62rem;
+  font-weight: 700;
+  color: var(--teal);
+  background: rgba(74,222,156,.12);
+  border-radius: 6px;
+  padding: .1rem .4rem;
+}
+
+.frame-picker-custom-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding-top: .5rem;
+  border-top: 1px solid var(--rail);
+}
+
+/* frame unlock toast — mirrors #achievementToast, offset below it so both
+   can appear without overlapping if a badge and a frame unlock together */
+#frameToast {
+  position: fixed;
+  top: 1.1rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(-140%) scale(0.9);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: linear-gradient(135deg, var(--board-2), var(--board-1));
+  border: 1px solid var(--teal);
+  color: var(--cream);
+  padding: 0.6rem 1.1rem 0.6rem 0.6rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 0 1px rgba(74,222,156,0.15);
+  z-index: 201;
+  max-width: 92vw;
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+  pointer-events: none;
+}
+#frameToast.frame-toast-show {
+  transform: translateX(-50%) translateY(64px) scale(1);
+  opacity: 1;
+}
+.frame-toast-ring {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08);
+}
+.frame-toast-kicker {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--teal);
+  font-weight: 700;
+}
+.frame-toast-name {
+  font-family: var(--font-display);
+  font-size: 0.96rem;
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 480px) {
+  .frame-picker-grid { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+  .frame-picker-box { max-width: 94vw; }
+}
