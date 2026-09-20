@@ -254,18 +254,20 @@
       '  padding:2rem 2.4rem; transform: scale(.85) translateY(10px); opacity:0;',
       '  transition: transform .5s cubic-bezier(.34,1.56,.64,1), opacity .4s ease; }',
       '.auth-welcome-show .auth-welcome-card { transform: scale(1) translateY(0); opacity:1; }',
-      '.auth-welcome-avatar { width:4.6rem; height:4.6rem; border-radius:50%; padding:3px;',
-      '  background: conic-gradient(from 220deg, var(--brass), var(--teal), var(--brass));',
-      '  display:flex; align-items:center; justify-content:center;',
-      '  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 8px 30px rgba(124,158,255,.25); }',
-      '.auth-welcome-avatar img, .auth-welcome-avatar span { width:100%; height:100%; border-radius:50%; object-fit:cover;',
-      '  border:3px solid var(--board-1); box-sizing:border-box; display:flex; align-items:center; justify-content:center;',
-      '  background: linear-gradient(160deg, var(--brass), var(--teal)); color:#0D1020; font-weight:700;',
-      '  font-size:1.4rem; font-family: var(--font-mono); }',
+      '.auth-welcome-avatar.auth-avatar-frame { width:4.6rem; height:4.6rem; padding:3px; }',
+      '.auth-welcome-avatar .auth-avatar { width:100%; height:100%;',
+      '  font-size:1.4rem; }',
       '.auth-welcome-kicker { font-family: var(--font-body); text-transform:uppercase; letter-spacing:.1em;',
       '  font-size:.72rem; font-weight:700; color: var(--brass); }',
       '.auth-welcome-name { font-family: var(--font-display); font-size:1.4rem; font-weight:600; color: var(--cream); }',
-      '@media (max-width: 480px) { .auth-welcome-card { padding:1.6rem 1.8rem; } .auth-welcome-name { font-size:1.15rem; } }'
+      '@media (max-width: 480px) { .auth-welcome-card { padding:1.6rem 1.8rem; } .auth-welcome-name { font-size:1.15rem; } }',
+
+      /* ---------- avatar frame motion (equipped animated frames) ---------- */
+      '.auth-avatar-frame { --frame-ring-glow: none; }',
+      '@keyframes frameRingSpin { to { transform: rotate(360deg); } }',
+      '.frame-motion-spin { animation: frameRingSpin 3.2s linear infinite; }',
+      '@keyframes frameRingPulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }',
+      '.frame-motion-pulse { animation: frameRingPulse 1.6s ease-in-out infinite; }'
     ].join('\n');
     document.head.appendChild(style);
   }
@@ -310,6 +312,7 @@
     }
 
     const u = state.user;
+    const displayName = (window.Frames && window.Frames.getCustomName && window.Frames.getCustomName()) || u.name || u.email;
     const av = u.photoURL
       ? '<span class="auth-avatar-frame"><img class="auth-avatar" src="' + escapeHtml(u.photoURL) + '" alt="" referrerpolicy="no-referrer"></span>'
       : '<span class="auth-avatar-frame"><span class="auth-avatar">' + escapeHtml(initials(u.name, u.email)) + '</span></span>';
@@ -321,7 +324,7 @@
         '<button type="button" class="auth-profile" id="authProfileBtn">' +
           av +
           '<span class="auth-profile-meta">' +
-            '<span class="auth-profile-name">' + escapeHtml(u.name || u.email) + '</span>' +
+            '<span class="auth-profile-name">' + escapeHtml(displayName) + '</span>' +
             '<span class="auth-profile-sub">' + escapeHtml(u.email) + '</span>' +
           '</span>' +
         '</button>' +
@@ -337,6 +340,10 @@
           '<button type="button" class="auth-menu-item auth-menu-item-danger" id="authMenuSignOut">🚪 ' + escapeHtml(tr('signOut')) + '</button>' +
         '</div>' +
       '</div>';
+
+    if (window.Frames && window.Frames.applyFrameTo) {
+      widget.querySelectorAll('.auth-avatar-frame').forEach(window.Frames.applyFrameTo);
+    }
 
     const profileBtn = document.getElementById('authProfileBtn');
     const panel = document.getElementById('authMenuPanel');
@@ -418,12 +425,14 @@
     const kickerEl = document.getElementById('authWelcomeKicker');
     const nameEl = document.getElementById('authWelcomeName');
     if (avatarEl) {
+      avatarEl.className = 'auth-welcome-avatar auth-avatar-frame';
       avatarEl.innerHTML = u.photoURL
-        ? '<img src="' + escapeHtml(u.photoURL) + '" alt="" referrerpolicy="no-referrer">'
-        : '<span>' + escapeHtml(initials(u.name, u.email)) + '</span>';
+        ? '<img class="auth-avatar" src="' + escapeHtml(u.photoURL) + '" alt="" referrerpolicy="no-referrer">'
+        : '<span class="auth-avatar">' + escapeHtml(initials(u.name, u.email)) + '</span>';
+      if (window.Frames && window.Frames.applyFrameTo) window.Frames.applyFrameTo(avatarEl);
     }
     if (kickerEl) kickerEl.textContent = tr('welcomeBack');
-    if (nameEl) nameEl.textContent = u.name || u.email;
+    if (nameEl) nameEl.textContent = (window.Frames && window.Frames.getCustomName && window.Frames.getCustomName()) || u.name || u.email;
 
     overlay.hidden = false;
     // restart animation cleanly even if triggered twice in a row
@@ -519,6 +528,12 @@
       render(state);
       if (state.user && returningFromGoogleRedirect) handleSignedInLanding();
     });
+
+    // Lets other modules (e.g. frames-ui.js, after a custom display-name
+    // edit) ask for a re-render without needing a real Auth state change.
+    window.renderAuthWidget = function () {
+      if (window.Auth && window.Auth.getState) render(window.Auth.getState());
+    };
   }
 
   if (document.readyState === 'loading') {

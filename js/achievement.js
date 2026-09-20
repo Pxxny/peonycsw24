@@ -333,7 +333,11 @@
     stats.hasUsedAllPracticeModes = ALL_PRACTICE_MODES.every(function (m) { return !!stats.tabsVisited[m]; });
 
     saveStats();
-    return evaluateAndUnlock();
+    const newlyUnlocked = evaluateAndUnlock();
+    if (typeof global.onAchievementsRecorded === 'function') {
+      try { global.onAchievementsRecorded(eventName, stats); } catch (e) { /* ignore */ }
+    }
+    return newlyUnlocked;
   }
 
   // ---------- toast (animated) ----------
@@ -558,6 +562,8 @@
   global.Achievements = {
     init: init,
     record: record,
-    renderTab: renderTab
+    renderTab: renderTab,
+    getStats: function () { return stats; },
+    getUnlocked: function () { return unlocked; }
   };
 })(window);
