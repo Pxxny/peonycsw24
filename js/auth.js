@@ -404,6 +404,7 @@
     signOut: signOutUser,
     onChange: onChange,
     getUser: getUser,
+    getState: getState,
     wasSigningIn: wasSigningIn,
     hasAnyLocalProgress: hasAnyLocalProgress,
     consumePendingGuestImport: consumePendingGuestImport,

@@ -26,6 +26,9 @@
       restoreGuestConfirm: 'กู้คืนข้อมูลที่บันทึกไว้ก่อนล็อกอิน (Cardbox, Achievement, สถิติ ฯลฯ) แล้วทับข้อมูลปัจจุบันของบัญชีนี้หรือไม่?',
       restoredGuest: 'กู้คืนข้อมูลก่อนล็อกอินแล้ว',
       restoreGuestFailed: 'กู้คืนข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง',
+      welcomeBack: 'ยินดีต้อนรับกลับมา',
+      welcomeNew: 'ยินดีต้อนรับ',
+      signingOut: 'กำลังออกจากระบบ...',
       importTitle: '📥 นำเข้าความคืบหน้าแบบ Guest',
       importBody: 'เจอความคืบหน้าที่เล่นแบบ Guest อยู่ในเบราว์เซอร์นี้ ต้องการนำเข้าเข้าบัญชีนี้ไหม? (Cardbox, XP, Streak, Achievement และอื่นๆ)',
       importConfirm: '📥 นำเข้าเลย',
@@ -50,6 +53,9 @@
       restoreGuestConfirm: 'Restore the progress saved before you logged in (Cardbox, Achievements, Stats, etc.)? This will overwrite this account\'s current data.',
       restoredGuest: 'Pre-login data restored.',
       restoreGuestFailed: 'Restore failed, please try again.',
+      welcomeBack: 'Welcome back',
+      welcomeNew: 'Welcome',
+      signingOut: 'Signing out...',
       importTitle: '📥 Import guest progress',
       importBody: 'Found progress saved as a guest in this browser. Import it into this account? (Cardbox, XP, Streak, Achievements, and more)',
       importConfirm: '📥 Import',
@@ -110,6 +116,17 @@
       const widget = document.createElement('div');
       widget.id = 'authWidget';
       widget.className = 'auth-widget';
+      // Skeleton placeholder — visible the instant the page loads, until
+      // Auth.init() resolves (Supabase SDK fetch + getSession() round trip)
+      // and render() replaces it with the real sign-in button or profile.
+      widget.innerHTML =
+        '<div class="auth-skeleton" id="authSkeleton">' +
+          '<span class="auth-skeleton-avatar"></span>' +
+          '<span class="auth-skeleton-lines">' +
+            '<span class="auth-skeleton-line auth-skeleton-line-1"></span>' +
+            '<span class="auth-skeleton-line auth-skeleton-line-2"></span>' +
+          '</span>' +
+        '</div>';
       header.appendChild(widget);
     }
 
@@ -129,6 +146,31 @@
         '</div>';
       document.body.appendChild(overlay);
     }
+
+    // Full-screen transition veil used for the login/logout moment itself
+    // (a quick fade+blur wipe, not tied to any one auth outcome).
+    if (!document.getElementById('authTransitionVeil')) {
+      const veil = document.createElement('div');
+      veil.id = 'authTransitionVeil';
+      veil.className = 'auth-veil';
+      veil.innerHTML = '<div class="auth-veil-spinner"></div><div class="auth-veil-label" id="authVeilLabel"></div>';
+      document.body.appendChild(veil);
+    }
+
+    // One-time "welcome" splash shown right after a fresh sign-in lands.
+    if (!document.getElementById('authWelcomeOverlay')) {
+      const welcome = document.createElement('div');
+      welcome.id = 'authWelcomeOverlay';
+      welcome.className = 'auth-welcome';
+      welcome.hidden = true;
+      welcome.innerHTML =
+        '<div class="auth-welcome-card">' +
+          '<div class="auth-welcome-avatar" id="authWelcomeAvatar"></div>' +
+          '<div class="auth-welcome-kicker" id="authWelcomeKicker"></div>' +
+          '<div class="auth-welcome-name" id="authWelcomeName"></div>' +
+        '</div>';
+      document.body.appendChild(welcome);
+    }
   }
 
   function injectStyles() {
@@ -146,9 +188,6 @@
       '.auth-google-g { width:1rem; height:1rem; flex:0 0 auto; }',
       '.auth-profile { display:flex; align-items:center; gap:.55rem; padding:.4rem .5rem; border-radius:10px;',
       '  background: var(--board-2); border:1px solid var(--rail); cursor:pointer; width:100%; text-align:left; }',
-      '.auth-avatar { width:2rem; height:2rem; border-radius:50%; flex:0 0 auto; object-fit:cover;',
-      '  background: linear-gradient(160deg, var(--brass), var(--teal)); color:#0D1020; font-weight:700;',
-      '  font-size:.78rem; display:flex; align-items:center; justify-content:center; font-family: var(--font-mono); }',
       '.auth-profile-meta { min-width:0; flex:1; }',
       '.auth-profile-name { font-size:.82rem; font-weight:600; color: var(--cream); white-space:nowrap;',
       '  overflow:hidden; text-overflow:ellipsis; }',
@@ -164,7 +203,69 @@
       '.auth-menu-sep { height:1px; margin:.35rem .2rem; background: var(--rail); }',
       '.auth-menu-item-danger { color:#f87171; }',
       '.auth-menu-item-danger:hover { background: rgba(248,113,113,.12); }',
-      '@media (max-width: 860px) { .auth-widget { margin-top:.7rem; } }'
+      '@media (max-width: 860px) { .auth-widget { margin-top:.7rem; } }',
+
+      /* ---------- widget pop-in (plays every time render() swaps content) ---------- */
+      '@keyframes authWidgetPop { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform: translateY(0); } }',
+      '.auth-widget-pop > * { animation: authWidgetPop .32s cubic-bezier(.34,1.56,.64,1); }',
+
+      /* ---------- loading skeleton (shown until Auth.init() resolves) ---------- */
+      '.auth-skeleton { display:flex; align-items:center; gap:.55rem; padding:.4rem .5rem; }',
+      '.auth-skeleton-avatar { width:2rem; height:2rem; border-radius:50%; flex:0 0 auto;',
+      '  background: linear-gradient(90deg, var(--board-2) 25%, var(--rail) 37%, var(--board-2) 63%);',
+      '  background-size: 400% 100%; animation: authSkeletonShimmer 1.4s ease infinite; }',
+      '.auth-skeleton-lines { flex:1; min-width:0; display:flex; flex-direction:column; gap:.32rem; }',
+      '.auth-skeleton-line { display:block; height:.5rem; border-radius:4px;',
+      '  background: linear-gradient(90deg, var(--board-2) 25%, var(--rail) 37%, var(--board-2) 63%);',
+      '  background-size: 400% 100%; animation: authSkeletonShimmer 1.4s ease infinite; }',
+      '.auth-skeleton-line-1 { width: 70%; }',
+      '.auth-skeleton-line-2 { width: 45%; }',
+      '@keyframes authSkeletonShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }',
+
+      /* ---------- avatar frame ---------- */
+      '.auth-avatar-frame { position:relative; flex:0 0 auto; width:2.3rem; height:2.3rem;',
+      '  display:flex; align-items:center; justify-content:center; border-radius:50%;',
+      '  padding:2px; background: conic-gradient(from 220deg, var(--brass), var(--teal), var(--brass));',
+      '  box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 2px 8px rgba(0,0,0,.35); }',
+      '.auth-avatar-frame::after { content:""; position:absolute; inset:-3px; border-radius:50%;',
+      '  border:1px solid rgba(124,158,255,.35); pointer-events:none; }',
+      '.auth-avatar-frame .auth-avatar { width:100%; height:100%; border:2px solid var(--board-1); box-sizing:border-box; }',
+      '.auth-avatar { border-radius:50%; object-fit:cover;',
+      '  background: linear-gradient(160deg, var(--brass), var(--teal)); color:#0D1020; font-weight:700;',
+      '  font-size:.78rem; display:flex; align-items:center; justify-content:center; font-family: var(--font-mono); }',
+
+      /* ---------- transition veil (login / logout) ---------- */
+      '.auth-veil { position:fixed; inset:0; z-index:400; display:flex; flex-direction:column; align-items:center;',
+      '  justify-content:center; gap:.9rem; background: rgba(11,13,20,0); backdrop-filter: blur(0px);',
+      '  opacity:0; pointer-events:none; transition: opacity .28s ease, backdrop-filter .28s ease, background .28s ease; }',
+      '.auth-veil-show { opacity:1; pointer-events:auto; background: rgba(11,13,20,.72); backdrop-filter: blur(6px); }',
+      '.auth-veil-spinner { width:2.4rem; height:2.4rem; border-radius:50%;',
+      '  border: 3px solid var(--rail); border-top-color: var(--brass); animation: authVeilSpin .7s linear infinite; }',
+      '@keyframes authVeilSpin { to { transform: rotate(360deg); } }',
+      '.auth-veil-label { font-family: var(--font-body); font-weight:600; font-size:.85rem; color: var(--cream); letter-spacing:.01em; }',
+
+      /* ---------- welcome splash ---------- */
+      '.auth-welcome { position:fixed; inset:0; z-index:410; display:flex; align-items:center; justify-content:center;',
+      '  background: rgba(11,13,20,0); backdrop-filter: blur(0px); opacity:0; pointer-events:none;',
+      '  transition: opacity .4s ease, backdrop-filter .4s ease, background .4s ease; }',
+      '.auth-welcome[hidden] { display:flex; }', /* keep flex layout even while fading out via JS timeout before [hidden] lands */
+      '.auth-welcome-show { opacity:1; pointer-events:auto; background: rgba(11,13,20,.78); backdrop-filter: blur(8px); }',
+      '.auth-welcome-card { display:flex; flex-direction:column; align-items:center; gap:.6rem; text-align:center;',
+      '  padding:2rem 2.4rem; transform: scale(.85) translateY(10px); opacity:0;',
+      '  transition: transform .5s cubic-bezier(.34,1.56,.64,1), opacity .4s ease; }',
+      '.auth-welcome-show .auth-welcome-card { transform: scale(1) translateY(0); opacity:1; }',
+      '.auth-welcome-avatar { width:4.6rem; height:4.6rem; border-radius:50%; padding:3px;',
+      '  background: conic-gradient(from 220deg, var(--brass), var(--teal), var(--brass));',
+      '  display:flex; align-items:center; justify-content:center;',
+      '  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 8px 30px rgba(124,158,255,.25); }',
+      '.auth-welcome-avatar img, .auth-welcome-avatar span { width:100%; height:100%; border-radius:50%; object-fit:cover;',
+      '  border:3px solid var(--board-1); box-sizing:border-box; display:flex; align-items:center; justify-content:center;',
+      '  background: linear-gradient(160deg, var(--brass), var(--teal)); color:#0D1020; font-weight:700;',
+      '  font-size:1.4rem; font-family: var(--font-mono); }',
+      '.auth-welcome-kicker { font-family: var(--font-body); text-transform:uppercase; letter-spacing:.1em;',
+      '  font-size:.72rem; font-weight:700; color: var(--brass); }',
+      '.auth-welcome-name { font-family: var(--font-display); font-size:1.4rem; font-weight:600; color: var(--cream); }',
+      '@media (max-width: 480px) { .auth-welcome-card { padding:1.6rem 1.8rem; } .auth-welcome-name { font-size:1.15rem; } }'
     ].join('\n');
     document.head.appendChild(style);
   }
@@ -185,6 +286,10 @@
   function render(state) {
     const widget = document.getElementById('authWidget');
     if (!widget) return;
+    widget.classList.remove('auth-widget-pop');
+    // eslint-disable-next-line no-unused-expressions
+    void widget.offsetWidth; // restart animation on every render
+    widget.classList.add('auth-widget-pop');
 
     if (!state.configured) {
       // Silently absent when Google Login hasn't been configured yet —
@@ -206,8 +311,8 @@
 
     const u = state.user;
     const av = u.photoURL
-      ? '<img class="auth-avatar" src="' + escapeHtml(u.photoURL) + '" alt="" referrerpolicy="no-referrer">'
-      : '<span class="auth-avatar">' + escapeHtml(initials(u.name, u.email)) + '</span>';
+      ? '<span class="auth-avatar-frame"><img class="auth-avatar" src="' + escapeHtml(u.photoURL) + '" alt="" referrerpolicy="no-referrer"></span>'
+      : '<span class="auth-avatar-frame"><span class="auth-avatar">' + escapeHtml(initials(u.name, u.email)) + '</span></span>';
 
     const showRestore = window.Auth.hasGuestBackup && window.Auth.hasGuestBackup();
 
@@ -249,7 +354,13 @@
     if (signOutBtn) signOutBtn.addEventListener('click', function () {
       menuOpen = false;
       panel.hidden = true;
-      window.Auth.signOut();
+      showVeil(tr('signingOut'));
+      Promise.resolve(window.Auth.signOut()).then(function () {
+        setTimeout(hideVeil, 350); // let the signed-out UI paint under the veil before lifting it
+      }).catch(function (err) {
+        console.error('[AuthUI] sign-out failed', err);
+        hideVeil();
+      });
     });
     if (restoreBtn) restoreBtn.addEventListener('click', async function () {
       menuOpen = false;
@@ -281,6 +392,52 @@
     });
   }
 
+  // ---------- transition veil (login/logout) ----------
+
+  function showVeil(label) {
+    const veil = document.getElementById('authTransitionVeil');
+    if (!veil) return;
+    const labelEl = document.getElementById('authVeilLabel');
+    if (labelEl) labelEl.textContent = label || '';
+    veil.classList.add('auth-veil-show');
+  }
+
+  function hideVeil() {
+    const veil = document.getElementById('authTransitionVeil');
+    if (!veil) return;
+    veil.classList.remove('auth-veil-show');
+  }
+
+  // ---------- welcome splash (shown once, right after fresh sign-in) ----------
+
+  function showWelcome(state) {
+    const overlay = document.getElementById('authWelcomeOverlay');
+    if (!overlay || !state.user) return;
+    const u = state.user;
+    const avatarEl = document.getElementById('authWelcomeAvatar');
+    const kickerEl = document.getElementById('authWelcomeKicker');
+    const nameEl = document.getElementById('authWelcomeName');
+    if (avatarEl) {
+      avatarEl.innerHTML = u.photoURL
+        ? '<img src="' + escapeHtml(u.photoURL) + '" alt="" referrerpolicy="no-referrer">'
+        : '<span>' + escapeHtml(initials(u.name, u.email)) + '</span>';
+    }
+    if (kickerEl) kickerEl.textContent = tr('welcomeBack');
+    if (nameEl) nameEl.textContent = u.name || u.email;
+
+    overlay.hidden = false;
+    // restart animation cleanly even if triggered twice in a row
+    overlay.classList.remove('auth-welcome-show');
+    void overlay.offsetWidth;
+    overlay.classList.add('auth-welcome-show');
+
+    clearTimeout(showWelcome._t);
+    showWelcome._t = setTimeout(function () {
+      overlay.classList.remove('auth-welcome-show');
+      setTimeout(function () { overlay.hidden = true; }, 400);
+    }, 2200);
+  }
+
   async function handleSignInClick() {
     // Google sign-in via Supabase redirects the whole page to Google and
     // back — there is no "resolve on this page load" moment to await.
@@ -289,6 +446,7 @@
     // page load.
     const btn = document.getElementById('authSignInBtn');
     if (btn) { btn.disabled = true; btn.querySelector('span').textContent = tr('signingIn'); }
+    showVeil(tr('signingIn'));
     try {
       await window.Auth.signInWithGoogle();
       // If we get here without navigating away, something's off (e.g.
@@ -298,6 +456,7 @@
       console.error('[AuthUI] sign-in failed', err);
       toast(err && err.message === 'not_configured' ? tr('notConfigured') : tr('signInFailed'));
       if (btn) { btn.disabled = false; btn.querySelector('span').textContent = tr('signIn'); }
+      hideVeil();
     }
   }
 
@@ -306,7 +465,9 @@
     // for the first time this page load — covers both a fresh sign-in
     // that just redirected back, and a returning user whose session was
     // already persisted (Supabase keeps the session in localStorage).
+    hideVeil();
     toast(tr('syncedNote'));
+    showWelcome(window.Auth.getState ? window.Auth.getState() : { user: window.Auth.getUser() });
     maybeOfferGuestImport();
     if (typeof window.renderDashboard === 'function') window.renderDashboard();
     const dashBtn = document.querySelector('.tab-btn[data-tab="dashboard"]');
