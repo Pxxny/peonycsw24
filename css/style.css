@@ -1246,6 +1246,9 @@ main {
 .tg-history-main { min-width: 0; flex: 1 1 12rem; }
 .tg-history-title { font-weight: 600; font-size: 0.92rem; word-break: break-word; }
 .tg-history-meta { font-size: 0.78rem; color: #767EA0; margin-top: 0.1rem; }
+.tg-history-summary { display: flex; flex-direction: column; gap: 0.12rem; margin-top: 0.35rem; }
+.tg-history-summary-row { font-size: 0.74rem; color: var(--ink, #2A2A3A); opacity: 0.85; line-height: 1.35; }
+.tg-history-summary-label { font-weight: 700; color: var(--brass); margin-right: 0.2rem; }
 .tg-history-actions { display: flex; gap: 0.4rem; flex-shrink: 0; flex-wrap: wrap; }
 .session-summary { text-align: center; padding: 1.5rem 0; }
 .session-summary .big-stat { font-family: var(--font-display); font-size: 2.6rem; color: var(--brass); }
