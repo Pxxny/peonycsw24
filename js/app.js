@@ -7241,6 +7241,45 @@
     if (tg.id) tgRemoveFromHistory(tg.id);
   }
 
+  function tgModeLabel(mode) {
+    return {
+      random: '🎲 Random',
+      letter: '🔤 พิมพ์ตาม Letter (A→Z)',
+      cardbox: '🗂️ จาก Cardbox',
+      suggested: '📊 จาก Dashboard Suggestion'
+    }[mode] || mode;
+  }
+
+  // Builds the three summary lines shown on each Game History card:
+  // word-selection mode, word filters, and game options — everything the
+  // player picked in the setup form when they started/last saved this run.
+  function tgHistorySummaryLines(e) {
+    const lines = { mode: '', filters: [], options: [] };
+
+    lines.mode = tgModeLabel(e.mode);
+    if (e.mode === 'random' || e.mode === 'letter') {
+      // Derive the actual length range from the saved word list itself —
+      // more reliable than re-reading live form inputs, and correct even
+      // for old history entries saved before this summary existed.
+      const lens = (e.words || []).map(function (w) { return w.length; });
+      if (lens.length) {
+        const lo = Math.min.apply(null, lens), hi = Math.max.apply(null, lens);
+        lines.mode += ' (' + (lo === hi ? (lo + ' ตัวอักษร') : (lo + '–' + hi + ' ตัวอักษร')) + ')';
+      }
+    }
+
+    // ---- word filters ----
+    if (e.startsWith) lines.filters.push('ขึ้นต้นด้วย "' + e.startsWith + '"');
+    if (e.containsAll) lines.filters.push('มีตัวอักษร "' + e.containsAll + '"');
+    if (!lines.filters.length) lines.filters.push('ไม่มีตัวกรอง');
+
+    // ---- game options ----
+    lines.options.push(e.strict ? '🔒 โหมดเข้มงวด' : '🔓 โหมดปกติ');
+    lines.options.push(e.anagramMode ? '🎯 Alphagram Drill' : '⌨️ พิมพ์ปกติ');
+
+    return lines;
+  }
+
   function tgRefreshResumeBtn() {
     const btn = document.getElementById('tgResumeBtn');
     const listWrap = document.getElementById('tgHistoryList');
@@ -7256,11 +7295,17 @@
         const pct = Math.round((e.index / e.words.length) * 100);
         const when = tgFormatRelativeTime(e.updatedAt);
         const autoTitle = 'พิมพ์ไปแล้ว ' + e.index + '/' + e.words.length + ' คำ (' + pct + '%)';
+        const sum = tgHistorySummaryLines(e);
         return (
           '<div class="tg-history-item" data-id="' + e.id + '">' +
             '<div class="tg-history-main">' +
               '<div class="tg-history-title">' + (e.name ? escapeHtml(e.name) : autoTitle) + '</div>' +
               '<div class="tg-history-meta">' + tgFormatTime(e.elapsedMs) + ' · พลาด ' + e.mistakes + ' ครั้ง · ' + when + '</div>' +
+              '<div class="tg-history-summary">' +
+                '<span class="tg-history-summary-row"><span class="tg-history-summary-label">โหมด:</span> ' + escapeHtml(sum.mode) + '</span>' +
+                '<span class="tg-history-summary-row"><span class="tg-history-summary-label">ตัวกรอง:</span> ' + escapeHtml(sum.filters.join(' · ')) + '</span>' +
+                '<span class="tg-history-summary-row"><span class="tg-history-summary-label">ตัวเลือก:</span> ' + escapeHtml(sum.options.join(' · ')) + '</span>' +
+              '</div>' +
             '</div>' +
             '<div class="tg-history-actions">' +
               '<button type="button" class="btn btn-outline btn-sm tg-history-resume" data-id="' + e.id + '">↩ Resume</button>' +
@@ -7628,30 +7673,34 @@
     tg.inlineBrowseOpen = false;
 
     {
-      // Every round — in both display modes — requires the WHOLE anagram
-      // group (the word itself + all its partners) before advancing.
-      // The required set is ALWAYS
-      // derived from the current word, never trusted from cached state —
-      // tg.anagramGroup can be left over from a different word or a different
-      // game (e.g. after resuming from Game History), which used to make the
-      // counter read "0 / 1" and skip to the next word after a single answer.
-      const group = Array.from(new Set([word].concat(getAnagrams(word))));
-      const saved = Array.isArray(tg.anagramRemaining) ? tg.anagramRemaining : [];
-      const kept = Array.from(new Set(saved)).filter(function (w) { return group.indexOf(w) !== -1; });
-      tg.anagramGroup = group;
-      // Keep in-progress state only if it is a valid non-empty subset of THIS
-      // word's group (resuming mid-group). Anything else — empty, stale,
-      // or containing words that don't belong — starts the group over.
-      tg.anagramRemaining = (kept.length && kept.length === saved.length) ? kept : group.slice();
+      // Alphagram Drill (tg.anagramMode) requires the WHOLE anagram group
+      // (the word itself + all its partners) before advancing — that's the
+      // point of that mode. Plain mode only ever requires the single
+      // displayed word; it must NOT silently pull in partner words just
+      // because they happen to exist in the dictionary.
+      if (tg.anagramMode) {
+        const group = Array.from(new Set([word].concat(getAnagrams(word))));
+        const saved = Array.isArray(tg.anagramRemaining) ? tg.anagramRemaining : [];
+        const kept = Array.from(new Set(saved)).filter(function (w) { return group.indexOf(w) !== -1; });
+        tg.anagramGroup = group;
+        // Keep in-progress state only if it is a valid non-empty subset of THIS
+        // word's group (resuming mid-group). Anything else — empty, stale,
+        // or containing words that don't belong — starts the group over.
+        tg.anagramRemaining = (kept.length && kept.length === saved.length) ? kept : group.slice();
+      } else {
+        tg.anagramGroup = [word];
+        tg.anagramRemaining = [word];
+      }
     }
     const grpTotal = tg.anagramGroup.length;
     const grpFound = grpTotal - tg.anagramRemaining.length;
-    // Plain (copy-the-word) mode: once the displayed word is done but partners
-    // remain, we are in the "find the remaining anagrams" phase.
-    const partnerPhase = !tg.anagramMode && tg.anagramRemaining.indexOf(word) === -1;
+    // Plain (copy-the-word) mode never has a "find remaining anagrams"
+    // phase — there's only ever the one word to type.
+    const partnerPhase = false;
     // The found-words panel (x / y counter + list) and the Anagram browser
-    // card only appear when the "show Anagram" toggle is ticked.
-    const showGroup = !!tg.showAnagram && (tg.anagramMode || grpTotal > 1);
+    // card only appear when the "show Anagram" toggle is ticked, and only
+    // in Alphagram Drill mode (plain mode has nothing to count).
+    const showGroup = !!tg.showAnagram && tg.anagramMode;
 
     area.innerHTML =
       '<div class="session-progress">คำที่ ' + (tg.index + 1) + ' / ' + tg.words.length +
