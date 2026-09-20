@@ -46,6 +46,7 @@
   const CSW24_PREFIX = 'csw24_';
   const LAST_UID_KEY = 'csw24_auth_last_uid_v1';
   const OAUTH_FLAG_KEY = 'csw24_auth_oauth_pending_v1'; // survives the Google redirect round-trip
+  const GUEST_BACKUP_KEY = 'csw24_auth_guest_backup_v1'; // permanent safety copy of pre-login guest progress
 
   let supabase = null;
   let sdkLoadPromise = null;
@@ -68,7 +69,7 @@
     const snap = {};
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.indexOf(CSW24_PREFIX) === 0 && key !== LAST_UID_KEY && key !== OAUTH_FLAG_KEY) {
+      if (key && key.indexOf(CSW24_PREFIX) === 0 && key !== LAST_UID_KEY && key !== OAUTH_FLAG_KEY && key !== GUEST_BACKUP_KEY) {
         snap[key] = localStorage.getItem(key);
       }
     }
@@ -94,7 +95,7 @@
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.indexOf(CSW24_PREFIX) === 0 && key !== LAST_UID_KEY && key !== OAUTH_FLAG_KEY) keys.push(key);
+      if (key && key.indexOf(CSW24_PREFIX) === 0 && key !== LAST_UID_KEY && key !== OAUTH_FLAG_KEY && key !== GUEST_BACKUP_KEY) keys.push(key);
     }
     keys.forEach(function (k) { localStorage.removeItem(k); });
   }
@@ -244,6 +245,19 @@
     }
 
     try {
+      // Always take a permanent backup of whatever is in this browser
+      // *before* any cloud snapshot can overwrite it below. This used to
+      // only be captured in memory (pendingGuestImportSnapshot) and only
+      // when this looked like a brand-new account — so real guest data
+      // (Cardbox, Achievements, streaks...) could be silently clobbered
+      // by an existing/empty cloud snapshot with no way to get it back.
+      // Now it's always written to a dedicated, never-synced localStorage
+      // key first, so a "restore my pre-login data" action is always
+      // possible later, no matter which branch below runs.
+      if (hasAnyLocalProgress()) {
+        localStorage.setItem(GUEST_BACKUP_KEY, JSON.stringify(collectSnapshot()));
+      }
+
       const cloudSnap = await fetchCloudSnapshot(user.id);
       const sameUserAsBefore = localStorage.getItem(LAST_UID_KEY) === user.id;
       if (cloudSnap) {
@@ -350,6 +364,37 @@
   function discardGuestProgress() {
     clearLocalProgress();
     pendingGuestImportSnapshot = null;
+    localStorage.removeItem(GUEST_BACKUP_KEY);
+  }
+
+  // ---------- permanent guest backup (recoverable any time, not just at
+  // the moment of first sign-in) ----------
+
+  function hasGuestBackup() {
+    try {
+      const raw = localStorage.getItem(GUEST_BACKUP_KEY);
+      return !!(raw && Object.keys(JSON.parse(raw)).length > 0);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Restores the pre-login backup into the current account: writes it
+  // into localStorage (so Cardbox/Achievements/etc. see it immediately)
+  // and, if signed in, pushes it to the cloud so it isn't lost again on
+  // the next sign-in elsewhere. Does NOT clear the backup afterward, so
+  // the user can safely press it again if something looks off.
+  async function restoreGuestBackup() {
+    const raw = localStorage.getItem(GUEST_BACKUP_KEY);
+    if (!raw) return false;
+    let snap;
+    try { snap = JSON.parse(raw); } catch (e) { return false; }
+    suppressNextPush = true;
+    applySnapshot(snap);
+    if (currentUser) {
+      await pushCloudSnapshot(currentUser.id);
+    }
+    return true;
   }
 
   global.Auth = {
@@ -364,6 +409,8 @@
     consumePendingGuestImport: consumePendingGuestImport,
     importGuestProgress: importGuestProgress,
     discardGuestProgress: discardGuestProgress,
+    hasGuestBackup: hasGuestBackup,
+    restoreGuestBackup: restoreGuestBackup,
     // exposed for a manual "sync now" affordance / debugging
     pushNow: function () { return currentUser ? pushCloudSnapshot(currentUser.id) : Promise.resolve(); }
   };

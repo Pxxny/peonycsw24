@@ -22,6 +22,10 @@
       menuProfile: 'โปรไฟล์',
       menuStats: 'สถิติ',
       menuSettings: 'ตั้งค่า',
+      menuRestoreGuest: 'กู้คืนข้อมูลก่อนล็อกอิน',
+      restoreGuestConfirm: 'กู้คืนข้อมูลที่บันทึกไว้ก่อนล็อกอิน (Cardbox, Achievement, สถิติ ฯลฯ) แล้วทับข้อมูลปัจจุบันของบัญชีนี้หรือไม่?',
+      restoredGuest: 'กู้คืนข้อมูลก่อนล็อกอินแล้ว',
+      restoreGuestFailed: 'กู้คืนข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง',
       importTitle: '📥 นำเข้าความคืบหน้าแบบ Guest',
       importBody: 'เจอความคืบหน้าที่เล่นแบบ Guest อยู่ในเบราว์เซอร์นี้ ต้องการนำเข้าเข้าบัญชีนี้ไหม? (Cardbox, XP, Streak, Achievement และอื่นๆ)',
       importConfirm: '📥 นำเข้าเลย',
@@ -42,6 +46,10 @@
       menuProfile: 'Profile',
       menuStats: 'Stats',
       menuSettings: 'Settings',
+      menuRestoreGuest: 'Restore pre-login data',
+      restoreGuestConfirm: 'Restore the progress saved before you logged in (Cardbox, Achievements, Stats, etc.)? This will overwrite this account\'s current data.',
+      restoredGuest: 'Pre-login data restored.',
+      restoreGuestFailed: 'Restore failed, please try again.',
       importTitle: '📥 Import guest progress',
       importBody: 'Found progress saved as a guest in this browser. Import it into this account? (Cardbox, XP, Streak, Achievements, and more)',
       importConfirm: '📥 Import',
@@ -201,6 +209,8 @@
       ? '<img class="auth-avatar" src="' + escapeHtml(u.photoURL) + '" alt="" referrerpolicy="no-referrer">'
       : '<span class="auth-avatar">' + escapeHtml(initials(u.name, u.email)) + '</span>';
 
+    const showRestore = window.Auth.hasGuestBackup && window.Auth.hasGuestBackup();
+
     widget.innerHTML =
       '<div class="auth-menu">' +
         '<button type="button" class="auth-profile" id="authProfileBtn">' +
@@ -214,6 +224,10 @@
           '<button type="button" class="auth-menu-item" data-tab="dashboard" id="authMenuProfile">👤 ' + escapeHtml(tr('menuProfile')) + '</button>' +
           '<button type="button" class="auth-menu-item" data-tab="stats" id="authMenuStats">📈 ' + escapeHtml(tr('menuStats')) + '</button>' +
           '<button type="button" class="auth-menu-item" data-tab="settings" id="authMenuSettings">⚙️ ' + escapeHtml(tr('menuSettings')) + '</button>' +
+          (showRestore
+            ? '<div class="auth-menu-sep"></div>' +
+              '<button type="button" class="auth-menu-item" id="authMenuRestoreGuest">📥 ' + escapeHtml(tr('menuRestoreGuest')) + '</button>'
+            : '') +
           '<div class="auth-menu-sep"></div>' +
           '<button type="button" class="auth-menu-item auth-menu-item-danger" id="authMenuSignOut">🚪 ' + escapeHtml(tr('signOut')) + '</button>' +
         '</div>' +
@@ -222,6 +236,7 @@
     const profileBtn = document.getElementById('authProfileBtn');
     const panel = document.getElementById('authMenuPanel');
     const signOutBtn = document.getElementById('authMenuSignOut');
+    const restoreBtn = document.getElementById('authMenuRestoreGuest');
 
     if (profileBtn) profileBtn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -235,6 +250,23 @@
       menuOpen = false;
       panel.hidden = true;
       window.Auth.signOut();
+    });
+    if (restoreBtn) restoreBtn.addEventListener('click', async function () {
+      menuOpen = false;
+      panel.hidden = true;
+      const ok = window.confirm(tr('restoreGuestConfirm'));
+      if (!ok) return;
+      restoreBtn.disabled = true;
+      try {
+        await window.Auth.restoreGuestBackup();
+        toast(tr('restoredGuest'));
+        if (typeof window.renderDashboard === 'function') window.renderDashboard();
+        window.location.reload();
+      } catch (err) {
+        console.error('[AuthUI] restore guest backup failed', err);
+        toast(tr('restoreGuestFailed'));
+        restoreBtn.disabled = false;
+      }
     });
 
     // Profile / Stats / Settings all just switch to an existing tab —
