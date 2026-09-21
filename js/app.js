@@ -2476,6 +2476,7 @@
     const now = Date.now();
     const dueCount = box.filter(function (c) { return (c.due || 0) <= now; }).length;
 
+    renderResumeBanner();
     document.getElementById('cardboxCount').textContent = box.length;
     document.getElementById('cardboxDueCount').textContent =
       box.length ? dueCount + ' คำถึงกำหนดทบทวนตอนนี้' : '';
@@ -3230,7 +3231,13 @@
 
   // ---------- Study session ----------
 
-  const session = { queue: [], index: 0, mode: 'flashcard', anagramOrder: 'alpha', cycleInterval: 3, correct: 0, incorrect: 0, flipped: false, hintLevel: 0, hintUsed: false, missed: [], reshuffleHandle: null };
+  const session = { queue: [], index: 0, mode: 'flashcard', anagramOrder: 'alpha', cycleInterval: 3, correct: 0, incorrect: 0, flipped: false, hintLevel: 0, hintUsed: false, missed: [], reshuffleHandle: null,
+    // ---- Resume bookkeeping (see "Study session resume" block below) ----
+    startedAt: 0,
+    active: false,        // true from startStudySession until the summary/exit is confirmed
+    cardState: null,      // per-card progress that survives a reload: { index, found, hintLevel, hintUsed, answered, flipped, letters }
+    resumeCard: null      // one-shot: snapshot of cardState to re-apply the next time the card at that index renders
+  };
 
   function stopAnagramReshuffle() {
     if (session.reshuffleHandle) { clearInterval(session.reshuffleHandle); session.reshuffleHandle = null; }
@@ -3400,10 +3407,238 @@
   }
 
 
+  // ---------- Study session resume ----------
+  // If the page is closed / reloaded / killed mid-session (tab discarded by
+  // the phone, accidental refresh, crash, lost connection), the learner can
+  // pick the Cardbox session back up exactly where they left off.
+  //
+  // Design rules (the learner asked that nothing in progress ever be lost):
+  //  * Saved on EVERY state change, not just on unload — beforeunload is not
+  //    reliable on mobile, so it is only a second safety net.
+  //  * Two slots are written (primary + a rolling backup). If the primary is
+  //    ever corrupted/half-written, the backup is used instead of losing it.
+  //  * Both live under the csw24_ prefix, so the existing IndexedDB backup and
+  //    full-progress export/import already carry them with no extra wiring.
+  //  * Leaving a session with Esc / the exit button KEEPS the snapshot. It is
+  //    only deleted when the session is finished, or the learner explicitly
+  //    chooses to discard it (with a confirm).
+  //  * Grading is never replayed: a card that was already answered comes back
+  //    in its "answered" state, so updateCardResult() is not called twice.
+  const SESSION_RESUME_KEY = 'csw24_cardbox_session_v1';
+  const SESSION_RESUME_BAK_KEY = 'csw24_cardbox_session_bak_v1';
+  const SESSION_RESUME_VERSION = 1;
+  // A saved session older than this is still offered, just flagged as old.
+  // It is NEVER auto-deleted — only the learner decides to discard it.
+  const SESSION_RESUME_STALE_MS = 3 * 24 * 3600 * 1000;
+
+  // Cards are stored as a compact snapshot (word + the fields the session
+  // actually reads). Live SM-2 numbers are always re-read from the cardbox at
+  // render/grade time, so a resumed session can never overwrite newer stats
+  // with stale ones.
+  function snapshotQueueCard(c) {
+    return { word: c.word };
+  }
+
+  function buildSessionSnapshot() {
+    return {
+      v: SESSION_RESUME_VERSION,
+      savedAt: Date.now(),
+      startedAt: session.startedAt || Date.now(),
+      mode: session.mode,
+      anagramOrder: session.anagramOrder,
+      cycleInterval: session.cycleInterval,
+      queue: session.queue.map(snapshotQueueCard),
+      index: session.index,
+      correct: session.correct,
+      incorrect: session.incorrect,
+      missed: session.missed.slice(),
+      hintLevel: session.hintLevel,
+      hintUsed: !!session.hintUsed,
+      flipped: !!session.flipped,
+      cardState: session.cardState ? JSON.parse(JSON.stringify(session.cardState)) : null
+    };
+  }
+
+  function isValidSessionSnapshot(snap) {
+    return !!snap && typeof snap === 'object' &&
+      Array.isArray(snap.queue) && snap.queue.length > 0 &&
+      snap.queue.every(function (c) { return c && typeof c.word === 'string' && c.word; }) &&
+      typeof snap.index === 'number' && snap.index >= 0 && snap.index < snap.queue.length &&
+      (snap.mode === 'flashcard' || snap.mode === 'anagram' || snap.mode === 'recall');
+  }
+
+  function readSessionSnapshotRaw(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const snap = JSON.parse(raw);
+      return isValidSessionSnapshot(snap) ? snap : null;
+    } catch (e) { return null; }
+  }
+
+  // Newest valid of (primary, backup). Falls back automatically if the
+  // primary is missing/corrupt.
+  function loadSessionSnapshot() {
+    const a = readSessionSnapshotRaw(SESSION_RESUME_KEY);
+    const b = readSessionSnapshotRaw(SESSION_RESUME_BAK_KEY);
+    if (a && b) return (b.savedAt || 0) > (a.savedAt || 0) ? b : a;
+    return a || b;
+  }
+
+  let _sessionSaveFailedToast = false;
+  function saveSessionSnapshot() {
+    if (!session.active || !session.queue.length) return;
+    if (session.index >= session.queue.length) return; // summary screen has nothing to resume
+    let json;
+    try { json = JSON.stringify(buildSessionSnapshot()); } catch (e) { return; }
+    try {
+      // Rotate the previous good primary into the backup slot first, so a
+      // crash between the two writes still leaves one intact copy.
+      const prev = localStorage.getItem(SESSION_RESUME_KEY);
+      if (prev) localStorage.setItem(SESSION_RESUME_BAK_KEY, prev);
+      localStorage.setItem(SESSION_RESUME_KEY, json);
+    } catch (e) {
+      // Storage full/blocked. Tell the learner once (not on every keystroke),
+      // since silently losing progress is exactly what this feature prevents.
+      if (!_sessionSaveFailedToast) {
+        _sessionSaveFailedToast = true;
+        try { showToast('⚠️ บันทึกความคืบหน้าเซสชันไม่สำเร็จ (พื้นที่จัดเก็บเต็ม?) — ลอง Export ความคืบหน้าไว้ก่อน'); } catch (e2) {}
+      }
+    }
+  }
+
+  function clearSessionSnapshot() {
+    try {
+      localStorage.removeItem(SESSION_RESUME_KEY);
+      localStorage.removeItem(SESSION_RESUME_BAK_KEY);
+    } catch (e) {}
+    renderResumeBanner();
+  }
+
+  // Per-card progress, updated by the card renderers. Only the fields needed
+  // to put the card back exactly as it was.
+  function setCardState(patch) {
+    if (!session.cardState || session.cardState.index !== session.index) {
+      session.cardState = { index: session.index, found: [], hintLevel: 0, hintUsed: false, answered: false, skipped: false, flipped: false, letters: null };
+    }
+    Object.keys(patch).forEach(function (k) { session.cardState[k] = patch[k]; });
+    saveSessionSnapshot();
+  }
+
+  // Returns saved progress for the card about to render at the current
+  // index (one-shot), or null when there is nothing to restore.
+  function takeResumeCardState() {
+    const rc = session.resumeCard;
+    session.resumeCard = null;
+    if (rc && rc.index === session.index) return rc;
+    return null;
+  }
+
+  function formatResumeAge(ms) {
+    const m = Math.floor(ms / 60000);
+    if (m < 1) return 'เมื่อสักครู่';
+    if (m < 60) return m + ' นาทีที่แล้ว';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + ' ชั่วโมงที่แล้ว';
+    return Math.floor(h / 24) + ' วันที่แล้ว';
+  }
+
+  function sessionModeLabel(mode) {
+    return mode === 'anagram' ? 'Anagram' : (mode === 'recall' ? 'Active Recall' : 'Flashcard');
+  }
+
+  function renderResumeBanner() {
+    const el = document.getElementById('sessionResumeBanner');
+    if (!el) return;
+    // Never show the banner while a session (or Anagram Review) is on screen.
+    const live = session.active && document.getElementById('studySession').classList.contains('open');
+    const snap = live ? null : loadSessionSnapshot();
+    if (!snap) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+    const total = snap.queue.length;
+    const age = Date.now() - (snap.savedAt || 0);
+    const stale = age > SESSION_RESUME_STALE_MS;
+    const cs = snap.cardState && snap.cardState.index === snap.index ? snap.cardState : null;
+    const partial = cs && cs.found && cs.found.length && !cs.answered
+      ? ' · คำปัจจุบันพบแล้ว ' + cs.found.length + ' คำ (จะจำไว้ให้)' : '';
+    el.style.display = '';
+    el.innerHTML =
+      '<div class="resume-banner-main">' +
+        '<div class="resume-banner-title">⏯ มีเซสชันที่เรียนค้างอยู่</div>' +
+        '<div class="resume-banner-meta">' + sessionModeLabel(snap.mode) +
+          ' · คำที่ ' + (snap.index + 1) + ' / ' + total +
+          ' · ถูก ' + (snap.correct || 0) + ' ผิด ' + (snap.incorrect || 0) +
+          ' · บันทึกเมื่อ ' + formatResumeAge(age) + partial +
+        '</div>' +
+        (stale ? '<div class="resume-banner-meta resume-banner-stale">เซสชันนี้เก่าแล้ว แต่ยังเรียนต่อได้ — ระบบไม่ลบให้เอง</div>' : '') +
+      '</div>' +
+      '<div class="resume-banner-actions">' +
+        '<button class="btn btn-primary" id="sessionResumeBtn">▶ เรียนต่อ</button>' +
+        '<button class="btn btn-outline btn-sm" id="sessionDiscardBtn">🗑 ทิ้งเซสชันนี้</button>' +
+      '</div>';
+    document.getElementById('sessionResumeBtn').addEventListener('click', resumeStudySession);
+    document.getElementById('sessionDiscardBtn').addEventListener('click', function () {
+      const s2 = loadSessionSnapshot();
+      const n = s2 ? s2.queue.length - s2.index : 0;
+      if (!confirm('ต้องการทิ้งเซสชันที่ค้างอยู่ใช่หรือไม่?\n' +
+          (s2 ? 'จะเสียความคืบหน้า (เหลืออีก ' + n + ' การ์ด) — ผลที่ตอบไปแล้วใน Cardbox ยังคงอยู่' : '') +
+          '\nการกระทำนี้ย้อนกลับไม่ได้')) return;
+      clearSessionSnapshot();
+      showToast('ทิ้งเซสชันที่ค้างอยู่แล้ว');
+    });
+  }
+
+  function resumeStudySession() {
+    const snap = loadSessionSnapshot();
+    if (!snap) { showToast('ไม่พบเซสชันที่ค้างอยู่'); renderResumeBanner(); return; }
+
+    // Rebuild each queue card from the LIVE cardbox so SM-2 stats are current.
+    // A word that has since been removed from the cardbox is still resumable
+    // (word wrapper only) — grading it is simply a no-op, as updateCardResult
+    // already returns null for unknown words.
+    const byWord = {};
+    loadCardbox().forEach(function (c) { byWord[c.word] = c; });
+    session.queue = snap.queue.map(function (c) { return byWord[c.word] || { word: c.word }; });
+    session.index = snap.index;
+    session.mode = snap.mode;
+    session.anagramOrder = snap.anagramOrder || 'alpha';
+    session.cycleInterval = snap.cycleInterval != null ? snap.cycleInterval : settings.anagramCycleInterval;
+    session.correct = snap.correct || 0;
+    session.incorrect = snap.incorrect || 0;
+    session.missed = Array.isArray(snap.missed) ? snap.missed.slice() : [];
+    session.hintLevel = snap.hintLevel || 0;
+    session.hintUsed = !!snap.hintUsed;
+    session.flipped = !!snap.flipped;
+    session.startedAt = snap.startedAt || Date.now();
+    session.cardState = null;
+    session.resumeCard = (snap.cardState && snap.cardState.index === snap.index) ? snap.cardState : null;
+    session.active = true;
+
+    document.getElementById('cardboxSetup').style.display = 'none';
+    document.getElementById('cardboxList').style.display = 'none';
+    const banner = document.getElementById('sessionResumeBanner');
+    if (banner) { banner.style.display = 'none'; banner.innerHTML = ''; }
+    document.getElementById('studySession').classList.add('open');
+    document.removeEventListener('keydown', sessionKeyHandler);
+    document.addEventListener('keydown', sessionKeyHandler);
+    renderSessionCard();
+    showToast('▶ เรียนต่อจากคำที่ ' + (session.index + 1) + ' / ' + session.queue.length);
+  }
+
+  // Second safety net. The real protection is saving on every change; these
+  // just flush the very latest state if the page is going away.
+  function flushSessionSnapshot() {
+    if (session.active) saveSessionSnapshot();
+  }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) flushSessionSnapshot(); });
+  window.addEventListener('pagehide', flushSessionSnapshot);
+  window.addEventListener('beforeunload', flushSessionSnapshot);
+
+
   function sessionKeyHandler(e) {
     if (e.key === 'Escape') {
       e.preventDefault();
-      if (confirm('ต้องการออกจากเซสชันทบทวนหรือไม่?')) endStudySession();
+      if (confirm('ต้องการออกจากเซสชันทบทวนหรือไม่?\n(ความคืบหน้าจะถูกเก็บไว้ — กลับมา "เรียนต่อ" ได้จากหน้า Cardbox)')) endStudySession();
       return;
     }
     if (e.key === 'Enter') {
@@ -3450,8 +3685,24 @@
     return result;
   }
 
-  function startStudySession(cards, mode, anagramOrder, cycleInterval) {
+  function startStudySession(cards, mode, anagramOrder, cycleInterval, opts) {
+    // Starting a NEW session would overwrite the saved one. Never do that
+    // silently — the learner may have forgotten an unfinished session.
+    // (Internal restarts, e.g. "review only the missed words" after a
+    // finished session, pass opts.force since there is nothing left to lose.)
+    if (!(opts && opts.force)) {
+      const pending = loadSessionSnapshot();
+      if (pending && !confirm('มีเซสชันที่เรียนค้างอยู่ (คำที่ ' + (pending.index + 1) + ' / ' + pending.queue.length +
+          ')\nการเริ่มเซสชันใหม่จะแทนที่เซสชันเดิม และเรียนต่อจากเดิมไม่ได้อีก\n\nกด OK เพื่อเริ่มใหม่ / กด Cancel เพื่อกลับไปเรียนต่อเซสชันเดิม')) {
+        renderResumeBanner();
+        return;
+      }
+    }
     if (mode === 'anagram') cards = dedupeByAlphagram(cards);
+    session.startedAt = Date.now();
+    session.active = true;
+    session.cardState = null;
+    session.resumeCard = null;
     session.queue = cards;
     session.index = 0;
     session.mode = mode;
@@ -3462,20 +3713,34 @@
     session.hintLevel = 0;
     session.hintUsed = false;
     session.missed = [];
+    session.flipped = false;
     document.getElementById('cardboxSetup').style.display = 'none';
     document.getElementById('cardboxList').style.display = 'none';
+    const resumeBanner = document.getElementById('sessionResumeBanner');
+    if (resumeBanner) { resumeBanner.style.display = 'none'; resumeBanner.innerHTML = ''; }
     document.getElementById('studySession').classList.add('open');
+    document.removeEventListener('keydown', sessionKeyHandler);
     document.addEventListener('keydown', sessionKeyHandler);
+    saveSessionSnapshot(); // saved BEFORE the first card renders, so even an instant crash is recoverable
     renderSessionCard();
   }
 
   function endStudySession() {
     stopAnagramReshuffle();
+    // Finished (summary screen reached) => nothing left to resume, drop it.
+    // Left early (Esc / exit) => flush the latest state and KEEP it, so the
+    // learner can continue later from the Cardbox tab.
+    const finished = session.index >= session.queue.length;
+    if (finished) clearSessionSnapshot(); else flushSessionSnapshot();
+    session.active = false;
+    session.cardState = null;
+    session.resumeCard = null;
     document.removeEventListener('keydown', sessionKeyHandler);
     document.getElementById('studySession').classList.remove('open');
     document.getElementById('cardboxSetup').style.display = '';
     document.getElementById('cardboxList').style.display = '';
     renderCardboxTab();
+    renderResumeBanner();
   }
 
   function updateSessionProgressBar() {
@@ -3516,6 +3781,10 @@
     session.flipped = false;
     session.hintLevel = 0;
     session.hintUsed = false;
+    session.cardState = null;
+    session.resumeCard = null;
+    if (session.index >= session.queue.length) clearSessionSnapshot(); // that was the last card — session is complete
+    else saveSessionSnapshot();
     renderSessionCard();
   }
 
@@ -3555,7 +3824,7 @@
           const missedSet = new Set(missedWords);
           const missedCards = box.filter(function (c) { return missedSet.has(c.word); });
           if (!missedCards.length) { showToast('ไม่พบคำที่พลาดใน Cardbox'); return; }
-          startStudySession(missedCards, session.mode, session.anagramOrder, session.cycleInterval);
+          startStudySession(missedCards, session.mode, session.anagramOrder, session.cycleInterval, { force: true });
         });
       }
       if (window.Achievements) {
@@ -3575,7 +3844,12 @@
   }
 
   function renderFlashcard(area, word) {
-    const scrambled = shuffle(word.split('')).join('');
+    const resumed = takeResumeCardState();
+    if (resumed && resumed.flipped) session.flipped = true;
+    const scrambled = (resumed && typeof resumed.letters === 'string' && resumed.letters.length === word.length)
+      ? resumed.letters
+      : shuffle(word.split('')).join('');
+    setCardState({ letters: scrambled, flipped: !!session.flipped });
     if (!session.flipped) {
       area.innerHTML =
         '<div class="session-card">' +
@@ -3585,6 +3859,9 @@
         '</div>';
       document.getElementById('flipBtn').addEventListener('click', function () {
         session.flipped = true;
+        // renderFlashcard re-reads state via takeResumeCardState (one-shot),
+        // so hand it the tile order we already have instead of re-scrambling.
+        session.resumeCard = { index: session.index, letters: scrambled, flipped: true };
         renderFlashcard(area, word);
       });
     } else {
@@ -3606,8 +3883,14 @@
   }
 
   function renderAnagramCard(area, word) {
-    const letters = session.anagramOrder === 'alpha' ? sortLetters(word) : shuffle(word.split('')).join('');
-    session.hintLevel = 0;
+    // Resume: if this exact card was in progress when the page was lost,
+    // put back the tile order, the words already found, and the hint level.
+    const resumed = takeResumeCardState();
+    const letters = (resumed && typeof resumed.letters === 'string' && resumed.letters.length === word.length)
+      ? resumed.letters
+      : (session.anagramOrder === 'alpha' ? sortLetters(word) : shuffle(word.split('')).join(''));
+    session.hintLevel = resumed ? (resumed.hintLevel || 0) : 0;
+    if (resumed) session.hintUsed = !!resumed.hintUsed;
 
     // A scrambled rack of letters can legitimately spell more than one
     // dictionary word (e.g. EGL -> LEG or GEL). When that happens, the
@@ -3615,6 +3898,17 @@
     const validGroup = [word].concat(getAnagrams(word));
     const found = new Set();
     let wrongStreak = false;
+    if (resumed && Array.isArray(resumed.found)) {
+      resumed.found.forEach(function (w) { if (validGroup.indexOf(w) !== -1) found.add(w); });
+    }
+    // Persist the tile order right away (needed for random order to look identical after a reload).
+    // IMPORTANT: when resuming, carry the saved answered/skipped flags into this very first
+    // write. Otherwise this write would silently erase "answered" from storage, and a second
+    // reload would bring the already-graded card back as unanswered (=> graded twice).
+    setCardState({
+      letters: letters, found: Array.from(found), hintLevel: session.hintLevel, hintUsed: !!session.hintUsed,
+      answered: !!(resumed && resumed.answered), skipped: !!(resumed && resumed.skipped)
+    });
 
     area.innerHTML =
       '<div class="session-card">' +
@@ -3678,6 +3972,13 @@
         session.hintLevel++;
         session.hintUsed = true;
       }
+      showHintText();
+      setCardState({ hintLevel: session.hintLevel, hintUsed: !!session.hintUsed });
+    });
+
+    function showHintText() {
+      if (session.hintLevel <= 0) return;
+      const maxHint = Math.max(1, word.length - 1);
       const revealed = word.slice(0, session.hintLevel).split('').join(' ');
       const blanks = word.length - session.hintLevel;
       hintText.textContent = '💡 ' + revealed + (blanks > 0 ? '  ' + '_ '.repeat(blanks).trim() : '') +
@@ -3686,7 +3987,7 @@
         hintBtn.disabled = true;
         hintBtn.textContent = '💡 Hint (สูงสุดแล้ว)';
       }
-    });
+    }
 
     const skipBtn = document.getElementById('anagramSkipBtn');
     skipBtn.addEventListener('click', function () {
@@ -3734,14 +4035,27 @@
       session.queue.splice(insertAt, 0, currentCard);
     }
 
-    function finishCard(isSkipped) {
+    function finishCard(isSkipped, restored) {
       stopReshuffle();
       input.disabled = true;
       hintBtn.disabled = true;
       skipBtn.disabled = true;
       const allCorrect = found.size === validGroup.length;
-      const card = recordAnswer(word, allCorrect, session.hintUsed, isSkipped);
-      cycleBackIfNeeded(allCorrect);
+      let card;
+      if (restored) {
+        // Already graded before the page was lost: the result, the cycle-back
+        // insertion and the SM-2 update are all already persisted. Do NOT
+        // grade or re-insert again — just rebuild the "answered" screen.
+        card = loadCardbox().find(function (c) { return c.word === word; }) || null;
+      } else {
+        // Write-ahead: persist the "answered" marker FIRST (with the queue
+        // exactly as it is now), then grade. A reload after this point can
+        // never grade the same card a second time.
+        setCardState({ answered: true, skipped: !!isSkipped, found: Array.from(found) });
+        card = recordAnswer(word, allCorrect, session.hintUsed, isSkipped);
+        cycleBackIfNeeded(allCorrect);
+        saveSessionSnapshot(); // now also captures the cycled-back copy + updated correct/incorrect counters
+      }
       renderWordStats(card, isSkipped, allCorrect);
 
       // Post-answer reshuffle: once the card is done (correct, wrong, or
@@ -3910,6 +4224,7 @@
 
         if (progressEl) progressEl.textContent = 'พบแล้ว ' + found.size + ' / ' + validGroup.length + ' คำ';
         renderFoundList();
+        setCardState({ found: Array.from(found) }); // every single correct word is saved the moment it is typed
 
         if (found.size < validGroup.length) {
           // Still missing at least one valid word — keep the input open
@@ -3961,9 +4276,46 @@
       input.addEventListener('input', checkTyped);
       form.addEventListener('submit', function (e) { e.preventDefault(); });
     }
+
+    // ---- Resume: rebuild the on-screen state from what was saved ----
+    if (resumed) {
+      showHintText();
+      if (found.size) {
+        if (progressEl) progressEl.textContent = 'พบแล้ว ' + found.size + ' / ' + validGroup.length + ' คำ';
+        renderFoundList();
+      }
+      if (resumed.answered) {
+        // Card was already graded before the page was lost. Show the finished
+        // state (reveal answers + Next button) WITHOUT grading it again.
+        if (resumed.skipped) {
+          feedback.textContent = '⏭ ข้ามคำนี้ — เฉลย: ' + validGroup.slice().sort().join(', ');
+          feedback.className = 'session-feedback wrong';
+        } else if (found.size === validGroup.length) {
+          feedback.textContent = '✓ ถูกต้องครบทุกคำ! ' + Array.from(found).join(', ') +
+            (session.hintUsed ? '  (ใช้ Hint ช่วย)' : '');
+          feedback.className = 'session-feedback correct';
+        } else {
+          feedback.textContent = 'คำตอบ: ' + validGroup.slice().sort().join(', ');
+          feedback.className = 'session-feedback wrong';
+        }
+        finishCard(!!resumed.skipped, true);
+      } else if (found.size) {
+        feedback.textContent = '⏯ เรียนต่อ — พบแล้ว ' + found.size + ' / ' + validGroup.length + ' คำ หาคำที่เหลืออีก ' +
+          (validGroup.length - found.size) + ' คำ';
+        feedback.className = 'session-feedback correct';
+        input.focus();
+      }
+    }
   }
 
   function renderRecallCard(area, word) {
+    const resumed = takeResumeCardState();
+    // Carry saved answered/guess forward — never reset them on the first post-restore write.
+    setCardState({
+      answered: !!(resumed && resumed.answered),
+      recallCorrect: resumed ? resumed.recallCorrect : undefined,
+      recallGuess: resumed ? resumed.recallGuess : undefined
+    });
     area.innerHTML =
       '<div class="session-card">' +
         '<div class="session-prompt-label">Active Recall · นึกคำศัพท์จากความจำ (' + word.length + ' ตัวอักษร)</div>' +
@@ -3999,10 +4351,29 @@
         feedback.textContent = '✗ ยังไม่ถูก — คำตอบคือ ' + word;
         feedback.className = 'session-feedback wrong';
       }
+      setCardState({ answered: true, recallCorrect: isCorrect, recallGuess: guess }); // write-ahead, see anagram card
       recordAnswer(word, isCorrect);
+      saveSessionSnapshot();
       document.getElementById('recallNextWrap').style.display = '';
       document.getElementById('recallNextBtn').addEventListener('click', nextCard);
     });
+
+    // Resume into the already-graded state (no second grading).
+    if (resumed && resumed.answered) {
+      const input = document.getElementById('recallInput');
+      input.value = resumed.recallGuess || '';
+      input.disabled = true;
+      form.querySelector('button').disabled = true;
+      if (resumed.recallCorrect) {
+        feedback.textContent = '✓ ถูกต้อง!';
+        feedback.className = 'session-feedback correct';
+      } else {
+        feedback.textContent = '✗ ยังไม่ถูก — คำตอบคือ ' + word;
+        feedback.className = 'session-feedback wrong';
+      }
+      document.getElementById('recallNextWrap').style.display = '';
+      document.getElementById('recallNextBtn').addEventListener('click', nextCard);
+    }
   }
 
   // ---------- Learn tab ----------
@@ -6434,6 +6805,16 @@
         }).sort(function (x, y) { return ((x && x.t) || 0) - ((y && y.t) || 0); });
       });
       return out;
+    }
+    // In-progress Cardbox study session (resume snapshot): keep whichever copy
+    // was saved LAST. An older exported file must never overwrite a session
+    // the learner is in the middle of on this device — that would silently
+    // throw away the very progress the resume feature exists to protect.
+    if ((key === SESSION_RESUME_KEY || key === SESSION_RESUME_BAK_KEY) && incoming && current &&
+        typeof incoming === 'object' && typeof current === 'object') {
+      const inOk = isValidSessionSnapshot(incoming), curOk = isValidSessionSnapshot(current);
+      if (inOk && curOk) return (incoming.savedAt || 0) > (current.savedAt || 0) ? incoming : current;
+      return curOk ? current : incoming;
     }
     // Object maps (notes, daily goals): shallow merge, incoming wins.
     if (incoming && current && typeof incoming === 'object' && typeof current === 'object' &&
@@ -9335,6 +9716,7 @@
     }
     renderCardboxTab();
     renderCardboxGroups();
+    renderResumeBanner();
     renderDashboard();
     if (window.lucide) window.lucide.createIcons(); // picks up the static Stats-tab icon
 
