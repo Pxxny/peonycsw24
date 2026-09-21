@@ -331,14 +331,15 @@
             <option value="play-desc" data-i18n="cardbox.sortPlayDesc">Playability: มากไปน้อย</option>
             <option value="play-asc" data-i18n="cardbox.sortPlayAsc">Playability: น้อยไปมาก</option>
             <option value="leech-desc" data-i18n="cardboxLeech.sortLeechDesc">🐛 Leech ก่อน (ผิดติดกันมาก→น้อย)</option>
+            <option value="random" data-i18n="cardbox.sortRandom">🔀 สุ่ม (Random)</option>
           </select>
         </div>
-        <div class="field" id="cardboxLengthRangeField" style="min-width:200px;display:none">
-          <label data-i18n="cardbox.lengthRangeLabel">ช่วงความยาว (ตัวอักษร)</label>
+        <div class="field" id="cardboxLengthRangeField" style="min-width:200px">
+          <label data-i18n="cardbox.lengthRangeLabel">แสดงเฉพาะความยาว (ตัวอักษร)</label>
           <div style="display:flex;gap:0.4rem;align-items:center">
-            <input type="number" id="cardboxLengthMin" min="2" max="15" value="2" style="width:70px" placeholder="ต่ำสุด">
+            <input type="number" id="cardboxLengthMin" min="2" max="15" style="width:70px" placeholder="ทั้งหมด">
             <span>–</span>
-            <input type="number" id="cardboxLengthMax" min="2" max="15" value="15" style="width:70px" placeholder="มากสุด">
+            <input type="number" id="cardboxLengthMax" min="2" max="15" style="width:70px" placeholder="ทั้งหมด">
           </div>
         </div>
         <div class="field" style="align-self:flex-end">
