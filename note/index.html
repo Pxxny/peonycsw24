@@ -9,4 +9,14 @@
 <section id="plannerView" class="view hidden"><div class="calendar-head"><div><h2>Calendar & Planner</h2><p>จัดตารางฝึกศัพท์ งาน และโน้ตในที่เดียว</p></div><div class="calendar-actions"><button class="mini-btn" id="todayBtn">Today</button><button class="primary" id="addEvent">＋ Event</button><button class="mini-btn" id="addTask">＋ Task</button></div></div><div class="dashboard" id="dashboard"></div><div class="calendar-toolbar"><div class="calendar-nav"><button id="prevPeriod">‹</button><button id="nextPeriod">›</button><b id="periodLabel"></b></div><div class="view-switch"><button class="cal-view active" data-cal="month">Month</button><button class="cal-view" data-cal="week">Week</button><button class="cal-view" data-cal="day">Day</button></div></div><div class="calendar-layout"><div id="calendar" class="calendar"></div><aside class="day-panel" id="dayPanel"></aside></div></section>
 <section id="favoritesView" class="view hidden"><div class="panel-head"><div><h2>Favorites</h2><p>โน้ตที่ปักหมุดไว้</p></div></div><div class="note-grid" id="favoriteList"></div></section>
 <section id="trashView" class="view hidden"><div class="panel-head"><div><h2>Trash</h2><p>โน้ตที่ลบแล้ว</p></div></div><div class="note-grid" id="trashList"></div></section>
-</main><div id="toast"></div><script src="app.js"></script></body></html>
+</main><div id="toast"></div><script>
+  // Embedded inside CSW24 (a dark-themed app) — default this app to dark
+  // mode too on its very first load, purely for visual consistency.
+  // Never touches the choice once the person has ever toggled ☼ here
+  // themselves (that preference, scrabble-dark, always wins after that).
+  if (localStorage.getItem('scrabble-dark') === null) {
+    document.body.classList.add('dark');
+    localStorage.setItem('scrabble-dark', 'true');
+  }
+</script>
+<script src="app.js"></script></body></html>
