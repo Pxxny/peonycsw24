@@ -31,6 +31,8 @@
     marathonBestStreak: 0,
     lastActiveDay: null,   // 'YYYY-MM-DD'
     dayStreak: 0,
+    bestDayStreak: 0,      // longest streak ever reached
+    totalDaysActive: 0,    // count of distinct days the app was used at all
     hasNightOwlPlay: false,   // played/studied 02:00–04:59 local time
     hasEarlyBirdPlay: false,  // played/studied 05:00–05:59 local time
     hasQNoU: false,           // Cardbox contains a word with Q but no U
@@ -123,6 +125,8 @@
       stats.dayStreak = 1;
     }
     stats.lastActiveDay = today;
+    stats.bestDayStreak = Math.max(stats.bestDayStreak || 0, stats.dayStreak);
+    stats.totalDaysActive = (stats.totalDaysActive || 0) + 1;
   }
 
   // ---------- core: recompute cardbox-derived stats from source of truth ----------

@@ -78,7 +78,7 @@
     th: {
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 สร้างคำศัพท์', 'tab.quiz': '🎯 แบบทดสอบ',
       'tab.cardbox': '🗂️ Cardbox', 'tab.addwords': '➕ เพิ่มคำศัพท์', 'tab.browse': '📖 คลังคำศัพท์', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
-      'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievement', 'tab.settings': '⚙️ Setting',
+      'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievement', 'tab.settings': '⚙️ Setting', 'tab.note': '📝 Note',
       'tab.learn': '🎓 Learn', 'tab.stats': '📈 Stats',
       'learn.title': '🎓 Learn', 'learn.sub': 'เลือกความยาวคำศัพท์ที่ต้องการเรียน',
       'learn.extraSoon': '🚧 Extra — เร็วๆ นี้',
@@ -194,7 +194,7 @@
     en: {
       'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 Generate', 'tab.quiz': '🎯 Quiz',
       'tab.cardbox': '🗂️ Cardbox', 'tab.addwords': '➕ Add Words', 'tab.browse': '📖 Word Browser', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
-      'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievements', 'tab.settings': '⚙️ Settings', 'tab.stats': '📈 Stats',
+      'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievements', 'tab.settings': '⚙️ Settings', 'tab.stats': '📈 Stats', 'tab.note': '📝 Note',
       'tab.learn': '🎓 Learn',
       'learn.title': '🎓 Learn', 'learn.sub': 'Choose the word length you want to learn',
       'learn.extraSoon': '🚧 Extra — coming soon',
@@ -1903,6 +1903,7 @@
     const card = box.find(function (c) { return c.word === word; });
     if (!card) return null;
     patchLegacyCard(card);
+    const statusBefore = card.status || 'new';
 
     if (isCorrect) card.correct++;
     else card.incorrect++;
@@ -1949,6 +1950,7 @@
     else card.status = 'new';
 
     saveCardbox(box);
+    card._statusBefore = statusBefore; // read once by recordAnswer for XP tiering; not persisted (saveCardbox already ran)
     return card;
   }
 
@@ -2139,6 +2141,10 @@
       browseInitialized = true;
       initBrowseChips();
       runBrowseSearch();
+    }
+    if (tabName === 'note') {
+      const frame = document.getElementById('noteFrame');
+      if (frame && !frame.getAttribute('src')) frame.setAttribute('src', 'note/index.html');
     }
     scrollActiveTabIntoView(btn);
     syncDrawerActiveState(tabName);
@@ -3464,6 +3470,14 @@
     logWordEncounter(word, 'cardbox');
     if (isCorrect) {
       session.correct++;
+      if (window.XP && card) {
+        // จำคำใหม่ (+10): first time this word is ever answered correctly.
+        // ตอบถูก (+5): word already in "learning" — correct again.
+        // ทบทวนคำเก่า (+3): word already "mastered" — a review hit.
+        if (card._statusBefore === 'new') window.XP.award('new_word');
+        else if (card._statusBefore === 'learning') window.XP.award('correct');
+        else window.XP.award('review');
+      }
     } else {
       session.incorrect++;
       // Zyzzyva-style: keep a de-duped list of every word missed this
@@ -7980,6 +7994,7 @@
     if (val === word) {
       tg.typed.push(word);
       logWordEncounter(word, 'typing');
+      if (window.XP) window.XP.award('typed_word');
       const doneIdx = tg.anagramRemaining.indexOf(word);
       if (doneIdx !== -1) tg.anagramRemaining.splice(doneIdx, 1);
       // Other anagrams of this word still to type -> stay on this prompt
@@ -8063,6 +8078,7 @@
       tg.anagramRemaining.splice(matchIdx, 1);
       tg.typed.push(val);
       logWordEncounter(val, 'typing');
+      if (window.XP) window.XP.award('typed_word');
       input.value = '';
       tgSaveProgress();
 

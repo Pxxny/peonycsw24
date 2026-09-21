@@ -171,6 +171,51 @@
         '</div>';
       document.body.appendChild(welcome);
     }
+
+    // Profile modal — opened from the "👤 Profile" item in the account
+    // dropdown. Holds the custom display-name field, the avatar-frame
+    // picker entry point (both rendered by frames-ui.js) and the XP/Level
+    // "Your Word Journey" card (rendered by xp.js) — both of those modules
+    // already target #profileSettingsSection, so moving that mount point
+    // here (out of the old Settings tab) is all that's needed.
+    if (!document.getElementById('profileModalOverlay')) {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'profileModalOverlay';
+      modal.hidden = true;
+      modal.innerHTML =
+        '<div class="modal-box profile-modal-box">' +
+          '<div class="frame-picker-head">' +
+            '<h2 id="profileModalTitle"></h2>' +
+          '</div>' +
+          '<div id="profileSettingsSection" class="profile-modal-body"></div>' +
+          '<div class="modal-close-row" style="justify-content:flex-end">' +
+            '<button type="button" class="btn btn-teal btn-sm" id="profileModalCloseBtn"></button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(modal);
+      document.getElementById('profileModalCloseBtn').addEventListener('click', closeProfileModal);
+      modal.addEventListener('click', function (e) { if (e.target === modal) closeProfileModal(); });
+    }
+  }
+
+  function openProfileModal() {
+    ensureMountPoints();
+    const currentLang = lang();
+    document.getElementById('profileModalTitle').textContent = currentLang === 'th' ? '👤 โปรไฟล์' : '👤 Profile';
+    document.getElementById('profileModalCloseBtn').textContent = currentLang === 'th' ? 'ปิด' : 'Close';
+    if (window.Frames && window.Frames.mountSettingsSection) window.Frames.mountSettingsSection();
+    if (window.XP && window.XP.mountProfilePanel) window.XP.mountProfilePanel();
+    const overlay = document.getElementById('profileModalOverlay');
+    overlay.hidden = false;
+    requestAnimationFrame(function () { overlay.classList.add('modal-overlay-show'); });
+  }
+
+  function closeProfileModal() {
+    const overlay = document.getElementById('profileModalOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('modal-overlay-show');
+    setTimeout(function () { overlay.hidden = true; }, 200);
   }
 
   function injectStyles() {
@@ -324,12 +369,12 @@
         '<button type="button" class="auth-profile" id="authProfileBtn">' +
           av +
           '<span class="auth-profile-meta">' +
-            '<span class="auth-profile-name">' + escapeHtml(displayName) + '</span>' +
+            '<span class="auth-profile-name">' + escapeHtml(displayName) + '<span class="xp-level-badge"></span></span>' +
             '<span class="auth-profile-sub">' + escapeHtml(u.email) + '</span>' +
           '</span>' +
         '</button>' +
         '<div class="auth-menu-panel" id="authMenuPanel" hidden>' +
-          '<button type="button" class="auth-menu-item" data-tab="dashboard" id="authMenuProfile">👤 ' + escapeHtml(tr('menuProfile')) + '</button>' +
+          '<button type="button" class="auth-menu-item" id="authMenuProfile">👤 ' + escapeHtml(tr('menuProfile')) + '</button>' +
           '<button type="button" class="auth-menu-item" data-tab="stats" id="authMenuStats">📈 ' + escapeHtml(tr('menuStats')) + '</button>' +
           '<button type="button" class="auth-menu-item" data-tab="settings" id="authMenuSettings">⚙️ ' + escapeHtml(tr('menuSettings')) + '</button>' +
           (showRestore
@@ -344,6 +389,7 @@
     if (window.Frames && window.Frames.applyFrameTo) {
       widget.querySelectorAll('.auth-avatar-frame').forEach(window.Frames.applyFrameTo);
     }
+    if (window.XP && window.XP.paintBadges) window.XP.paintBadges();
 
     const profileBtn = document.getElementById('authProfileBtn');
     const panel = document.getElementById('authMenuPanel');
@@ -387,8 +433,16 @@
       }
     });
 
-    // Profile / Stats / Settings all just switch to an existing tab —
-    // wired generically off data-tab so this stays in sync if tab ids change.
+    const profileMenuBtn = document.getElementById('authMenuProfile');
+    if (profileMenuBtn) profileMenuBtn.addEventListener('click', function () {
+      menuOpen = false;
+      panel.hidden = true;
+      openProfileModal();
+    });
+
+    // Stats / Settings just switch to an existing tab — wired generically
+    // off data-tab so this stays in sync if tab ids change. Profile is
+    // handled separately above since it opens a modal, not a tab.
     panel.querySelectorAll('.auth-menu-item[data-tab]').forEach(function (item) {
       item.addEventListener('click', function () {
         const tabBtn = document.querySelector('.tab-btn[data-tab="' + item.getAttribute('data-tab') + '"]');
