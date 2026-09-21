@@ -121,7 +121,8 @@
       'cardbox.sortRecent': 'เพิ่มล่าสุดก่อน', 'cardbox.sortRoundsDesc': 'จำนวนรอบเรียน: มาก→น้อย',
       'cardbox.sortRoundsAsc': 'จำนวนรอบเรียน: น้อย→มาก', 'cardbox.sortAlpha': 'ตัวอักษร (A→Z)',
       'cardbox.sortLengthAsc': 'ความยาว: น้อยไปมาก', 'cardbox.sortLengthDesc': 'ความยาว: มากไปน้อย',
-      'cardbox.lengthRangeLabel': 'ช่วงความยาว (ตัวอักษร)', 'cardbox.lengthMin': 'ต่ำสุด', 'cardbox.lengthMax': 'มากสุด',
+      'cardbox.sortRandom': '🔀 สุ่ม (Random)',
+      'cardbox.lengthRangeLabel': 'แสดงเฉพาะความยาว (ตัวอักษร)', 'cardbox.lengthMin': 'ต่ำสุด', 'cardbox.lengthMax': 'มากสุด',
       'cardbox.sortProbDesc': 'Probability: มากไปน้อย', 'cardbox.sortProbAsc': 'Probability: น้อยไปมาก',
       'cardbox.sortPlayDesc': 'Playability: มากไปน้อย', 'cardbox.sortPlayAsc': 'Playability: น้อยไปมาก',
       'cardbox.anagramReviewStart': '📖 Anagram Review', 'cardbox.anagramReviewSelected': '📖 Anagram Review คำที่เลือก',
@@ -237,7 +238,8 @@
       'cardbox.sortRecent': 'Recently added', 'cardbox.sortRoundsDesc': 'Study rounds: high→low',
       'cardbox.sortRoundsAsc': 'Study rounds: low→high', 'cardbox.sortAlpha': 'Alphabetical (A→Z)',
       'cardbox.sortLengthAsc': 'Length: low→high', 'cardbox.sortLengthDesc': 'Length: high→low',
-      'cardbox.lengthRangeLabel': 'Length range (letters)', 'cardbox.lengthMin': 'Min', 'cardbox.lengthMax': 'Max',
+      'cardbox.sortRandom': '🔀 Random',
+      'cardbox.lengthRangeLabel': 'Show length only (letters)', 'cardbox.lengthMin': 'Min', 'cardbox.lengthMax': 'Max',
       'cardbox.sortProbDesc': 'Probability: high→low', 'cardbox.sortProbAsc': 'Probability: low→high',
       'cardbox.sortPlayDesc': 'Playability: high→low', 'cardbox.sortPlayAsc': 'Playability: low→high',
       'cardbox.anagramReviewStart': '📖 Anagram Review', 'cardbox.anagramReviewSelected': '📖 Anagram Review selected',
@@ -2531,7 +2533,7 @@
   // Cardbox list is paginated like the Word Browser (PAGE_SIZE per page) and
   // uses a single delegated click listener instead of one per row, so large
   // cardboxes (hundreds/thousands of cards) don't lag the UI.
-  const cardboxRenderState = { sorted: [], shown: 0, selected: loadCardboxSelection(), search: '', sort: 'recent', leechOnly: false, lengthMin: 2, lengthMax: 15 };
+  const cardboxRenderState = { sorted: [], shown: 0, selected: loadCardboxSelection(), search: '', sort: 'recent', leechOnly: false, lengthMin: null, lengthMax: null };
 
   // Persists the set of ticked words to localStorage so an accidental
   // refresh/reload doesn't lose which words the learner had picked out —
@@ -2566,7 +2568,19 @@
       if ((b.leech ? 1 : 0) !== (a.leech ? 1 : 0)) return (b.leech ? 1 : 0) - (a.leech ? 1 : 0);
       return (b.streak || 0) - (a.streak || 0);
     };
+    // 'random' is handled separately in cardboxFilteredSorted (a shuffle,
+    // not a comparator) — fall through to default order here just in case
+    // this ever gets called directly for that value.
     return function (a, b) { return b.addedAt - a.addedAt; };
+  }
+
+  // Fisher-Yates shuffle — used by the "🔀 สุ่ม (Random)" sort option.
+  function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
   }
 
   // Cardbox search: a plain query does a substring match like before. But if
@@ -2586,11 +2600,20 @@
       filtered = q ? box.filter(function (c) { return c.word.indexOf(q) !== -1; }) : box.slice();
     }
     if (cardboxRenderState.leechOnly) filtered = filtered.filter(function (c) { return c.leech; });
-    if (cardboxRenderState.sort === 'length-asc' || cardboxRenderState.sort === 'length-desc') {
-      const lo = cardboxRenderState.lengthMin, hi = cardboxRenderState.lengthMax;
-      filtered = filtered.filter(function (c) { return c.word.length >= lo && c.word.length <= hi; });
+    // Length filter is independent of sort mode now — applies whenever
+    // either bound is set, regardless of which sort is active. Leaving
+    // both blank means "show all lengths" (the field's whole point).
+    const lo = cardboxRenderState.lengthMin, hi = cardboxRenderState.lengthMax;
+    if (lo != null || hi != null) {
+      const effLo = lo != null ? lo : 1;
+      const effHi = hi != null ? hi : 99;
+      filtered = filtered.filter(function (c) { return c.word.length >= effLo && c.word.length <= effHi; });
     }
-    filtered.sort(cardboxSortCompare(cardboxRenderState.sort));
+    if (cardboxRenderState.sort === 'random') {
+      shuffleArray(filtered);
+    } else {
+      filtered.sort(cardboxSortCompare(cardboxRenderState.sort));
+    }
     return filtered;
   }
 
@@ -2783,8 +2806,6 @@
 
     document.getElementById('cardboxSortSelect').addEventListener('change', function (e) {
       cardboxRenderState.sort = e.target.value;
-      const isLengthSort = (e.target.value === 'length-asc' || e.target.value === 'length-desc');
-      document.getElementById('cardboxLengthRangeField').style.display = isLengthSort ? '' : 'none';
       renderCardboxTab();
     });
 
@@ -2794,9 +2815,11 @@
       cardboxLengthRangeTimer = setTimeout(function () {
         const minEl = document.getElementById('cardboxLengthMin');
         const maxEl = document.getElementById('cardboxLengthMax');
-        let lo = Math.max(2, parseInt(minEl.value, 10) || 2);
-        let hi = Math.max(2, parseInt(maxEl.value, 10) || 15);
-        if (lo > hi) { const tmp = lo; lo = hi; hi = tmp; }
+        // Blank means "no bound on this side" — that's what makes leaving
+        // both fields empty show every length, as requested.
+        let lo = minEl.value.trim() === '' ? null : Math.max(1, parseInt(minEl.value, 10) || 1);
+        let hi = maxEl.value.trim() === '' ? null : Math.max(1, parseInt(maxEl.value, 10) || 1);
+        if (lo != null && hi != null && lo > hi) { const tmp = lo; lo = hi; hi = tmp; }
         cardboxRenderState.lengthMin = lo;
         cardboxRenderState.lengthMax = hi;
         renderCardboxTab();
