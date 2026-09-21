@@ -558,6 +558,15 @@
     }
     unlocked = loadJSON(UNLOCKED_KEY, {});
     refreshFromCardbox();
+    // bestDayStreak/totalDaysActive were added after dayStreak already
+    // existed — for a returning user whose save predates them, seed
+    // bestDayStreak from their current streak so it doesn't show 0 while
+    // dayStreak already shows their real, larger streak.
+    stats.bestDayStreak = Math.max(stats.bestDayStreak || 0, stats.dayStreak || 0);
+    // Same reasoning for totalDaysActive: it can't be less than the
+    // current streak (a streak of N days necessarily means N active
+    // days), so seed it to at least that for pre-existing saves.
+    stats.totalDaysActive = Math.max(stats.totalDaysActive || 0, stats.dayStreak || 0);
     const ALL_PRACTICE_MODES = ['odds', 'voweldump', 'rackbalance', 'endgame', 'parallel'];
     stats.hasUsedAllPracticeModes = ALL_PRACTICE_MODES.every(function (m) { return !!stats.tabsVisited[m]; });
     saveStats();

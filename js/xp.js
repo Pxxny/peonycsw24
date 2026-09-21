@@ -45,6 +45,51 @@
       const parsed = raw ? JSON.parse(raw) : null;
       totalXp = (parsed && typeof parsed.totalXp === 'number' && parsed.totalXp >= 0) ? parsed.totalXp : 0;
     } catch (e) { totalXp = 0; }
+    if (totalXp === 0) backfillFromExistingProgress();
+  }
+
+  // One-time migration: XP launched after some people already had real
+  // Cardbox history (mastered words, review streaks, etc.) — without this,
+  // their Profile would show "0 XP" right next to "653 words learned",
+  // which reads as broken even though it's technically accurate (no XP
+  // was ever awarded for that older progress). Estimate a fair retroactive
+  // total once, from what the Cardbox already records:
+  //   +10 for every word ever answered correctly at least once (the
+  //        "new_word" award, one-time per word — same as live play)
+  //   +5 per additional correct rep on a word not yet mastered (approximates
+  //        the "correct" tier for words still in the learning phase)
+  //   +3 per correct rep beyond that on a mastered word (approximates the
+  //        "review" tier for words that reached mastery)
+  // This never runs again once totalXp is nonzero, so it can't double up
+  // with live-earned XP, and it never runs at all for a brand-new account
+  // (empty Cardbox contributes 0 either way).
+  function backfillFromExistingProgress() {
+    try {
+      const raw = localStorage.getItem('csw24_cardbox_v1');
+      const box = raw ? JSON.parse(raw) : [];
+      if (!box.length) return;
+      let estimate = 0;
+      box.forEach(function (c) {
+        const correct = c.correct || 0;
+        if (correct <= 0) return;
+        estimate += AWARD_XP.new_word; // first-ever correct rep
+        const extraReps = correct - 1;
+        if (extraReps <= 0) return;
+        if (c.status === 'mastered') {
+          // 2 reps to go from "learning" to "mastered" earn the mid tier,
+          // everything after that is treated as review-tier repetition.
+          const midReps = Math.min(2, extraReps);
+          const reviewReps = extraReps - midReps;
+          estimate += midReps * AWARD_XP.correct + reviewReps * AWARD_XP.review;
+        } else {
+          estimate += extraReps * AWARD_XP.correct;
+        }
+      });
+      if (estimate > 0) {
+        totalXp = estimate;
+        save();
+      }
+    } catch (e) { /* leave totalXp at 0 on any parse failure */ }
   }
 
   function save() {
@@ -186,12 +231,19 @@
   // ---------- lifetime accuracy / word counts (derived from Cardbox) ----------
 
   function getWordStats() {
-    let total = 0, mastered = 0, weak = 0, correctSum = 0, incorrectSum = 0;
+    // "Words learned" must mean words the person has actually studied at
+    // least once — not the raw size of Cardbox. A word sitting in Cardbox
+    // that's never been reviewed (status 'new', 0 correct + 0 incorrect)
+    // hasn't been learned yet; counting it made this stat read as "60
+    // words learned" for someone who had never studied a single card.
+    let saved = 0, studied = 0, mastered = 0, weak = 0, correctSum = 0, incorrectSum = 0;
     try {
       const raw = localStorage.getItem('csw24_cardbox_v1');
       const box = raw ? JSON.parse(raw) : [];
-      total = box.length;
+      saved = box.length;
       box.forEach(function (c) {
+        const attempts = (c.correct || 0) + (c.incorrect || 0);
+        if (attempts > 0 || c.status === 'mastered' || c.status === 'learning') studied++;
         if (c.status === 'mastered') mastered++;
         // "Weak" = leeching, or currently below mastered with more misses
         // than hits — the same word-level signal the Leech badge and the
@@ -201,9 +253,9 @@
         incorrectSum += c.incorrect || 0;
       });
     } catch (e) { /* keep zeros */ }
-    const attempts = correctSum + incorrectSum;
-    const accuracy = attempts > 0 ? Math.round((correctSum / attempts) * 100) : 0;
-    return { total: total, mastered: mastered, weak: weak, accuracy: accuracy };
+    const attemptsTotal = correctSum + incorrectSum;
+    const accuracy = attemptsTotal > 0 ? Math.round((correctSum / attemptsTotal) * 100) : null;
+    return { total: studied, saved: saved, mastered: mastered, weak: weak, accuracy: accuracy };
   }
 
   // ---------- "Your Word Journey" profile panel ----------
@@ -267,7 +319,7 @@
         '</div>' +
         '<div class="xp-journey-stats-grid">' +
           '<div class="xp-stat"><b>' + ws.total.toLocaleString() + '</b><span>' + escapeHtml(L.wordsLearned) + '</span></div>' +
-          '<div class="xp-stat"><b>' + ws.accuracy + '%</b><span>' + escapeHtml(L.accuracy) + '</span></div>' +
+          '<div class="xp-stat"><b>' + (ws.accuracy === null ? '—' : ws.accuracy + '%') + '</b><span>' + escapeHtml(L.accuracy) + '</span></div>' +
           '<div class="xp-stat"><b>🔥 ' + (stats.dayStreak || 0) + '</b><span>' + escapeHtml(L.streak) + '</span></div>' +
           '<div class="xp-stat"><b>🏆 ' + achievementCount + '</b><span>' + escapeHtml(L.achievements) + '</span></div>' +
         '</div>' +
