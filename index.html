@@ -1004,9 +1004,19 @@
     <div class="panel-card" id="endgameTrainerCard" style="display:none">
       <h2>🏁 Endgame Trainer</h2>
       <p class="panel-sub">สร้างกระดานกลางเกมจริง (ทุกคำถูกต้องตามกติกา) + มือช่วงท้ายเกม — หาคำที่ทำแต้มสูงสุดให้ได้ก่อนเฉลย</p>
+      <label class="select-row" for="endgameRackSource">
+        <span>ที่มาของมือ (rack):</span>
+        <select id="endgameRackSource">
+          <option value="bag">🎲 จากถุงตัวอักษร (ขนาดมือแปรผันตามที่เหลือในถุง — สมจริงที่สุด)</option>
+          <option value="bag-exact">🎯 จากถุงตัวอักษร — บังคับ 7 ตัวเป๊ะ (ฝึก Bingo Hunting)</option>
+          <option value="cardbox">📇 จาก Cardbox — ดึงคำที่กำลังเรียนมาวางในมือ</option>
+        </select>
+      </label>
+      <p class="panel-sub" id="endgameRackSourceHint"></p>
       <div id="endgameLoading" class="practice-board-loading" style="display:none">⏳ กำลังสร้างสถานการณ์... (อาจใช้เวลาสักครู่)</div>
       <div id="endgameContent" style="display:none">
         <div class="play-board-wrap"><div id="endgameBoard" class="play-board"></div></div>
+        <div id="endgameCardboxBadge" class="cardbox-word-badge" style="display:none"></div>
         <div class="vowel-dump-rack" id="endgameRack"></div>
         <p class="panel-sub">มือของคุณเหลือ <span id="endgameTilesLeft"></span> ตัวในถุง — หาคำที่ทำแต้มได้สูงสุด แล้วกดเฉลย</p>
         <div class="vowel-dump-answer-row">
@@ -1019,9 +1029,18 @@
     <div class="panel-card" id="parallelFinderCard" style="display:none">
       <h2>➕ Parallel Play Finder</h2>
       <p class="panel-sub">สร้างกระดานกลางเกมจริง — หา "parallel play" ทั้งหมดที่เป็นไปได้ (คำที่วางแล้วเกิดคำใหม่มากกว่า 1 คำพร้อมกัน)</p>
+      <label class="select-row" for="parallelRackSource">
+        <span>ที่มาของมือ (rack):</span>
+        <select id="parallelRackSource">
+          <option value="bag">🎲 จากถุงตัวอักษร (ขนาดมือแปรผันตามที่เหลือในถุง — สมจริงที่สุด)</option>
+          <option value="bag-exact">🎯 จากถุงตัวอักษร — บังคับ 7 ตัวเป๊ะ</option>
+          <option value="cardbox">📇 จาก Cardbox — ดึงคำที่กำลังเรียนมาวางในมือ</option>
+        </select>
+      </label>
       <div id="parallelLoading" class="practice-board-loading" style="display:none">⏳ กำลังสร้างสถานการณ์... (อาจใช้เวลาสักครู่)</div>
       <div id="parallelContent" style="display:none">
         <div class="play-board-wrap"><div id="parallelBoard" class="play-board"></div></div>
+        <div id="parallelCardboxBadge" class="cardbox-word-badge" style="display:none"></div>
         <div class="vowel-dump-rack" id="parallelRack"></div>
         <div class="vowel-dump-answer-row">
           <button type="button" class="btn btn-primary" id="parallelReveal">แสดง Parallel Play ทั้งหมด</button>
