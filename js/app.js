@@ -6104,6 +6104,44 @@
   const ENDGAME_BOARD_MOVES = 5;   // how many real moves to pre-place before the learner's turn
   const ENDGAME_RACK_SIZE = 7;
 
+  // Rack source for both trainers: 'bag' (old variable-size behavior),
+  // 'bag-exact' (always a full 7-tile "bingo hunting" rack), or 'cardbox'
+  // (rack is built around a word the learner is actually studying in
+  // their Cardbox, drawn honestly from whatever the real bag can still
+  // supply). Persisted per trainer since a learner may want a different
+  // mode for each.
+  const ENDGAME_RACK_SRC_KEY = 'csw24_endgame_rack_src_v1';
+  const PARALLEL_RACK_SRC_KEY = 'csw24_parallel_rack_src_v1';
+  const RACK_SOURCES = ['bag', 'bag-exact', 'cardbox'];
+  function loadRackSourcePref(key) {
+    try {
+      const v = localStorage.getItem(key);
+      return RACK_SOURCES.indexOf(v) !== -1 ? v : 'bag';
+    } catch (e) { return 'bag'; }
+  }
+  function saveRackSourcePref(key, val) {
+    try { localStorage.setItem(key, val); } catch (e) { /* ignore */ }
+  }
+
+  // Candidate word list for 'cardbox' rack source: real Cardbox words,
+  // shortest-first (more likely to still fit whatever the bag has left),
+  // shuffled within each length so repeated scenarios don't always try
+  // the same word first. Words longer than the rack size are filtered out
+  // by the engine itself; nothing here needs to duplicate that check.
+  function cardboxWordPool(maxLen) {
+    const box = loadCardbox();
+    const words = box.map(function (c) { return c.word; })
+      .filter(function (w) { return typeof w === 'string' && w.length >= 2 && w.length <= (maxLen || 7); });
+    // Fisher-Yates shuffle, then stable-sort by length so short words are tried first
+    // (most likely to fit the remaining bag) while staying randomized within each length.
+    for (let i = words.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = words[i]; words[i] = words[j]; words[j] = t;
+    }
+    words.sort(function (a, b) { return a.length - b.length; });
+    return words;
+  }
+
   // Renders a completed (non-interactive) board into `el` — same visual
   // classes as the Play tab's real board (play-board/play-cell/premium-*)
   // so it looks consistent, but with no click/drag handlers since this
@@ -6162,10 +6200,13 @@
     if (content) content.style.display = 'none';
     if (resultEl) resultEl.innerHTML = '';
 
-    worker.call('buildEndgameScenario', [ENDGAME_BOARD_MOVES, ENDGAME_RACK_SIZE]).then(function (scenario) {
+    const rackSrc = loadRackSourcePref(ENDGAME_RACK_SRC_KEY);
+    const opts = { rackSource: rackSrc };
+    if (rackSrc === 'cardbox') opts.cardboxWords = cardboxWordPool(ENDGAME_RACK_SIZE);
+    worker.call('buildEndgameScenario', [ENDGAME_BOARD_MOVES, ENDGAME_RACK_SIZE, opts]).then(function (scenario) {
       if (loading) loading.style.display = 'none';
       if (!scenario) {
-        if (resultEl) resultEl.innerHTML = '<div class="odds-trainer-error">ไม่สามารถสร้างสถานการณ์ได้ ลองใหม่อีกครั้ง</div>';
+        if (resultEl) resultEl.innerHTML = rackSourceErrorHTML(rackSrc, opts.cardboxWords);
         return;
       }
       if (content) content.style.display = '';
@@ -6174,10 +6215,35 @@
       renderStaticRack(document.getElementById('endgameRack'), scenario.rack);
       const tilesLeftEl = document.getElementById('endgameTilesLeft');
       if (tilesLeftEl) tilesLeftEl.textContent = scenario.tilesLeftInBag;
+      renderCardboxWordBadge(document.getElementById('endgameCardboxBadge'), scenario.cardboxWord);
     }).catch(function (err) {
       if (loading) { loading.style.display = ''; loading.textContent = '⚠️ เกิดข้อผิดพลาด: ' + err.message; }
       if (content) content.style.display = 'none';
     });
+  }
+
+  // Shared honest-failure message for both trainers, tailored to why the
+  // rack couldn't be built this time.
+  function rackSourceErrorHTML(rackSrc, cardboxWords) {
+    if (rackSrc === 'cardbox') {
+      if (!cardboxWords || !cardboxWords.length) {
+        return '<div class="odds-trainer-error">ยังไม่มีคำใน Cardbox ให้ดึงมาใช้ — เพิ่มคำในแท็บ Cardbox ก่อน หรือสลับไปโหมด "จากถุงตัวอักษร"</div>';
+      }
+      return '<div class="odds-trainer-error">ไม่มีคำใน Cardbox ที่ถุงตัวอักษรตอนนี้จัดหาให้ได้พอดี — ลองกด "สถานการณ์ใหม่" อีกครั้ง (คำ/การจั่วรอบใหม่มักจะพอ)</div>';
+    }
+    if (rackSrc === 'bag-exact') {
+      return '<div class="odds-trainer-error">ถุงตัวอักษรเหลือไม่พอสำหรับมือ 7 ตัวเต็มในตอนนี้ — ลองกด "สถานการณ์ใหม่" อีกครั้ง หรือสลับไปโหมด "จากถุงตัวอักษร"</div>';
+    }
+    return '<div class="odds-trainer-error">ไม่สามารถสร้างสถานการณ์ได้ ลองใหม่อีกครั้ง</div>';
+  }
+
+  // Small badge shown above the rack when it was built around a Cardbox word,
+  // so the learner knows which of their own words is sitting in the rack.
+  function renderCardboxWordBadge(el, word) {
+    if (!el) return;
+    if (!word) { el.style.display = 'none'; el.textContent = ''; return; }
+    el.style.display = '';
+    el.textContent = '📇 คำจาก Cardbox ในมือนี้: ' + word;
   }
 
   let endgameState = null;
@@ -6200,8 +6266,13 @@
   function initEndgameUI() {
     const revealBtn = document.getElementById('endgameReveal');
     const nextBtn = document.getElementById('endgameNext');
+    const rackSrcSel = document.getElementById('endgameRackSource');
     if (revealBtn) revealBtn.addEventListener('click', revealEndgameAnswer);
     if (nextBtn) nextBtn.addEventListener('click', nextEndgameScenario);
+    if (rackSrcSel) {
+      rackSrcSel.value = loadRackSourcePref(ENDGAME_RACK_SRC_KEY);
+      rackSrcSel.addEventListener('change', function () { saveRackSourcePref(ENDGAME_RACK_SRC_KEY, rackSrcSel.value); });
+    }
   }
 
   // ----- Parallel Play Finder -----
@@ -6230,16 +6301,20 @@
     if (content) content.style.display = 'none';
     if (resultEl) resultEl.innerHTML = '';
 
-    worker.call('buildParallelScenario', [ENDGAME_BOARD_MOVES, ENDGAME_RACK_SIZE]).then(function (scenario) {
+    const rackSrcP = loadRackSourcePref(PARALLEL_RACK_SRC_KEY);
+    const optsP = { rackSource: rackSrcP };
+    if (rackSrcP === 'cardbox') optsP.cardboxWords = cardboxWordPool(ENDGAME_RACK_SIZE);
+    worker.call('buildParallelScenario', [ENDGAME_BOARD_MOVES, ENDGAME_RACK_SIZE, optsP]).then(function (scenario) {
       if (loading) loading.style.display = 'none';
       if (!scenario) {
-        if (resultEl) resultEl.innerHTML = '<div class="odds-trainer-error">ไม่สามารถสร้างสถานการณ์ได้ ลองใหม่อีกครั้ง</div>';
+        if (resultEl) resultEl.innerHTML = rackSourceErrorHTML(rackSrcP, optsP.cardboxWords);
         return;
       }
       if (content) content.style.display = '';
       parallelState = scenario;
       renderStaticBoard(document.getElementById('parallelBoard'), scenario.board);
       renderStaticRack(document.getElementById('parallelRack'), scenario.rack);
+      renderCardboxWordBadge(document.getElementById('parallelCardboxBadge'), scenario.cardboxWord);
       if (window.Achievements) window.Achievements.record('parallel_viewed');
     }).catch(function (err) {
       if (loading) { loading.style.display = ''; loading.textContent = '⚠️ เกิดข้อผิดพลาด: ' + err.message; }
@@ -6269,8 +6344,13 @@
   function initParallelUI() {
     const revealBtn = document.getElementById('parallelReveal');
     const nextBtn = document.getElementById('parallelNext');
+    const rackSrcSel = document.getElementById('parallelRackSource');
     if (revealBtn) revealBtn.addEventListener('click', revealParallelAnswers);
     if (nextBtn) nextBtn.addEventListener('click', nextParallelScenario);
+    if (rackSrcSel) {
+      rackSrcSel.value = loadRackSourcePref(PARALLEL_RACK_SRC_KEY);
+      rackSrcSel.addEventListener('change', function () { saveRackSourcePref(PARALLEL_RACK_SRC_KEY, rackSrcSel.value); });
+    }
   }
 
   // ---------- Dashboard: REVIEW / time-studied / Daily Goal ----------

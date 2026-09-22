@@ -283,14 +283,18 @@
     wrap.scrollTop = wrap.scrollHeight;
   }
 
-  // Secret menu unlock — exact keyword only (any casing), checked before
-  // any intent-detection or word-lookup logic ever runs, so this can
-  // never misfire off of a real CSW24 word or a normal coach question.
-  // Deliberately not part of CoachEngine.js's fuzzy intent regexes: this
-  // is a literal trigger phrase, not something the AI should ever be
-  // free to interpret loosely.
+  // Secret menu unlock — checked before any intent-detection or
+  // word-lookup logic ever runs, so this can never misfire off of a real
+  // CSW24 word or a normal coach question. Deliberately not part of
+  // CoachEngine.js's fuzzy intent regexes: this is a literal trigger
+  // phrase, not something the AI should ever be free to interpret
+  // loosely — matched as a whole word so "practice" unlocks whether it's
+  // typed alone or inside a sentence ("เปิด practice หน่อย"), but never
+  // as a substring of an unrelated word (e.g. "practiced").
+  // Case-insensitive; the surrounding sentence (if any) is otherwise
+  // ignored, so no other coach behavior can ever be reached by this path.
   function isPracticeUnlockPhrase(text) {
-    return typeof text === 'string' && text.trim().toLowerCase() === 'practice';
+    return typeof text === 'string' && /(^|[^a-z])practice($|[^a-z])/i.test(text);
   }
 
   function handleUserMessage(text) {

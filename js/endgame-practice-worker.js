@@ -38,9 +38,9 @@ self.onmessage = function (e) {
   let result, error;
   try {
     if (msg.method === 'buildEndgameScenario') {
-      result = self.EndgamePracticeEngine.buildEndgameScenario(msg.args[0], msg.args[1]);
+      result = self.EndgamePracticeEngine.buildEndgameScenario(msg.args[0], msg.args[1], msg.args[2]);
     } else if (msg.method === 'buildParallelScenario') {
-      result = self.EndgamePracticeEngine.buildParallelScenario(msg.args[0], msg.args[1]);
+      result = self.EndgamePracticeEngine.buildParallelScenario(msg.args[0], msg.args[1], msg.args[2]);
     } else {
       error = 'unknown method: ' + msg.method;
     }
