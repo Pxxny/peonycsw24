@@ -581,6 +581,15 @@
         <span class="selected-count" id="browseSelectedCount" data-i18n="browse.selectedCount">เลือกแล้ว 0 คำ</span>
         <button class="btn btn-primary" id="browseSaveBtn" data-i18n="browse.saveSelected">💾 บันทึกที่เลือกลง Cardbox</button>
       </div>
+      <div class="btn-row" id="browseSelectNRow" style="align-items:center">
+        <div class="field" style="max-width:9rem;margin-bottom:0">
+          <label for="browseSelectNInput" data-i18n="browse.selectNLabel">จำนวนคำ</label>
+          <input type="number" id="browseSelectNInput" min="1" step="1" placeholder="เช่น 1000">
+        </div>
+        <button class="btn btn-outline btn-sm" id="browseSelectFirstNBtn" data-i18n="browse.selectFirstN">เลือก N คำแรก</button>
+        <button class="btn btn-outline btn-sm" id="browseSelectRandomNBtn" data-i18n="browse.selectRandomN">🎲 เลือกแบบสุ่ม N คำ</button>
+        <button class="btn btn-outline btn-sm" id="browseSelectNoneBtn" data-i18n="browse.selectNone">ล้างที่เลือก</button>
+      </div>
       <div id="browseResults"></div>
       <div class="btn-row" id="browseLoadMoreWrap" style="display:none">
         <button class="btn btn-outline" id="browseLoadMoreBtn">โหลดเพิ่ม</button>
@@ -881,6 +890,14 @@
     <div class="panel-card">
       <h2 data-i18n="learn.title">🎓 Learn</h2>
       <p class="panel-sub" data-i18n="learn.sub">เลือกความยาวคำศัพท์ที่ต้องการเรียน</p>
+      <button type="button" class="dash-review-card" id="learnDueReviewBtn" style="margin-bottom:1rem">
+        <div class="dash-review-top">
+          <span class="dash-review-label" data-i18n="learn.dueReviewLabel">⏰ ถึงเวลาเรียน</span>
+        </div>
+        <div class="dash-review-num" id="learnDueReviewNum">0</div>
+        <div class="dash-review-detail" id="learnDueReviewDetail" data-i18n="learn.dueReviewDetail">ไม่มีคำถึงกำหนดตอนนี้</div>
+        <span class="dash-review-cta" data-i18n="learn.dueReviewCta">เริ่มเรียนคำที่ถึงกำหนด →</span>
+      </button>
       <div class="chip-row chip-row-lg" id="learnLenChips">
         <button type="button" class="length-chip" data-len="2">2L</button>
         <button type="button" class="length-chip" data-len="3">3L</button>
