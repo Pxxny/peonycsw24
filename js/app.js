@@ -3240,6 +3240,7 @@
 
   const session = { queue: [], index: 0, mode: 'flashcard', anagramOrder: 'alpha', cycleInterval: 3, correct: 0, incorrect: 0, flipped: false, hintLevel: 0, hintUsed: false, missed: [], reshuffleHandle: null,
     // ---- Resume bookkeeping (see "Study session resume" block below) ----
+    id: null,              // unique id of this session's saved slot, so multiple pending sessions can be stored side by side
     startedAt: 0,
     active: false,        // true from startStudySession until the summary/exit is confirmed
     cardState: null,      // per-card progress that survives a reload: { index, found, hintLevel, hintUsed, answered, flipped, letters }
@@ -3417,26 +3418,44 @@
   // ---------- Study session resume ----------
   // If the page is closed / reloaded / killed mid-session (tab discarded by
   // the phone, accidental refresh, crash, lost connection), the learner can
-  // pick the Cardbox session back up exactly where they left off.
+  // pick any Cardbox session back up exactly where it was left off.
   //
-  // Design rules (the learner asked that nothing in progress ever be lost):
+  // Design rules (the learner asked that nothing in progress ever be lost,
+  // AND that more than one session can be left pending at once):
   //  * Saved on EVERY state change, not just on unload — beforeunload is not
   //    reliable on mobile, so it is only a second safety net.
-  //  * Two slots are written (primary + a rolling backup). If the primary is
+  //  * All pending sessions live together as a LIST under one storage key,
+  //    each with its own id, so starting a new session no longer overwrites
+  //    an old one — any number can sit "in progress" side by side, up to a
+  //    sane cap (oldest dropped first if the cap is hit).
+  //  * A rolling backup of the whole list is kept too. If the primary is
   //    ever corrupted/half-written, the backup is used instead of losing it.
   //  * Both live under the csw24_ prefix, so the existing IndexedDB backup and
   //    full-progress export/import already carry them with no extra wiring.
-  //  * Leaving a session with Esc / the exit button KEEPS the snapshot. It is
-  //    only deleted when the session is finished, or the learner explicitly
-  //    chooses to discard it (with a confirm).
+  //  * Leaving a session with Esc / the exit button KEEPS its snapshot in the
+  //    list. It is only removed when that session is finished, or the
+  //    learner explicitly chooses to discard it (with a confirm).
   //  * Grading is never replayed: a card that was already answered comes back
   //    in its "answered" state, so updateCardResult() is not called twice.
-  const SESSION_RESUME_KEY = 'csw24_cardbox_session_v1';
-  const SESSION_RESUME_BAK_KEY = 'csw24_cardbox_session_bak_v1';
-  const SESSION_RESUME_VERSION = 1;
+  //  * Older saves used a single-slot format (one session only). That old
+  //    pair of keys is migrated into the new list format once, the first
+  //    time it's seen, so nobody's in-progress session is lost by this change.
+  const SESSION_RESUME_LIST_KEY = 'csw24_cardbox_sessions_v2';
+  const SESSION_RESUME_LIST_BAK_KEY = 'csw24_cardbox_sessions_bak_v2';
+  const SESSION_RESUME_LEGACY_KEY = 'csw24_cardbox_session_v1';
+  const SESSION_RESUME_LEGACY_BAK_KEY = 'csw24_cardbox_session_bak_v1';
+  const SESSION_RESUME_VERSION = 2;
   // A saved session older than this is still offered, just flagged as old.
   // It is NEVER auto-deleted — only the learner decides to discard it.
   const SESSION_RESUME_STALE_MS = 3 * 24 * 3600 * 1000;
+  // Upper bound on how many pending sessions are kept at once, so an
+  // abandoned habit of "start and walk away" can't grow storage forever.
+  // The oldest (by savedAt) is dropped first once this is exceeded.
+  const SESSION_RESUME_MAX_COUNT = 12;
+
+  function newSessionId() {
+    return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
 
   // Cards are stored as a compact snapshot (word + the fields the session
   // actually reads). Live SM-2 numbers are always re-read from the cardbox at
@@ -3449,6 +3468,7 @@
   function buildSessionSnapshot() {
     return {
       v: SESSION_RESUME_VERSION,
+      id: session.id,
       savedAt: Date.now(),
       startedAt: session.startedAt || Date.now(),
       mode: session.mode,
@@ -3474,37 +3494,107 @@
       (snap.mode === 'flashcard' || snap.mode === 'anagram' || snap.mode === 'recall');
   }
 
-  function readSessionSnapshotRaw(key) {
+  function readSessionListRaw(key) {
     try {
       const raw = localStorage.getItem(key);
       if (!raw) return null;
-      const snap = JSON.parse(raw);
-      return isValidSessionSnapshot(snap) ? snap : null;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return null;
+      const list = parsed.filter(isValidSessionSnapshot);
+      return list.length ? list : null;
     } catch (e) { return null; }
   }
 
+  // One-time upgrade: fold the old single-slot snapshot (if any) into the
+  // new list, then remove the legacy keys so this only runs once.
+  function migrateLegacySessionSnapshot() {
+    let legacy = null;
+    try {
+      const rawA = localStorage.getItem(SESSION_RESUME_LEGACY_KEY);
+      const rawB = localStorage.getItem(SESSION_RESUME_LEGACY_BAK_KEY);
+      const a = rawA ? JSON.parse(rawA) : null;
+      const b = rawB ? JSON.parse(rawB) : null;
+      const pick = (a && b) ? ((b.savedAt || 0) > (a.savedAt || 0) ? b : a) : (a || b);
+      if (isValidSessionSnapshot(pick)) legacy = pick;
+    } catch (e) { /* ignore corrupt legacy data */ }
+    try {
+      localStorage.removeItem(SESSION_RESUME_LEGACY_KEY);
+      localStorage.removeItem(SESSION_RESUME_LEGACY_BAK_KEY);
+    } catch (e) {}
+    if (!legacy) return;
+    legacy.id = legacy.id || newSessionId();
+    legacy.v = SESSION_RESUME_VERSION;
+    const list = readSessionListRaw(SESSION_RESUME_LIST_KEY) || [];
+    list.push(legacy);
+    writeSessionList(list);
+  }
+
+  function writeSessionList(list) {
+    let json;
+    try { json = JSON.stringify(list); } catch (e) { return false; }
+    try {
+      const prev = localStorage.getItem(SESSION_RESUME_LIST_KEY);
+      if (prev) localStorage.setItem(SESSION_RESUME_LIST_BAK_KEY, prev);
+      localStorage.setItem(SESSION_RESUME_LIST_KEY, json);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Newest valid of (primary, backup). Falls back automatically if the
-  // primary is missing/corrupt.
+  // primary is missing/corrupt. Runs the one-time legacy migration first.
+  let _legacyMigrated = false;
+  function loadSessionList() {
+    if (!_legacyMigrated) { _legacyMigrated = true; migrateLegacySessionSnapshot(); }
+    const a = readSessionListRaw(SESSION_RESUME_LIST_KEY);
+    const b = readSessionListRaw(SESSION_RESUME_LIST_BAK_KEY);
+    if (a && b) {
+      // Merge by id, preferring whichever copy of each session is newer —
+      // a crash mid-write should never lose a session that only the backup
+      // still has a valid copy of.
+      const byId = {};
+      b.forEach(function (s) { byId[s.id] = s; });
+      a.forEach(function (s) {
+        const existing = byId[s.id];
+        byId[s.id] = (!existing || (s.savedAt || 0) >= (existing.savedAt || 0)) ? s : existing;
+      });
+      return Object.keys(byId).map(function (id) { return byId[id]; });
+    }
+    return a || b || [];
+  }
+
+  function findSessionSnapshot(id) {
+    const list = loadSessionList();
+    return list.find(function (s) { return s.id === id; }) || null;
+  }
+
+  // Back-compat helper: "the" snapshot to offer when nothing specific was
+  // asked for — the most recently saved one.
   function loadSessionSnapshot() {
-    const a = readSessionSnapshotRaw(SESSION_RESUME_KEY);
-    const b = readSessionSnapshotRaw(SESSION_RESUME_BAK_KEY);
-    if (a && b) return (b.savedAt || 0) > (a.savedAt || 0) ? b : a;
-    return a || b;
+    const list = loadSessionList();
+    if (!list.length) return null;
+    return list.slice().sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); })[0];
   }
 
   let _sessionSaveFailedToast = false;
   function saveSessionSnapshot() {
     if (!session.active || !session.queue.length) return;
     if (session.index >= session.queue.length) return; // summary screen has nothing to resume
-    let json;
-    try { json = JSON.stringify(buildSessionSnapshot()); } catch (e) { return; }
-    try {
-      // Rotate the previous good primary into the backup slot first, so a
-      // crash between the two writes still leaves one intact copy.
-      const prev = localStorage.getItem(SESSION_RESUME_KEY);
-      if (prev) localStorage.setItem(SESSION_RESUME_BAK_KEY, prev);
-      localStorage.setItem(SESSION_RESUME_KEY, json);
-    } catch (e) {
+    if (!session.id) session.id = newSessionId();
+    const snap = buildSessionSnapshot();
+    let list = loadSessionList();
+    const idx = list.findIndex(function (s) { return s.id === snap.id; });
+    if (idx === -1) list.push(snap); else list[idx] = snap;
+    // Cap the list: drop the oldest-saved sessions first, but never the one
+    // being written right now.
+    if (list.length > SESSION_RESUME_MAX_COUNT) {
+      list.sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
+      list = list.slice(0, SESSION_RESUME_MAX_COUNT);
+      if (!list.some(function (s) { return s.id === snap.id; })) list.push(snap);
+    }
+    const ok = writeSessionList(list);
+    if (!ok) {
       // Storage full/blocked. Tell the learner once (not on every keystroke),
       // since silently losing progress is exactly what this feature prevents.
       if (!_sessionSaveFailedToast) {
@@ -3514,11 +3604,13 @@
     }
   }
 
-  function clearSessionSnapshot() {
-    try {
-      localStorage.removeItem(SESSION_RESUME_KEY);
-      localStorage.removeItem(SESSION_RESUME_BAK_KEY);
-    } catch (e) {}
+  // Removes one specific pending session by id (used both when it's
+  // finished and when the learner explicitly discards it).
+  function clearSessionSnapshot(id) {
+    const targetId = id || session.id;
+    if (!targetId) return;
+    const list = loadSessionList().filter(function (s) { return s.id !== targetId; });
+    writeSessionList(list);
     renderResumeBanner();
   }
 
@@ -3557,46 +3649,61 @@
   function renderResumeBanner() {
     const el = document.getElementById('sessionResumeBanner');
     if (!el) return;
-    // Never show the banner while a session (or Anagram Review) is on screen.
+    // Never show the list while a session (or Anagram Review) is on screen.
     const live = session.active && document.getElementById('studySession').classList.contains('open');
-    const snap = live ? null : loadSessionSnapshot();
-    if (!snap) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    const list = live ? [] : loadSessionList();
+    if (!list.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
 
-    const total = snap.queue.length;
-    const age = Date.now() - (snap.savedAt || 0);
-    const stale = age > SESSION_RESUME_STALE_MS;
-    const cs = snap.cardState && snap.cardState.index === snap.index ? snap.cardState : null;
-    const partial = cs && cs.found && cs.found.length && !cs.answered
-      ? ' · คำปัจจุบันพบแล้ว ' + cs.found.length + ' คำ (จะจำไว้ให้)' : '';
+    // Most recently saved first.
+    list.sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
+
     el.style.display = '';
     el.innerHTML =
-      '<div class="resume-banner-main">' +
-        '<div class="resume-banner-title">⏯ มีเซสชันที่เรียนค้างอยู่</div>' +
-        '<div class="resume-banner-meta">' + sessionModeLabel(snap.mode) +
-          ' · คำที่ ' + (snap.index + 1) + ' / ' + total +
-          ' · ถูก ' + (snap.correct || 0) + ' ผิด ' + (snap.incorrect || 0) +
-          ' · บันทึกเมื่อ ' + formatResumeAge(age) + partial +
-        '</div>' +
-        (stale ? '<div class="resume-banner-meta resume-banner-stale">เซสชันนี้เก่าแล้ว แต่ยังเรียนต่อได้ — ระบบไม่ลบให้เอง</div>' : '') +
-      '</div>' +
-      '<div class="resume-banner-actions">' +
-        '<button class="btn btn-primary" id="sessionResumeBtn">▶ เรียนต่อ</button>' +
-        '<button class="btn btn-outline btn-sm" id="sessionDiscardBtn">🗑 ทิ้งเซสชันนี้</button>' +
-      '</div>';
-    document.getElementById('sessionResumeBtn').addEventListener('click', resumeStudySession);
-    document.getElementById('sessionDiscardBtn').addEventListener('click', function () {
-      const s2 = loadSessionSnapshot();
-      const n = s2 ? s2.queue.length - s2.index : 0;
-      if (!confirm('ต้องการทิ้งเซสชันที่ค้างอยู่ใช่หรือไม่?\n' +
-          (s2 ? 'จะเสียความคืบหน้า (เหลืออีก ' + n + ' การ์ด) — ผลที่ตอบไปแล้วใน Cardbox ยังคงอยู่' : '') +
-          '\nการกระทำนี้ย้อนกลับไม่ได้')) return;
-      clearSessionSnapshot();
-      showToast('ทิ้งเซสชันที่ค้างอยู่แล้ว');
+      '<div class="resume-list-title">⏯ มีเซสชันที่เรียนค้างอยู่ (' + list.length + ')</div>' +
+      list.map(function (snap) {
+        const total = snap.queue.length;
+        const age = Date.now() - (snap.savedAt || 0);
+        const stale = age > SESSION_RESUME_STALE_MS;
+        const cs = snap.cardState && snap.cardState.index === snap.index ? snap.cardState : null;
+        const partial = cs && cs.found && cs.found.length && !cs.answered
+          ? ' · คำปัจจุบันพบแล้ว ' + cs.found.length + ' คำ (จะจำไว้ให้)' : '';
+        return (
+          '<div class="resume-banner-row" data-session-id="' + snap.id + '">' +
+            '<div class="resume-banner-main">' +
+              '<div class="resume-banner-meta">' + sessionModeLabel(snap.mode) +
+                ' · คำที่ ' + (snap.index + 1) + ' / ' + total +
+                ' · ถูก ' + (snap.correct || 0) + ' ผิด ' + (snap.incorrect || 0) +
+                ' · บันทึกเมื่อ ' + formatResumeAge(age) + partial +
+              '</div>' +
+              (stale ? '<div class="resume-banner-meta resume-banner-stale">เซสชันนี้เก่าแล้ว แต่ยังเรียนต่อได้ — ระบบไม่ลบให้เอง</div>' : '') +
+            '</div>' +
+            '<div class="resume-banner-actions">' +
+              '<button class="btn btn-primary btn-sm session-resume-btn" data-session-id="' + snap.id + '">▶ เรียนต่อ</button>' +
+              '<button class="btn btn-outline btn-sm session-discard-btn" data-session-id="' + snap.id + '">🗑 ทิ้ง</button>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+
+    el.querySelectorAll('.session-resume-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { resumeStudySession(btn.dataset.sessionId); });
+    });
+    el.querySelectorAll('.session-discard-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const id = btn.dataset.sessionId;
+        const s2 = findSessionSnapshot(id);
+        const n = s2 ? s2.queue.length - s2.index : 0;
+        if (!confirm('ต้องการทิ้งเซสชันที่ค้างอยู่นี้ใช่หรือไม่?\n' +
+            (s2 ? 'จะเสียความคืบหน้า (เหลืออีก ' + n + ' การ์ด) — ผลที่ตอบไปแล้วใน Cardbox ยังคงอยู่' : '') +
+            '\nการกระทำนี้ย้อนกลับไม่ได้')) return;
+        clearSessionSnapshot(id);
+        showToast('ทิ้งเซสชันที่ค้างอยู่แล้ว');
+      });
     });
   }
 
-  function resumeStudySession() {
-    const snap = loadSessionSnapshot();
+  function resumeStudySession(id) {
+    const snap = id ? findSessionSnapshot(id) : loadSessionSnapshot();
     if (!snap) { showToast('ไม่พบเซสชันที่ค้างอยู่'); renderResumeBanner(); return; }
 
     // Rebuild each queue card from the LIVE cardbox so SM-2 stats are current.
@@ -3605,6 +3712,7 @@
     // already returns null for unknown words.
     const byWord = {};
     loadCardbox().forEach(function (c) { byWord[c.word] = c; });
+    session.id = snap.id;
     session.queue = snap.queue.map(function (c) { return byWord[c.word] || { word: c.word }; });
     session.index = snap.index;
     session.mode = snap.mode;
@@ -3693,19 +3801,13 @@
   }
 
   function startStudySession(cards, mode, anagramOrder, cycleInterval, opts) {
-    // Starting a NEW session would overwrite the saved one. Never do that
-    // silently — the learner may have forgotten an unfinished session.
-    // (Internal restarts, e.g. "review only the missed words" after a
-    // finished session, pass opts.force since there is nothing left to lose.)
-    if (!(opts && opts.force)) {
-      const pending = loadSessionSnapshot();
-      if (pending && !confirm('มีเซสชันที่เรียนค้างอยู่ (คำที่ ' + (pending.index + 1) + ' / ' + pending.queue.length +
-          ')\nการเริ่มเซสชันใหม่จะแทนที่เซสชันเดิม และเรียนต่อจากเดิมไม่ได้อีก\n\nกด OK เพื่อเริ่มใหม่ / กด Cancel เพื่อกลับไปเรียนต่อเซสชันเดิม')) {
-        renderResumeBanner();
-        return;
-      }
-    }
+    // Multiple sessions can now be left pending at once, each in its own
+    // saved slot — starting a new one no longer overwrites an old one, so
+    // there is nothing to warn about or force past here anymore. `opts` is
+    // still accepted (and opts.force still honored as a no-op) so existing
+    // call sites don't need to change.
     if (mode === 'anagram') cards = dedupeByAlphagram(cards);
+    session.id = newSessionId();
     session.startedAt = Date.now();
     session.active = true;
     session.cardState = null;
@@ -3734,12 +3836,15 @@
 
   function endStudySession() {
     stopAnagramReshuffle();
-    // Finished (summary screen reached) => nothing left to resume, drop it.
-    // Left early (Esc / exit) => flush the latest state and KEEP it, so the
-    // learner can continue later from the Cardbox tab.
+    // Finished (summary screen reached) => nothing left to resume, drop just
+    // this session from the list. Left early (Esc / exit) => flush the
+    // latest state and KEEP it in the list, so the learner can continue it
+    // later from the Cardbox tab — any OTHER pending sessions are untouched
+    // either way.
     const finished = session.index >= session.queue.length;
-    if (finished) clearSessionSnapshot(); else flushSessionSnapshot();
+    if (finished) clearSessionSnapshot(session.id); else flushSessionSnapshot();
     session.active = false;
+    session.id = null;
     session.cardState = null;
     session.resumeCard = null;
     document.removeEventListener('keydown', sessionKeyHandler);
