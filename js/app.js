@@ -81,6 +81,8 @@
       'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievement', 'tab.settings': '⚙️ Setting', 'tab.note': '📝 Note',
       'tab.learn': '🎓 Learn', 'tab.stats': '📈 Stats',
       'learn.title': '🎓 Learn', 'learn.sub': 'เลือกความยาวคำศัพท์ที่ต้องการเรียน',
+      'learn.dueReviewLabel': '⏰ ถึงเวลาเรียน', 'learn.dueReviewCta': 'เริ่มเรียนคำที่ถึงกำหนด →',
+      'learn.dueReviewDetail': 'ไม่มีคำถึงกำหนดตอนนี้',
       'learn.extraSoon': '🚧 Extra — เร็วๆ นี้',
       'dash.learnBtn': '🎓 Learn',
       'ach.title': '🏆 Achievement', 'ach.sub': 'ปลดล็อกเหรียญตราจากการเรียนและเล่นมินิเกม ข้อมูลเก็บไว้ในเบราว์เซอร์นี้เท่านั้น',
@@ -155,6 +157,7 @@
       'cardboxLeech.thresholdHint': 'ถ้าตอบผิด (หรือข้าม) คำเดิมติดกันครบตามจำนวนนี้ คำนั้นจะถูก flag เป็น "Leech" ให้แยกไปฝึกเฉพาะได้ง่ายขึ้น — ตอบถูกครั้งเดียวจะปลด flag ทันที',
       'browse.title': 'คลังคำศัพท์ทั้งหมด', 'browse.search': '🔍 ค้นหา (Enter)', 'browse.clear': 'ล้างตัวกรอง', 'browse.sortLabel': 'เรียงลำดับ',
       'browse.wordSearchLabel': '🔍 ค้นหาคำศัพท์', 'browse.selectedCount': 'เลือกแล้ว 0 คำ', 'browse.saveSelected': '💾 บันทึกที่เลือกลง Cardbox',
+      'browse.selectNLabel': 'จำนวนคำ', 'browse.selectFirstN': 'เลือก N คำแรก', 'browse.selectRandomN': '🎲 เลือกแบบสุ่ม N คำ', 'browse.selectNone': 'ล้างที่เลือก',
       'builder.title': '🧩 Word Builder',
       'builder.sub': 'พิมพ์ชุดตัวอักษร (Rack) เช่น TISANE? หรือ SATIRE? — ระบบจะแสดงคำศัพท์ทุกคำที่ประกอบขึ้นได้จากตัวอักษรเหล่านั้น',
       'builder.rackLabel': 'ตัวอักษร (Rack)', 'builder.build': '🧩 หาคำศัพท์',
@@ -198,6 +201,8 @@
       'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievements', 'tab.settings': '⚙️ Settings', 'tab.stats': '📈 Stats', 'tab.note': '📝 Note',
       'tab.learn': '🎓 Learn',
       'learn.title': '🎓 Learn', 'learn.sub': 'Choose the word length you want to learn',
+      'learn.dueReviewLabel': '⏰ DUE NOW', 'learn.dueReviewCta': 'Start learning due words →',
+      'learn.dueReviewDetail': 'No words due right now',
       'learn.extraSoon': '🚧 Extra — coming soon',
       'dash.learnBtn': '🎓 Learn',
       'ach.title': '🏆 Achievements', 'ach.sub': 'Unlock badges by studying and playing minigames. All data is stored in this browser only.',
@@ -272,6 +277,7 @@
       'cardboxLeech.thresholdHint': 'If a word is answered wrong (or skipped) this many times in a row, it gets flagged as a "Leech" so you can drill it separately. One correct answer clears the flag immediately.',
       'browse.title': 'Full word dictionary', 'browse.search': '🔍 Search (Enter)', 'browse.clear': 'Clear filters', 'browse.sortLabel': 'Sort by',
       'browse.wordSearchLabel': '🔍 Search for a word', 'browse.selectedCount': '0 selected', 'browse.saveSelected': '💾 Save selected to Cardbox',
+      'browse.selectNLabel': 'Word count', 'browse.selectFirstN': 'Select first N', 'browse.selectRandomN': '🎲 Select random N', 'browse.selectNone': 'Clear selection',
       'builder.title': '🧩 Word Builder',
       'builder.sub': 'Type a rack of letters like TISANE? or SATIRE? — every dictionary word buildable from those letters will be listed.',
       'builder.rackLabel': 'Letters (Rack)', 'builder.build': '🧩 Find words',
@@ -2148,6 +2154,7 @@
       const frame = document.getElementById('noteFrame');
       if (frame && !frame.getAttribute('src')) frame.setAttribute('src', 'note/index.html');
     }
+    if (tabName === 'learn') renderLearnDueReview();
     scrollActiveTabIntoView(btn);
     syncDrawerActiveState(tabName);
   }
@@ -3925,7 +3932,8 @@
         '</form>' +
         '<div class="session-controls">' +
           '<button type="button" class="btn btn-outline btn-sm" id="anagramHintBtn">💡 Hint</button>' +
-          '<button type="button" class="btn btn-outline btn-sm" id="anagramSkipBtn">⏭ ข้าม / ยอมแพ้</button>' +
+          '<button type="button" class="btn btn-outline btn-sm" id="anagramSkipBtn">⏭ ข้าม</button>' +
+          '<button type="button" class="btn btn-outline btn-sm" id="anagramGiveUpBtn">🏳️ ยอมแพ้</button>' +
         '</div>' +
         '<div class="field-hint" id="anagramHintText"></div>' +
         '<div class="session-feedback" id="anagramFeedback"></div>' +
@@ -3991,13 +3999,30 @@
 
     const skipBtn = document.getElementById('anagramSkipBtn');
     skipBtn.addEventListener('click', function () {
+      // Skip (not give-up): the answer is NOT revealed and the card is NOT
+      // graded — no SM-2 update, no correct/incorrect tally. The word is
+      // simply pulled out of the current spot and reinserted 3-5 cards
+      // ahead (randomized each time), so the learner meets it again soon
+      // while it's still fresh, without being told the answer.
+      stopReshuffle();
+      const currentCard = session.queue[session.index];
+      const offset = 3 + Math.floor(Math.random() * 3); // random 3, 4, or 5
+      let insertAt = session.index + 1 + offset;
+      if (insertAt > session.queue.length) insertAt = session.queue.length;
+      session.queue.splice(insertAt, 0, currentCard);
+      showToast('⏭ ข้ามคำนี้ไปก่อน — จะวนกลับมาใหม่ใน ' + offset + ' คำ');
+      nextCard();
+    });
+
+    const giveUpBtn = document.getElementById('anagramGiveUpBtn');
+    giveUpBtn.addEventListener('click', function () {
       // Give-up: reveal every valid answer, mark the card wrong (not just
       // "no hint used" — giving up is treated the same as an incorrect
       // attempt for grading/spaced-repetition purposes), and let the
       // learner move on instead of getting stuck on a word they can't get.
       input.value = '';
       input.disabled = true;
-      feedback.textContent = '⏭ ข้ามคำนี้ — เฉลย: ' + validGroup.slice().sort().join(', ');
+      feedback.textContent = '🏳️ ยอมแพ้ — เฉลย: ' + validGroup.slice().sort().join(', ');
       feedback.className = 'session-feedback wrong';
       found.clear();
       finishCard(true);
@@ -4040,6 +4065,7 @@
       input.disabled = true;
       hintBtn.disabled = true;
       skipBtn.disabled = true;
+      giveUpBtn.disabled = true;
       const allCorrect = found.size === validGroup.length;
       let card;
       if (restored) {
@@ -4560,6 +4586,27 @@
     return m;
   }
 
+  // Mirrors renderDashActions' REVIEW card, but scoped to the Learn tab so
+  // learners can jump into due-word review without detouring through
+  // Dashboard first.
+  function renderLearnDueReview() {
+    const numEl = document.getElementById('learnDueReviewNum');
+    const detailEl = document.getElementById('learnDueReviewDetail');
+    if (!numEl && !detailEl) return;
+    const box = loadCardbox();
+    const now = Date.now();
+    const dueCount = box.filter(function (c) { return (c.due || 0) <= now; }).length;
+    const etaMin = Math.max(1, Math.round((dueCount * REVIEW_SECONDS_PER_WORD) / 60));
+    if (numEl) numEl.textContent = dueCount;
+    if (detailEl) {
+      detailEl.innerHTML = dueCount
+        ? (settings.lang === 'en'
+            ? 'Due now: <strong>' + dueCount + '</strong> · ~' + etaMin + ' min'
+            : 'ถึงกำหนดแล้ว <strong>' + dueCount + '</strong> คำ · ~' + etaMin + ' นาที')
+        : (settings.lang === 'en' ? 'No words due right now' : 'ไม่มีคำถึงกำหนดตอนนี้');
+    }
+  }
+
   function initLearnTab() {
     const wrap = document.getElementById('learnLenChips');
     if (!wrap) return;
@@ -4576,6 +4623,21 @@
         renderLearnContent();
       });
     });
+
+    const dueReviewBtn = document.getElementById('learnDueReviewBtn');
+    if (dueReviewBtn) {
+      dueReviewBtn.addEventListener('click', function () {
+        const box = loadCardbox();
+        const now = Date.now();
+        const pool = box.filter(function (c) { return (c.due || 0) <= now; });
+        if (!pool.length) { showToast(settings.lang === 'en' ? 'No words are due right now' : 'ไม่มีคำที่ถึงกำหนดทบทวนตอนนี้'); return; }
+        pool.sort(function (a, b) { return (a.due || 0) - (b.due || 0); });
+        const tabBtn = document.querySelector('.tab-btn[data-tab="cardbox"]');
+        if (tabBtn) tabBtn.click();
+        startStudySession(pool, 'flashcard', 'alpha', settings.anagramCycleInterval);
+      });
+    }
+    renderLearnDueReview();
 
     const dashLearnBtn = document.getElementById('dashLearnBtn');
     if (dashLearnBtn) {
@@ -6066,8 +6128,34 @@
   let endgameWorkerInitTried = false;
   let endgameWorkerReqId = 0;
   const endgameWorkerPending = {};
+  let endgameWorkerBroken = false; // set true after the worker fails once; we stop retrying it and use the main-thread fallback for the rest of the session
+
+  // Main-thread fallback: runs the exact same EndgamePracticeEngine calls
+  // the worker would, synchronously on the UI thread. Used only if the
+  // worker can't be constructed or errors out — e.g. some mobile
+  // browsers/WebViews restrict Worker + importScripts of large same-origin
+  // files. Slower (can briefly freeze the tab on the final exhaustive
+  // search) but guarantees the trainers still work instead of silently
+  // showing nothing.
+  function mainThreadEngineCall(method, args) {
+    return new Promise(function (resolve, reject) {
+      try {
+        if (!window.EndgamePracticeEngine || typeof window.EndgamePracticeEngine[method] !== 'function') {
+          reject(new Error('EndgamePracticeEngine not available on main thread'));
+          return;
+        }
+        const result = window.EndgamePracticeEngine[method].apply(null, args);
+        resolve(result);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
 
   function getEndgameWorker() {
+    if (endgameWorkerBroken) {
+      return { call: mainThreadEngineCall };
+    }
     if (endgameWorkerInitTried) return endgameWorkerHandle;
     endgameWorkerInitTried = true;
     try {
@@ -6081,6 +6169,7 @@
         else resolver.resolve(msg.result);
       };
       worker.onerror = function () {
+        endgameWorkerBroken = true;
         Object.keys(endgameWorkerPending).forEach(function (id) {
           endgameWorkerPending[id].reject(new Error('endgame practice worker error'));
           delete endgameWorkerPending[id];
@@ -6090,18 +6179,32 @@
         call: function (method, args) {
           return new Promise(function (resolve, reject) {
             const requestId = ++endgameWorkerReqId;
-            endgameWorkerPending[requestId] = { resolve: resolve, reject: reject };
+            endgameWorkerPending[requestId] = {
+              resolve: resolve,
+              reject: function (err) {
+                // First failure from this worker: fall back to the main
+                // thread for this call too, instead of surfacing the error.
+                mainThreadEngineCall(method, args).then(resolve, reject);
+              }
+            };
             worker.postMessage({ method: method, args: args, requestId: requestId });
           });
         }
       };
     } catch (e) {
-      endgameWorkerHandle = null;
+      endgameWorkerBroken = true;
+      endgameWorkerHandle = { call: mainThreadEngineCall };
     }
     return endgameWorkerHandle;
   }
 
-  const ENDGAME_BOARD_MOVES = 5;   // how many real moves to pre-place before the learner's turn
+  // Infinity = a true endgame: keep placing legal moves until the bag
+  // can no longer supply a full rack beyond the learner's own reserved
+  // tiles (or a draw genuinely has no legal play). Previously this was
+  // a fixed count (5 moves), which left ~65-70 tiles still in the bag —
+  // a mid-game board mislabeled as "endgame". A real endgame board is
+  // defined by the bag being drawn down near-empty, not by a move count.
+  const ENDGAME_BOARD_MOVES = Infinity;
   const ENDGAME_RACK_SIZE = 7;
 
   // Rack source for both trainers: 'bag' (old variable-size behavior),
@@ -6147,7 +6250,11 @@
   // so it looks consistent, but with no click/drag handlers since this
   // board is a fixed scenario, not something the learner plays tiles onto.
   function renderStaticBoard(el, board) {
-    if (!el || !window.BoardSystems) return;
+    if (!el) return;
+    if (!window.BoardSystems) {
+      el.innerHTML = '<div class="odds-trainer-error">⚠️ โหลดระบบกระดานไม่สำเร็จ (BoardSystems) — ลองรีเฟรชหน้า</div>';
+      return;
+    }
     el.innerHTML = '';
     const size = window.BoardSystems.SIZE;
     for (let r = 0; r < size; r++) {
@@ -7351,6 +7458,57 @@
       const added = addWordsToCardbox(Array.from(browseState.selected));
       showToast('บันทึกลง Cardbox แล้ว ' + added + ' คำ');
       if (window.Achievements) window.Achievements.record('cardbox_add');
+    });
+
+    // ---- Select first N / random N within the current result set ----
+    function readBrowseSelectN() {
+      const raw = parseInt(document.getElementById('browseSelectNInput').value, 10);
+      if (!raw || raw < 1) {
+        showToast(settings.lang === 'en' ? 'Enter a word count first' : 'กรุณาระบุจำนวนคำก่อน');
+        return null;
+      }
+      return raw;
+    }
+
+    function applyBrowseSelection(words) {
+      browseState.selected.clear();
+      words.forEach(function (w) { browseState.selected.add(w); });
+      document.querySelectorAll('#browseResults .browse-check').forEach(function (cb) {
+        cb.checked = browseState.selected.has(cb.dataset.word);
+      });
+      const selectAllCb = document.getElementById('browseSelectAll');
+      if (selectAllCb) {
+        selectAllCb.checked = browseState.results.length > 0 &&
+          browseState.results.every(function (w) { return browseState.selected.has(w); });
+      }
+      updateBrowseSelectedCount();
+    }
+
+    document.getElementById('browseSelectFirstNBtn').addEventListener('click', function () {
+      const n = readBrowseSelectN();
+      if (n === null) return;
+      applyBrowseSelection(browseState.results.slice(0, n));
+      showToast((settings.lang === 'en' ? 'Selected ' : 'เลือกแล้ว ') + Math.min(n, browseState.results.length) +
+        (settings.lang === 'en' ? ' words' : ' คำ'));
+    });
+
+    document.getElementById('browseSelectRandomNBtn').addEventListener('click', function () {
+      const n = readBrowseSelectN();
+      if (n === null) return;
+      // Fisher-Yates partial shuffle: pick n random words without duplicates.
+      const pool = browseState.results.slice();
+      const count = Math.min(n, pool.length);
+      for (let i = 0; i < count; i++) {
+        const j = i + Math.floor(Math.random() * (pool.length - i));
+        const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+      }
+      applyBrowseSelection(pool.slice(0, count));
+      showToast((settings.lang === 'en' ? 'Randomly selected ' : 'สุ่มเลือกแล้ว ') + count +
+        (settings.lang === 'en' ? ' words' : ' คำ'));
+    });
+
+    document.getElementById('browseSelectNoneBtn').addEventListener('click', function () {
+      applyBrowseSelection([]);
     });
   }
 
