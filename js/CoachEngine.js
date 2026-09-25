@@ -223,7 +223,24 @@
     return 'fallback';
   }
 
+  // ---------- Tournament-prep commands (CoachIntents.js, 22 intents) ----------
+  // Checked FIRST, before the five intents below: CoachIntents.js's own
+  // patterns ("gen 3L 4L...", "ตารางทบทวน", "พร้อมแข่งไหม", etc.) are more
+  // specific than this file's broad study_today/weak_at/stats regexes, and
+  // CoachIntents.respond() already returns null (falls through) for any
+  // text that doesn't match one of its 22 intents, so it can never steal
+  // the five questions this file already answered. All CoachIntents output
+  // is itself vetted by safe() below, same as every other path here.
+  function tryTournamentPrepIntents(userText) {
+    if (!global.CoachIntents) return null;
+    const out = global.CoachIntents.respond(userText);
+    return out ? safe(out) : null;
+  }
+
   function buildResponse(userText) {
+    const prep = tryTournamentPrepIntents(userText);
+    if (prep) return prep;
+
     if (!modulesReady()) {
       // Degrade honestly rather than answering with partial/fabricated
       // analysis if a dependency hasn't loaded — mirrors CoachUI.js's

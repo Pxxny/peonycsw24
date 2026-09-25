@@ -136,6 +136,12 @@
     }
 
     if (cmd.message) appendCoachMessage(cmd.message, 'coach');
+    // Rendered AFTER the text message (table is the detail, message is
+    // the headline) — present for any command CoachIntents.js produced,
+    // regardless of which command it picked, since params is otherwise
+    // unused by the switch above for those commands.
+    if (params.table) appendCoachTable(params.table);
+    if (params.table2) appendCoachTable(params.table2);
   }
 
   // ---------- Minimal rule-based responder (fallback for CoachEngine.js) ----------
@@ -251,7 +257,7 @@
 
   // ---------- UI ----------
 
-  const QUICK_QUESTIONS = ['วันนี้ควรฝึกอะไร?', 'ฉันอ่อนเรื่องอะไร?', 'สถิติของฉัน'];
+  const QUICK_QUESTIONS = ['วันนี้ควรฝึกอะไร?', 'ฉันอ่อนเรื่องอะไร?', 'สถิติของฉัน', 'gen 3L-8L', 'พร้อมแข่งไหม', 'คำสั่งทั้งหมด'];
 
   function coachHtml() {
     return (
@@ -281,6 +287,72 @@
     bubble.textContent = text;
     wrap.appendChild(bubble);
     wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  // ---------- Table rendering (CoachIntents.js / CoachPlanner.js tables) ----------
+  // A "table" is a plain data object { title, columns, rows, note, empty }
+  // — never HTML, never code. Every cell is inserted via textContent, so
+  // this can only ever render text; nothing here evaluates or trusts the
+  // table's contents as markup. Rendered as its own chat bubble, right
+  // after the coach's text message for that turn.
+  function escapeAttr(s) { return String(s == null ? '' : s); }
+
+  function appendCoachTable(table) {
+    const wrap = document.getElementById('coachMessages');
+    if (!wrap || !table || !table.columns || !table.rows) return;
+    const bubble = document.createElement('div');
+    bubble.className = 'coach-msg coach-msg-coach coach-table-msg';
+
+    if (table.title) {
+      const h = document.createElement('div');
+      h.className = 'coach-table-title';
+      h.textContent = table.title;
+      bubble.appendChild(h);
+    }
+
+    if (table.rows.length) {
+      const scroller = document.createElement('div');
+      scroller.className = 'coach-table-scroll';
+      const el = document.createElement('table');
+      el.className = 'coach-table';
+      const thead = document.createElement('thead');
+      const htr = document.createElement('tr');
+      table.columns.forEach(function (c) {
+        const th = document.createElement('th');
+        th.textContent = escapeAttr(c);
+        htr.appendChild(th);
+      });
+      thead.appendChild(htr);
+      el.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      table.rows.forEach(function (row) {
+        const tr = document.createElement('tr');
+        row.forEach(function (cell) {
+          const td = document.createElement('td');
+          td.textContent = escapeAttr(cell);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      el.appendChild(tbody);
+      scroller.appendChild(el);
+      bubble.appendChild(scroller);
+    }
+
+    if (table.note) {
+      const note = document.createElement('div');
+      note.className = 'coach-table-note';
+      note.textContent = table.note;
+      bubble.appendChild(note);
+    }
+
+    wrap.appendChild(bubble);
+    wrap.scrollTop = wrap.scrollHeight;
+
+    // Some intents (gen_targets with a tournament date set) attach a
+    // second table under params.table2 — render it as its own bubble
+    // right after, same treatment.
+    return bubble;
   }
 
   // Secret menu unlock — checked before any intent-detection or
@@ -357,5 +429,5 @@
 
   // Exposed for debugging/future CoachEngine hookup — not required for
   // normal use.
-  global.CoachUI = { validateCommand: validateCommand, executeCommand: executeCommand };
+  global.CoachUI = { validateCommand: validateCommand, executeCommand: executeCommand, appendCoachMessage: appendCoachMessage, appendCoachTable: appendCoachTable };
 })(window);
