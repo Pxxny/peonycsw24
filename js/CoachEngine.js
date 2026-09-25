@@ -80,9 +80,24 @@
   // CoachUI.js's own validateCommand(), since that's the function that
   // actually gates execution. This just prevents this file from ever
   // handing back something malformed in the first place.
+  //
+  // Also strips any extra bookkeeping field (e.g. CoachIntents.js's own
+  // `__intent`, used only for its internal routing/debugging) that isn't
+  // part of the project's { command, params, message, reason?, priority? }
+  // schema. CoachUI.js's validateCommand() enforces an exact key
+  // whitelist and rejects the WHOLE command on a single unknown key —
+  // so leaving `__intent` on would fail validation for every one of
+  // CoachIntents.js's 22 tournament-prep commands, sending the learner
+  // to the generic fallback message instead of their real answer.
+  const SCHEMA_KEYS = ['command', 'params', 'message', 'reason', 'priority'];
+  function toSchema(cmdObj) {
+    const out = {};
+    SCHEMA_KEYS.forEach(function (k) { if (cmdObj[k] !== undefined) out[k] = cmdObj[k]; });
+    return out;
+  }
   function safe(cmdObj) {
     if (cmdObj && allowedCommands().indexOf(cmdObj.command) !== -1 && typeof cmdObj.message === 'string' && cmdObj.message) {
-      return cmdObj;
+      return toSchema(cmdObj);
     }
     return {
       command: 'SHOW_STATISTICS', params: {},

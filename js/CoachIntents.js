@@ -72,6 +72,17 @@
       if (a > b) { const t = a; a = b; b = t; }
       for (let i = a; i <= b && i <= 15; i++) if (i >= 2) set[i] = true;
     }
+    // ranges where EACH side already carries its own unit: "3L - 8L",
+    // "3L-8L", "3L to 8L", "3 ตัว ถึง 8 ตัว" — the pattern above requires
+    // the unit token only once (after the second number), so "3L - 8L"
+    // was falling through to the single-token matcher below and being
+    // read as just {3, 8} instead of the full 3..8 range.
+    const rangeRe2 = /(\d{1,2})\s*(?:l\b|ตัว(?:อักษร)?)\s*(?:-|–|—|ถึง|to|~)\s*(\d{1,2})\s*(?:l\b|ตัว(?:อักษร)?)/gi;
+    while ((m = rangeRe2.exec(text)) !== null) {
+      let a = toInt(m[1]), b = toInt(m[2]);
+      if (a > b) { const t = a; a = b; b = t; }
+      for (let i = a; i <= b && i <= 15; i++) if (i >= 2) set[i] = true;
+    }
     // 3L / 3l / 3-L
     const lRe = /(?:^|[^\d])(\d{1,2})\s*-?\s*l(?![a-z])/gi;
     while ((m = lRe.exec(text)) !== null) {
@@ -176,7 +187,23 @@
 
   function parseWord(text) {
     // ignore things like "3L" / "gen" / "n" / command words
-    const stop = { gen: 1, help: 1, plan: 1, stat: 1, stats: 1, leech: 1, bingo: 1, practice: 1, days: 1, day: 1, min: 1, mins: 1, week: 1, weeks: 1, words: 1, word: 1, per: 1, all: 1, ready: 1, speed: 1, today: 1, forecast: 1, overdue: 1, progress: 1, mastery: 1, schedule: 1, target: 1, targets: 1, weak: 1, weakest: 1, time: 1, eta: 1, add: 1, srs: 1, review: 1, how: 1, many: 1, long: 1, the: 1, my: 1, hours: 1, hour: 1, mo: 1, wk: 1 };
+    // Every English trigger word used by any intent's match() regex must be
+    // listed here — otherwise a command like "preview ZAX" or "next review
+    // ZAX" gets its own trigger word ("preview"/"next") picked up as the
+    // target word instead of "ZAX", since this scan takes the first
+    // non-stopword A-Z token left to right.
+    const stop = {
+      gen: 1, generate: 1, help: 1, plan: 1, stat: 1, stats: 1, leech: 1,
+      bingo: 1, practice: 1, days: 1, day: 1, min: 1, mins: 1, week: 1,
+      weeks: 1, weekly: 1, words: 1, word: 1, per: 1, all: 1, ready: 1,
+      readiness: 1, feasib: 1, feasibility: 1, realistic: 1, fit: 1,
+      speed: 1, today: 1, forecast: 1, overdue: 1, due: 1, now: 1,
+      progress: 1, mastery: 1, mastered: 1, schedule: 1, target: 1,
+      targets: 1, weak: 1, weakest: 1, length: 1, time: 1, needed: 1,
+      eta: 1, pace: 1, add: 1, srs: 1, spaced: 1, review: 1, preview: 1,
+      next: 1, how: 1, many: 1, long: 1, the: 1, my: 1, hours: 1, hour: 1,
+      mo: 1, wk: 1, response: 1
+    };
     const re = /\b[A-Za-z]{2,15}\b/g;
     let m;
     while ((m = re.exec(text)) !== null) {
