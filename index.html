@@ -1573,76 +1573,76 @@
      window.Auth and owns the header widget + import-guest-progress
      modal. Safe no-op until SUPABASE_URL/SUPABASE_ANON_KEY in
      js/auth.js are filled in. -->
-<script src="js/auth.js"></script>
-<script src="js/auth-ui.js"></script>
+<script src="js/auth.js?v=1790298352"></script>
+<script src="js/auth-ui.js?v=1790298352"></script>
 
-<script src="js/words-data.js"></script>
-<script src="js/BoardSystem/RackManage.js"></script>
-<script src="js/BoardSystem/BoardSystems.js"></script>
-<script src="js/BoardSystem/BotSystem.js"></script>
-<script src="js/EndgamePracticeEngine.js"></script>
-<script src="js/BoardSystem/PlayGame.js"></script>
-<script src="js/badges.js"></script>
-<script src="js/achievement.js"></script>
-<script src="js/app.js"></script>
-<script src="js/frames.js"></script>
-<script src="js/frames-ui.js"></script>
-<script src="js/xp.js"></script>
-<script src="js/RetentionHeatmap.js"></script>
-<script src="js/OddsTrainer.js"></script>
-<script src="js/VowelDumpTrainer.js"></script>
-<script src="js/RackBalanceAnalyzer.js"></script>
-<script src="js/PerformanceAnalyzer.js"></script>
+<script src="js/words-data.js?v=1790298352"></script>
+<script src="js/BoardSystem/RackManage.js?v=1790298352"></script>
+<script src="js/BoardSystem/BoardSystems.js?v=1790298352"></script>
+<script src="js/BoardSystem/BotSystem.js?v=1790298352"></script>
+<script src="js/EndgamePracticeEngine.js?v=1790298352"></script>
+<script src="js/BoardSystem/PlayGame.js?v=1790298352"></script>
+<script src="js/badges.js?v=1790298352"></script>
+<script src="js/achievement.js?v=1790298352"></script>
+<script src="js/app.js?v=1790298352"></script>
+<script src="js/frames.js?v=1790298352"></script>
+<script src="js/frames-ui.js?v=1790298352"></script>
+<script src="js/xp.js?v=1790298352"></script>
+<script src="js/RetentionHeatmap.js?v=1790298352"></script>
+<script src="js/OddsTrainer.js?v=1790298352"></script>
+<script src="js/VowelDumpTrainer.js?v=1790298352"></script>
+<script src="js/RackBalanceAnalyzer.js?v=1790298352"></script>
+<script src="js/PerformanceAnalyzer.js?v=1790298352"></script>
 <!-- AI Coach: WeaknessDetector.js reads PerformanceAnalyzer.js's report +
      the raw Learn log, so it must load after PerformanceAnalyzer.js and
      before anything (RecommendationEngine.js, AdaptiveQuiz.js,
      CoachEngine.js) that will build on top of it. -->
-<script src="js/WeaknessDetector.js"></script>
+<script src="js/WeaknessDetector.js?v=1790298352"></script>
 <!-- AI Coach: FlexSearch index + ECharts helpers, loaded before CoachUI.js
      (and before the coming RecommendationEngine.js / AdaptiveQuiz.js /
      CoachEngine.js) so those modules can rely on window.CoachSearchIndex
      / window.CoachCharts already existing. -->
-<script src="js/CoachSearchIndex.js"></script>
-<script src="js/CoachCharts.js"></script>
+<script src="js/CoachSearchIndex.js?v=1790298352"></script>
+<script src="js/CoachCharts.js?v=1790298352"></script>
 <!-- AI Coach: read-only spaced-repetition analysis + preview. Does NOT
      own or write due/interval/ease — that stays app.js's updateCardResult
      via CSW24Bridge. See SpacedRepetition.js header comment. -->
-<script src="js/SpacedRepetition.js"></script>
+<script src="js/SpacedRepetition.js?v=1790298352"></script>
 <!-- AI Coach: RecommendationEngine.js combines WeaknessDetector.js +
      SpacedRepetition.js into one prioritized recommendation / daily
      plan, so it must load after both. -->
-<script src="js/RecommendationEngine.js"></script>
+<script src="js/RecommendationEngine.js?v=1790298352"></script>
 <!-- AI Coach: AdaptiveQuiz.js computes quiz difficulty/word-list
      parameters from WeaknessDetector.js + SpacedRepetition.js +
      CoachSearchIndex.js — it does not render or run a quiz itself
      (app.js's own Quiz tab still owns that). Load after its
      dependencies, before CoachEngine.js. -->
-<script src="js/AdaptiveQuiz.js"></script>
+<script src="js/AdaptiveQuiz.js?v=1790298352"></script>
 <!-- AI Coach: CoachPlanner.js is the pure calculation engine for
      tournament-prep planning (word-count targets per length, SRS review
      ladder, pace/time estimates, feasibility). Read-only against
      csw24_cardbox_v1 / csw24_learn_log_v1 and CSW24_BY_LENGTH — no
      dependency on any other coach module. Must load before
      CoachIntents.js, which calls it. -->
-<script src="js/CoachPlanner.js"></script>
+<script src="js/CoachPlanner.js?v=1790298352"></script>
 <!-- AI Coach: CoachIntents.js adds 22 tournament-prep chat commands
      ("gen 3L 4L 5L 6L 7L 8L", "ตารางทบทวน", "พร้อมแข่งไหม", etc.), each
      turning CoachPlanner.js's tables into a JSON command within the
      project's existing schema/enum. Must load after CoachPlanner.js and
      before CoachEngine.js, which tries it first on every message. -->
-<script src="js/CoachIntents.js"></script>
+<script src="js/CoachIntents.js?v=1790298352"></script>
 <!-- AI Coach: CoachEngine.js is the orchestrator ("brain") that combines
      every module above into one JSON command per user question. Must
      load after all of them and before CoachUI.js, which delegates its
      buildResponse() to CoachEngine.js when present. -->
-<script src="js/CoachEngine.js"></script>
-<script src="js/CoachUI.js"></script>
+<script src="js/CoachEngine.js?v=1790298352"></script>
+<script src="js/CoachUI.js?v=1790298352"></script>
 <!-- AI Coach: CoachInsightsPanel.js adds the "ภาพรวม" (Insights) tab —
      ECharts charts inside the existing coach panel. Loads after CoachUI.js
      because it attaches to DOM CoachUI.js creates on mount, and after
      CoachCharts.js/WeaknessDetector.js/SpacedRepetition.js which supply
      its chart-rendering and data. -->
-<script src="js/CoachInsightsPanel.js"></script>
+<script src="js/CoachInsightsPanel.js?v=1790298352"></script>
 <!-- AI Coach: CoachPlanPanel.js adds the "📋 แผนวันนี้" (Daily Training
      Plan) tab — a visible, actionable checklist for
      RecommendationEngine.js's already-implemented dailyPlan(), which
@@ -1651,7 +1651,7 @@
      CoachInsightsPanel.js (creates the tab row/Insights pane this file
      extends and takes over switching for, the same non-invasive
      wrap-don't-edit approach CoachAdaptiveLoop.js uses elsewhere). -->
-<script src="js/CoachPlanPanel.js"></script>
+<script src="js/CoachPlanPanel.js?v=1790298352"></script>
 <!-- AI Coach: CoachMistakesPanel.js adds the "🔁 ผิดซ้ำ" (Repeated
      Mistakes) tab — a dedicated, full list of every word the learner
      keeps missing in Learn, with a one-click "add to Cardbox" action per
@@ -1661,7 +1661,7 @@
      CoachPlanPanel.js exposes rather than forking the tab switcher a
      second time — must load after CoachPlanPanel.js (registry),
      WeaknessDetector.js (data), and app.js (CSW24Bridge.addToCardbox). -->
-<script src="js/CoachMistakesPanel.js"></script>
+<script src="js/CoachMistakesPanel.js?v=1790298352"></script>
 <!-- AI Coach: CoachAdaptiveLoop.js closes the Train->Measure->Adapt->
      Repeat cycle by wrapping window.Achievements.record (owned by
      achievement.js, loaded near the top of this script list) so a
@@ -1670,6 +1670,6 @@
      proactive coach message — without editing achievement.js or app.js.
      Loads last since it depends on every other AI Coach module plus the
      already-mounted coach DOM. -->
-<script src="js/CoachAdaptiveLoop.js"></script>
+<script src="js/CoachAdaptiveLoop.js?v=1790298352"></script>
 </body>
 </html>
