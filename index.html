@@ -1618,6 +1618,19 @@
      (app.js's own Quiz tab still owns that). Load after its
      dependencies, before CoachEngine.js. -->
 <script src="js/AdaptiveQuiz.js"></script>
+<!-- AI Coach: CoachPlanner.js is the pure calculation engine for
+     tournament-prep planning (word-count targets per length, SRS review
+     ladder, pace/time estimates, feasibility). Read-only against
+     csw24_cardbox_v1 / csw24_learn_log_v1 and CSW24_BY_LENGTH — no
+     dependency on any other coach module. Must load before
+     CoachIntents.js, which calls it. -->
+<script src="js/CoachPlanner.js"></script>
+<!-- AI Coach: CoachIntents.js adds 22 tournament-prep chat commands
+     ("gen 3L 4L 5L 6L 7L 8L", "ตารางทบทวน", "พร้อมแข่งไหม", etc.), each
+     turning CoachPlanner.js's tables into a JSON command within the
+     project's existing schema/enum. Must load after CoachPlanner.js and
+     before CoachEngine.js, which tries it first on every message. -->
+<script src="js/CoachIntents.js"></script>
 <!-- AI Coach: CoachEngine.js is the orchestrator ("brain") that combines
      every module above into one JSON command per user question. Must
      load after all of them and before CoachUI.js, which delegates its
