@@ -2597,6 +2597,18 @@ main {
 .coach-mistake-action-btn:hover { background: var(--brass); color: #0D1020; }
 .coach-mistake-action-btn:disabled { opacity: 0.6; cursor: default; background: transparent; color: #8890A8; border-color: var(--rail); }
 
+/* ---------- AI Coach: tournament-prep tables (CoachIntents.js / CoachPlanner.js) ---------- */
+
+.coach-table-msg { max-width: 100%; width: 100%; align-self: stretch; }
+.coach-table-title { font-weight: 700; color: var(--brass); font-size: 0.82rem; margin-bottom: 0.45rem; }
+.coach-table-scroll { overflow-x: auto; border: 1px solid var(--rail); border-radius: 8px; }
+.coach-table { border-collapse: collapse; width: 100%; font-size: 0.76rem; white-space: nowrap; }
+.coach-table th, .coach-table td { padding: 0.35rem 0.6rem; text-align: left; border-bottom: 1px solid var(--rail); }
+.coach-table th { background: var(--board-1); color: #C7CCE6; font-weight: 700; position: sticky; top: 0; }
+.coach-table tbody tr:last-child td { border-bottom: none; }
+.coach-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+.coach-table-note { font-size: 0.7rem; color: #8890A8; margin-top: 0.4rem; line-height: 1.5; }
+
 
 /* ---------- form controls: always black text on a light surface ----------
    The native <select> popup is drawn by the browser with a light background,
@@ -2820,15 +2832,22 @@ textarea:disabled { opacity: 0.6; }
 }
 
 
-/* ---------- study session resume banner (Cardbox tab) ---------- */
+/* ---------- study session resume list (Cardbox tab) ---------- */
 .session-resume-banner {
-  display: flex; align-items: center; justify-content: space-between; gap: 0.9rem; flex-wrap: wrap;
+  display: flex; flex-direction: column; gap: 0.6rem;
   margin: 0.4rem 0 1.1rem;
   padding: 0.85rem 1rem;
   border: 1.5px solid var(--brass);
   border-radius: 12px;
   background: color-mix(in srgb, var(--brass) 10%, transparent);
 }
+.resume-list-title { font-weight: 700; font-size: 1rem; }
+.resume-banner-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.9rem; flex-wrap: wrap;
+  padding: 0.6rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--brass) 30%, transparent);
+}
+.resume-banner-row:first-of-type { border-top: none; padding-top: 0; }
 .resume-banner-main { min-width: 0; flex: 1 1 16rem; }
 .resume-banner-title { font-weight: 700; font-size: 1rem; }
 .resume-banner-meta { font-size: 0.82rem; opacity: 0.85; margin-top: 0.2rem; line-height: 1.45; }
