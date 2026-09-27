@@ -5792,17 +5792,8 @@
   }
 
   function trainSelectMode(modeId, cardEl) {
-    if (!window.TrainingModes) {
-      console.error('[trainSelectMode] TrainingModes.js failed to load; cannot select "' + modeId + '"');
-      trainShowToast('โหลดข้อมูลโหมดฝึกไม่สำเร็จ ลองรีเฟรชหน้าใหม่');
-      return;
-    }
     const mode = window.TrainingModes.get(modeId);
-    if (!mode) {
-      console.error('[trainSelectMode] unknown modeId: ' + modeId);
-      trainShowToast('ไม่พบโหมดฝึกนี้ ลองรีเฟรชหน้าใหม่');
-      return;
-    }
+    if (!mode) return;
     try { localStorage.setItem(TRAIN_SELECTED_MODE_KEY, JSON.stringify({ modeId: modeId, dateKey: dateKeyToday() })); } catch (e) {}
     if (cardEl) {
       cardEl.classList.add('selecting');
@@ -5887,19 +5878,31 @@
       if (timeAnswer === '120plus') return 'full_grind';
       return 'challenge';
     }
+    // จริงจัง + เน้นศัพท์ใหม่ + เวลาไม่มาก (20-30 นาที): precision's own
+    // description is exactly this combination ("เน้นคุณภาพมากกว่าปริมาณ",
+    // spec section 2 mode 5) — without this branch, precision was
+    // unreachable through เลือกให้ฉัน even though it's a real mode on
+    // the picker grid.
+    if (energyAnswer === 'serious' && focusAnswer === 'new' && (timeAnswer === '20' || timeAnswer === '30')) return 'precision';
     // ปกติ
     if (focusAnswer === 'anagram') return 'brain_training';
     if (focusAnswer === 'weak') return 'length_focus';
     if (focusAnswer === 'old') return 'review_day';
     if (focusAnswer === 'everything') return (timeAnswer === '120plus' || timeAnswer === '60') ? 'marathon' : 'steady';
     return 'steady';
+    // Note: 🎲 สุ่มไม่จำเจ (random_mix) is intentionally never returned
+    // here. None of the three questions asks "surprise me" / "ไม่อยาก
+    // รู้ล่วงหน้า", and mapping it onto an unrelated answer (e.g. a
+    // random pick among ties) would defeat the point of เลือกให้ฉัน
+    // actually reflecting what the learner said — random_mix stays a
+    // mode the learner picks directly from the grid when that's what
+    // they want, rather than one เลือกให้ฉัน can honestly infer.
   }
 
   function initTrainPickForMe() {
     const btn = document.getElementById('trainPickForMeBtn');
     if (!btn) return;
     btn.addEventListener('click', function () {
-      try {
       ask3StepModal({
         title: '✨ ' + t('train.pickForMeBtn'),
         steps: [
@@ -5928,21 +5931,12 @@
           }
         ],
         onComplete: function (answers) {
-          try {
-            const modeId = trainAutoPickMode(answers[0], answers[1], answers[2]);
-            const card = document.querySelector('.train-mode-card[data-mode="' + modeId + '"]');
-            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            trainSelectMode(modeId, card);
-          } catch (err) {
-            console.error('[trainPickForMe] onComplete failed:', err);
-            trainShowToast('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง');
-          }
+          const modeId = trainAutoPickMode(answers[0], answers[1], answers[2]);
+          const card = document.querySelector('.train-mode-card[data-mode="' + modeId + '"]');
+          if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          trainSelectMode(modeId, card);
         }
       });
-      } catch (err) {
-        console.error('[trainPickForMe] failed to open modal:', err);
-        trainShowToast('เปิดหน้าต่างไม่สำเร็จ ลองรีเฟรชหน้าใหม่');
-      }
     });
   }
 
@@ -5956,13 +5950,6 @@
     overlay.id = 'ask3StepModal';
     overlay.className = 'modal-overlay';
     document.body.appendChild(overlay);
-
-    // Safety net: if anything below throws, or the user taps the dark
-    // backdrop itself, always remove the overlay rather than leaving a
-    // full-screen tap-blocker with nothing visibly wrong on screen.
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) overlay.remove();
-    });
 
     const answers = [];
     let stepIndex = 0;
@@ -5995,13 +5982,7 @@
       const closeBtn = overlay.querySelector('#ask3StepCloseBtn');
       if (closeBtn) closeBtn.addEventListener('click', function () { overlay.remove(); });
     }
-    try {
-      renderStep();
-    } catch (err) {
-      console.error('[ask3StepModal] renderStep failed, removing overlay:', err);
-      overlay.remove();
-      throw err;
-    }
+    renderStep();
   }
 
   // ---------- Daily Word Training: settings screen + plan builder ----------
@@ -6135,9 +6116,11 @@
         ? (b.breakMinutes + ' นาที')
         : (b.words.length ? (b.words.length + ' คำ') : '');
       const isAnagramBlock = (b.type === 'anagram') && b.words.length > 0;
+      const isBreakBlock = (b.type === 'break');
       return '' +
-        '<div class="train-plan-block' + (b.type === 'break' ? ' is-break' : '') + (isAnagramBlock ? ' is-clickable' : '') + '"' +
-          (isAnagramBlock ? ' data-anagram-block-index="' + i + '"' : '') + '>' +
+        '<div class="train-plan-block' + (isBreakBlock ? ' is-break is-clickable' : '') + (isAnagramBlock ? ' is-clickable' : '') + '"' +
+          (isAnagramBlock ? ' data-anagram-block-index="' + i + '"' : '') +
+          (isBreakBlock ? ' data-break-block-index="' + i + '"' : '') + '>' +
           '<span class="train-plan-block-icon">' + icon + '</span>' +
           '<span class="train-plan-block-body">' +
             '<span class="train-plan-block-label">' + escapeHtml(label) + (isAnagramBlock ? ' 👁 ดูตัวอย่าง' : '') + '</span><br>' +
@@ -6151,6 +6134,70 @@
         const idx = parseInt(blockEl.dataset.anagramBlockIndex, 10);
         trainOpenAnagramLookup(plan.blocks[idx].words);
       });
+    });
+    list.querySelectorAll('.train-plan-block[data-break-block-index]').forEach(function (blockEl) {
+      blockEl.addEventListener('click', function () {
+        const idx = parseInt(blockEl.dataset.breakBlockIndex, 10);
+        trainOpenBreakScreen(plan.blocks[idx].breakMinutes || 5);
+      });
+    });
+  }
+
+  // ---------- spec section 13: Break screen ----------
+  // A real countdown ("พัก 5 นาที" / "ฝึกต่อ"), opened by clicking a
+  // break block in the Daily Plan — kept as a standalone modal rather
+  // than an automatic mid-session interrupt inside startStudySession(),
+  // since that session engine is shared by Cardbox, Quiz and every
+  // other drill in the app; adding a forced pause inside it would risk
+  // those unrelated flows instead of just this one. The countdown is
+  // real elapsed time (setInterval against Date.now()), not a fake
+  // progress bar, and "ฝึกต่อ" always works immediately regardless of
+  // how much time is left, per spec section 13's own two buttons.
+  let trainBreakTimer = null;
+
+  function trainOpenBreakScreen(minutes) {
+    let overlay = document.getElementById('trainBreakModal');
+    if (overlay) overlay.remove();
+    if (trainBreakTimer) { clearInterval(trainBreakTimer); trainBreakTimer = null; }
+
+    overlay = document.createElement('div');
+    overlay.id = 'trainBreakModal';
+    overlay.className = 'modal-overlay';
+    document.body.appendChild(overlay);
+
+    const totalSeconds = Math.round(minutes * 60);
+    const endAt = Date.now() + totalSeconds * 1000;
+
+    overlay.innerHTML =
+      '<div class="modal-box train-break-box">' +
+        '<p class="train-break-emoji">☕</p>' +
+        '<h2>พักสักหน่อยก็ได้</h2>' +
+        '<p class="train-break-countdown" id="trainBreakCountdown"></p>' +
+        '<div class="modal-close-row">' +
+          '<button type="button" class="btn btn-outline btn-sm" id="trainBreakContinueBtn">ฝึกต่อ →</button>' +
+        '</div>' +
+      '</div>';
+
+    function tick() {
+      const remainMs = Math.max(0, endAt - Date.now());
+      const remainSec = Math.ceil(remainMs / 1000);
+      const mm = Math.floor(remainSec / 60);
+      const ss = remainSec % 60;
+      const label = document.getElementById('trainBreakCountdown');
+      if (!label) { clearInterval(trainBreakTimer); trainBreakTimer = null; return; }
+      label.textContent = mm + ':' + String(ss).padStart(2, '0');
+      if (remainMs <= 0) {
+        clearInterval(trainBreakTimer);
+        trainBreakTimer = null;
+        label.textContent = '0:00 · พร้อมฝึกต่อแล้ว';
+      }
+    }
+    tick();
+    trainBreakTimer = setInterval(tick, 250);
+
+    document.getElementById('trainBreakContinueBtn').addEventListener('click', function () {
+      if (trainBreakTimer) { clearInterval(trainBreakTimer); trainBreakTimer = null; }
+      overlay.remove();
     });
   }
 
@@ -6292,6 +6339,35 @@
 
     document.getElementById('trainGeneratePlanBtn').addEventListener('click', trainGeneratePlan);
     document.getElementById('trainStartPlanBtn').addEventListener('click', trainStartPlan);
+  }
+
+  // ---------- spec section 17: Navigation quick links ----------
+  // Home/Practice/Review/Statistics/Calendar/Settings, satisfied as
+  // shortcuts to the app's existing real tabs rather than a rebuilt nav
+  // bar (Home is this screen itself). Review reuses the Cardbox tab's
+  // own #dueOnlyToggle so it's genuinely a due-cards session, not just
+  // a second link to the same screen as Practice; Calendar jumps into
+  // Stats and scrolls to the heatmap already built for spec section 18.
+  function initTrainQuicklinks() {
+    document.querySelectorAll('.train-quicklink').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const tab = link.dataset.quicklinkTab;
+        activateTab(tab);
+        if (link.dataset.quicklinkReview) {
+          setTimeout(function () {
+            const toggle = document.getElementById('dueOnlyToggle');
+            if (toggle && !toggle.checked) { toggle.checked = true; toggle.dispatchEvent(new Event('change')); }
+          }, 50);
+        }
+        const scrollTargetId = link.dataset.quicklinkScroll;
+        if (scrollTargetId) {
+          setTimeout(function () {
+            const el = document.getElementById(scrollTargetId);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
+        }
+      });
+    });
   }
 
   function renderDashboard() {
@@ -10878,6 +10954,7 @@
     renderTrainHome();
     initTrainPickForMe();
     initTrainSettingsScreen();
+    initTrainQuicklinks();
     initDashTodayModeCard();
     trainCurrentPlan = trainLoadTodaysPlan();
     initSettingsTab();
