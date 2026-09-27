@@ -5792,8 +5792,17 @@
   }
 
   function trainSelectMode(modeId, cardEl) {
+    if (!window.TrainingModes) {
+      console.error('[trainSelectMode] TrainingModes.js failed to load; cannot select "' + modeId + '"');
+      trainShowToast('โหลดข้อมูลโหมดฝึกไม่สำเร็จ ลองรีเฟรชหน้าใหม่');
+      return;
+    }
     const mode = window.TrainingModes.get(modeId);
-    if (!mode) return;
+    if (!mode) {
+      console.error('[trainSelectMode] unknown modeId: ' + modeId);
+      trainShowToast('ไม่พบโหมดฝึกนี้ ลองรีเฟรชหน้าใหม่');
+      return;
+    }
     try { localStorage.setItem(TRAIN_SELECTED_MODE_KEY, JSON.stringify({ modeId: modeId, dateKey: dateKeyToday() })); } catch (e) {}
     if (cardEl) {
       cardEl.classList.add('selecting');
@@ -5890,6 +5899,7 @@
     const btn = document.getElementById('trainPickForMeBtn');
     if (!btn) return;
     btn.addEventListener('click', function () {
+      try {
       ask3StepModal({
         title: '✨ ' + t('train.pickForMeBtn'),
         steps: [
@@ -5918,12 +5928,21 @@
           }
         ],
         onComplete: function (answers) {
-          const modeId = trainAutoPickMode(answers[0], answers[1], answers[2]);
-          const card = document.querySelector('.train-mode-card[data-mode="' + modeId + '"]');
-          if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          trainSelectMode(modeId, card);
+          try {
+            const modeId = trainAutoPickMode(answers[0], answers[1], answers[2]);
+            const card = document.querySelector('.train-mode-card[data-mode="' + modeId + '"]');
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            trainSelectMode(modeId, card);
+          } catch (err) {
+            console.error('[trainPickForMe] onComplete failed:', err);
+            trainShowToast('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง');
+          }
         }
       });
+      } catch (err) {
+        console.error('[trainPickForMe] failed to open modal:', err);
+        trainShowToast('เปิดหน้าต่างไม่สำเร็จ ลองรีเฟรชหน้าใหม่');
+      }
     });
   }
 
