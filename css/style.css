@@ -1981,6 +1981,16 @@ main {
   color: var(--brass);
 }
 
+.train-break-box { text-align: center; }
+.train-break-emoji { font-size: 2.4rem; margin: 0 0 .3rem; }
+.train-break-countdown {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: var(--teal);
+  margin: .8rem 0 1.2rem;
+}
+
 .train-suggestion-banner { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .train-suggestion-chip {
   background: color-mix(in srgb, var(--brass) 14%, var(--board-2));
@@ -1991,6 +2001,14 @@ main {
   cursor: pointer;
 }
 .train-suggestion-chip:hover { filter: brightness(1.08); }
+
+.train-quicklinks { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0 1.4rem; }
+.train-quicklink {
+  background: var(--board-2); border: 1px solid var(--rail); color: var(--cream);
+  border-radius: 20px; padding: .5rem 1rem; font-size: .82rem; font-family: var(--font-body);
+  cursor: pointer;
+}
+.train-quicklink:hover { border-color: var(--teal); }
 
 .dash-today-mode-card { margin-bottom: 1rem; }
 .dash-today-mode-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: .8rem; }
