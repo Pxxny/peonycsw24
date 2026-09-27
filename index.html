@@ -149,6 +149,20 @@
     </div>
     <div class="train-mode-grid" id="trainModeGrid"></div>
 
+    <!-- spec section 17: quick links to the other 5 nav destinations
+         (Practice / Review / Statistics / Calendar / Settings), kept as
+         shortcuts on this home screen rather than restructuring the
+         app's existing tab bar — every link below points at a real,
+         already-working tab; Calendar jumps into Stats and scrolls to
+         the existing heatmap since that's where it actually lives. -->
+    <div class="train-quicklinks" id="trainQuicklinks">
+      <button type="button" class="train-quicklink" data-quicklink-tab="cardbox">📚 Practice</button>
+      <button type="button" class="train-quicklink" data-quicklink-tab="cardbox" data-quicklink-review="1">🔄 Review</button>
+      <button type="button" class="train-quicklink" data-quicklink-tab="stats">📊 Statistics</button>
+      <button type="button" class="train-quicklink" data-quicklink-tab="stats" data-quicklink-scroll="retentionHeatmapGrid">📅 Calendar</button>
+      <button type="button" class="train-quicklink" data-quicklink-tab="settings">⚙️ Settings</button>
+    </div>
+
     <div class="panel-card" id="trainLengthProgressCard" style="margin-top:1.4rem">
       <h2>📊 ความคืบหน้าตามความยาวคำ</h2>
       <div id="trainLengthProgressList"></div>
