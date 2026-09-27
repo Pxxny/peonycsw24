@@ -5762,8 +5762,8 @@
   function trainModeCardHtml(mode) {
     const lang = trainLang();
     const starsTxt = mode.stars ? '⭐'.repeat(mode.stars) : '⭐⭐–⭐⭐⭐⭐';
-    const timeTxt = mode.timeMin ? global.TrainingModes.formatRange(mode.timeMin, t('train.minUnit')) : t('train.variesLabel');
-    const wordsTxt = mode.wordsApprox ? global.TrainingModes.formatRange(mode.wordsApprox, t('train.wordsUnit')) : t('train.variesLabel');
+    const timeTxt = mode.timeMin ? window.TrainingModes.formatRange(mode.timeMin, t('train.minUnit')) : t('train.variesLabel');
+    const wordsTxt = mode.wordsApprox ? window.TrainingModes.formatRange(mode.wordsApprox, t('train.wordsUnit')) : t('train.variesLabel');
     return '' +
       '<button type="button" class="train-mode-card" data-mode="' + mode.id + '">' +
         '<span class="train-mode-icon">' + mode.icon + '</span>' +
@@ -5792,7 +5792,7 @@
   }
 
   function trainSelectMode(modeId, cardEl) {
-    const mode = global.TrainingModes.get(modeId);
+    const mode = window.TrainingModes.get(modeId);
     if (!mode) return;
     try { localStorage.setItem(TRAIN_SELECTED_MODE_KEY, JSON.stringify({ modeId: modeId, dateKey: dateKeyToday() })); } catch (e) {}
     if (cardEl) {
@@ -5807,8 +5807,8 @@
 
   function renderTrainHome() {
     const grid = document.getElementById('trainModeGrid');
-    if (!grid || !global.TrainingModes) return;
-    grid.innerHTML = global.TrainingModes.all().map(trainModeCardHtml).join('');
+    if (!grid || !window.TrainingModes) return;
+    grid.innerHTML = window.TrainingModes.all().map(trainModeCardHtml).join('');
     grid.querySelectorAll('.train-mode-card').forEach(function (card) {
       card.addEventListener('click', function () { trainSelectMode(card.dataset.mode, card); });
     });
@@ -5998,7 +5998,7 @@
   }
 
   function trainOpenSettingsFor(modeId) {
-    const mode = global.TrainingModes.get(modeId);
+    const mode = window.TrainingModes.get(modeId);
     if (!mode) return;
     trainDraftModeId = modeId;
     trainDraftSizeChoice = 'normal';
@@ -6034,7 +6034,7 @@
   }
 
   function trainGeneratePlan() {
-    const mode = global.TrainingModes.get(trainDraftModeId);
+    const mode = window.TrainingModes.get(trainDraftModeId);
     if (!mode) return;
     const sizeChoice = trainReadSizeChoice();
     const customCount = parseInt(document.getElementById('trainCustomCount').value, 10) || 0;
@@ -6044,7 +6044,7 @@
       return;
     }
 
-    const plan = global.TrainingPlanner.buildPlan(trainDraftModeId, {
+    const plan = window.TrainingPlanner.buildPlan(trainDraftModeId, {
       sizeChoice: sizeChoice,
       customCount: customCount,
       chosenLengths: mode.requiresLengthSelection ? trainDraftLengths : null,
@@ -6353,7 +6353,7 @@
 
     const modeId = trainTodaysModeId();
     const plan = trainLoadTodaysPlan();
-    if (!modeId || !plan || !global.TrainingModes) {
+    if (!modeId || !plan || !window.TrainingModes) {
       card.hidden = true;
       noModeCard.hidden = false;
       const checklistCard = document.getElementById('dashChecklistCard');
@@ -6363,7 +6363,7 @@
     card.hidden = false;
     noModeCard.hidden = true;
 
-    const mode = global.TrainingModes.get(modeId);
+    const mode = window.TrainingModes.get(modeId);
     const lang = trainLang();
     document.getElementById('dashTodayModeName').textContent = mode ? (mode.icon + ' ' + mode.name[lang]) : modeId;
 
