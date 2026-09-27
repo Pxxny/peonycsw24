@@ -5957,6 +5957,13 @@
     overlay.className = 'modal-overlay';
     document.body.appendChild(overlay);
 
+    // Safety net: if anything below throws, or the user taps the dark
+    // backdrop itself, always remove the overlay rather than leaving a
+    // full-screen tap-blocker with nothing visibly wrong on screen.
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) overlay.remove();
+    });
+
     const answers = [];
     let stepIndex = 0;
 
@@ -5988,7 +5995,13 @@
       const closeBtn = overlay.querySelector('#ask3StepCloseBtn');
       if (closeBtn) closeBtn.addEventListener('click', function () { overlay.remove(); });
     }
-    renderStep();
+    try {
+      renderStep();
+    } catch (err) {
+      console.error('[ask3StepModal] renderStep failed, removing overlay:', err);
+      overlay.remove();
+      throw err;
+    }
   }
 
   // ---------- Daily Word Training: settings screen + plan builder ----------
