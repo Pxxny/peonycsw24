@@ -32,6 +32,7 @@
 
 <nav class="toolbar" id="toolbar" aria-label="เมนูหลัก">
   <div class="toolbar-scroll">
+    <button class="tab-btn toolbar-tab-btn" data-tab="train" data-i18n="tab.train"><span class="toolbar-icon">🧠</span><span class="toolbar-label">ฝึกวันนี้</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="dashboard" data-i18n="tab.dashboard"><span class="toolbar-icon">📊</span><span class="toolbar-label">Dashboard</span></button>
     <button class="tab-btn toolbar-tab-btn" data-tab="play" data-i18n="tab.play"><span class="toolbar-icon">♟️</span><span class="toolbar-label">Play</span></button>
 
@@ -115,6 +116,7 @@
 <div class="drawer-overlay" id="drawerOverlay" hidden>
   <div class="drawer-box">
     <div class="drawer-header">CSW24 Word Lab</div>
+    <button type="button" class="drawer-item" data-tab="train"><span class="ic">🧠</span>ฝึกวันนี้</button>
     <button type="button" class="drawer-item" data-tab="dashboard"><span class="ic">📊</span>Dashboard</button>
     <button type="button" class="drawer-item" data-tab="play"><span class="ic">♟️</span>Play</button>
     <div class="drawer-group-label">เรียน &amp; ฝึกฝน</div>
@@ -137,6 +139,65 @@
 </div>
 
 <main>
+
+  <!-- ============== TRAIN (DAILY WORD TRAINING HOME) TAB ============== -->
+  <section id="tab-train" class="tab-panel active">
+    <div class="train-hero" id="trainHeroBlock">
+      <h2 class="train-headline" data-i18n="train.headline">วันนี้สมองคุณไหวแค่ไหน?</h2>
+      <p class="train-subhead" data-i18n="train.subhead">เลือกโหมดที่เหมาะกับวันนี้ แล้วให้ระบบจัดตารางฝึกให้คุณอัตโนมัติ</p>
+      <button type="button" class="btn btn-teal btn-hero" id="trainPickForMeBtn" data-i18n="train.pickForMeBtn">✨ เลือกให้ฉัน</button>
+    </div>
+    <div class="train-mode-grid" id="trainModeGrid"></div>
+
+    <div class="panel-card" id="trainLengthProgressCard" style="margin-top:1.4rem">
+      <h2>📊 ความคืบหน้าตามความยาวคำ</h2>
+      <div id="trainLengthProgressList"></div>
+    </div>
+
+    <!-- ---- ตั้งค่าการฝึกวันนี้ (spec section 4) ---- -->
+    <div class="panel-card train-settings-card" id="trainSettingsCard" hidden>
+      <button type="button" class="train-back-btn" id="trainSettingsBackBtn">← กลับไปเลือกโหมด</button>
+      <h2 id="trainSettingsModeTitle">ตั้งค่าการฝึกวันนี้</h2>
+      <p class="panel-sub" id="trainSettingsModeTagline"></p>
+
+      <div class="train-settings-section">
+        <label class="train-settings-label" data-i18n="train.wordsLabel">จำนวนศัพท์</label>
+        <div class="chip-row" id="trainSizeChips">
+          <button type="button" class="mode-chip" data-size="light">เบา</button>
+          <button type="button" class="mode-chip" data-size="normal">ปกติ</button>
+          <button type="button" class="mode-chip" data-size="heavy">เยอะ</button>
+          <button type="button" class="mode-chip" data-size="custom">กำหนดเอง</button>
+        </div>
+        <input type="number" id="trainCustomCount" class="train-custom-count" min="1" max="500" value="25" hidden>
+      </div>
+
+      <div class="train-settings-section" id="trainLettersSection">
+        <label class="train-settings-label">Letters</label>
+        <div class="chip-row chip-row-lg" id="trainLenChips">
+          <button type="button" class="length-chip" data-len="3">3L</button>
+          <button type="button" class="length-chip" data-len="4">4L</button>
+          <button type="button" class="length-chip" data-len="5">5L</button>
+          <button type="button" class="length-chip" data-len="6">6L</button>
+          <button type="button" class="length-chip" data-len="7">7L</button>
+          <button type="button" class="length-chip" data-len="8">8L</button>
+          <button type="button" class="length-chip" data-len="9">9L</button>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" id="trainLenSelectAllBtn" data-i18n="common.selectAll">เลือกทั้งหมด</button>
+        <p class="train-settings-hint" id="trainLenRequiredHint" hidden>โหมดนี้ต้องเลือกความยาวอย่างน้อย 1 ระดับ</p>
+      </div>
+
+      <button type="button" class="btn btn-teal btn-hero" id="trainGeneratePlanBtn">สร้างแผนฝึกวันนี้ →</button>
+    </div>
+
+    <!-- ---- Daily Plan ที่สร้างแล้ว (spec section 5) ---- -->
+    <div class="panel-card train-plan-card" id="trainPlanCard" hidden>
+      <button type="button" class="train-back-btn" id="trainPlanBackBtn">← ปรับตั้งค่าใหม่</button>
+      <h2 id="trainPlanTitle">แผนฝึกวันนี้</h2>
+      <p class="panel-sub" id="trainPlanSummary"></p>
+      <div id="trainPlanBlocks"></div>
+      <button type="button" class="btn btn-teal btn-hero" id="trainStartPlanBtn">▶ เริ่มฝึก</button>
+    </div>
+  </section>
 
   <!-- ============== GENERATE TAB ============== -->
   <section id="tab-generate" class="tab-panel">
@@ -783,7 +844,7 @@
   </section>
 
   <!-- ============== DASHBOARD TAB ============== -->
-  <section id="tab-dashboard" class="tab-panel active">
+  <section id="tab-dashboard" class="tab-panel">
     <div class="dash-topline">
       <div>
         <h2 class="dash-topline-title" data-i18n="dash.title">Dashboard</h2>
@@ -794,6 +855,42 @@
     <div class="dash-greeting-card" id="dashGreetingCard" style="display:none">
       <div class="dash-greeting-time" id="dashGreetingTime"></div>
       <div class="dash-greeting-message" id="dashGreetingMessage"></div>
+    </div>
+
+    <div class="panel-card dash-today-mode-card" id="dashTodayModeCard" hidden>
+      <p class="panel-sub" style="margin-bottom:.3rem">โหมดวันนี้</p>
+      <div class="dash-today-mode-row">
+        <span class="dash-today-mode-name" id="dashTodayModeName"></span>
+        <button type="button" class="btn btn-outline btn-sm" id="dashTodayModeChangeBtn">🔄 เปลี่ยนโหมด</button>
+      </div>
+      <div class="stat-grid" id="dashTodayModeStatGrid"></div>
+      <div class="dash-today-progress-track">
+        <div class="dash-today-progress-fill" id="dashTodayProgressFill"></div>
+      </div>
+      <p class="dash-today-progress-label" id="dashTodayProgressLabel"></p>
+    </div>
+    <div class="panel-card dash-today-mode-card" id="dashNoModeCard" hidden>
+      <p class="panel-sub">วันนี้ยังไม่ได้เลือกโหมดฝึก</p>
+      <button type="button" class="btn btn-teal btn-hero" id="dashGoPickModeBtn">✨ ไปเลือกโหมด</button>
+    </div>
+
+    <div class="panel-card" id="dashChecklistCard" hidden>
+      <h2>✅ Daily Checklist</h2>
+      <div class="checklist-group">
+        <p class="checklist-group-label">Letters</p>
+        <div class="checklist-row" id="dashChecklistLengths"></div>
+      </div>
+      <div class="checklist-group">
+        <p class="checklist-group-label">กิจกรรม</p>
+        <div class="checklist-row" id="dashChecklistActivities"></div>
+      </div>
+    </div>
+
+    <div class="panel-card" id="dashWeeklySummaryCard" hidden>
+      <h2>📅 สัปดาห์นี้คุณฝึกไปแล้ว</h2>
+      <div class="stat-grid" id="dashWeeklyStatGrid"></div>
+      <p class="dash-weekly-line" id="dashWeeklyDetailLine"></p>
+      <p class="dash-weekly-encouragement" id="dashWeeklyEncouragement"></p>
     </div>
 
     <div class="dash-hero-row">
@@ -822,6 +919,11 @@
     </div>
 
     <div class="stat-grid" id="dashStatGrid"></div>
+
+    <div class="panel-card" id="dashLengthProgressCard">
+      <h2>📊 ความคืบหน้าตามความยาวคำ (3-9 Letters)</h2>
+      <div id="dashLengthProgressList"></div>
+    </div>
 
     <div class="panel-card dash-actions-card">
       <div class="dash-action-grid">
@@ -1584,6 +1686,8 @@
 <script src="js/BoardSystem/PlayGame.js?v=1790298352"></script>
 <script src="js/badges.js?v=1790298352"></script>
 <script src="js/achievement.js?v=1790298352"></script>
+<script src="js/TrainingModes.js?v=1790298352"></script>
+<script src="js/TrainingPlanner.js?v=1790298352"></script>
 <script src="js/app.js?v=1790298352"></script>
 <script src="js/frames.js?v=1790298352"></script>
 <script src="js/frames-ui.js?v=1790298352"></script>
