@@ -2873,11 +2873,18 @@ textarea:disabled { opacity: 0.6; }
 #tgInput[readonly] { caret-color: transparent; cursor: default; }
 
 /* ---------- avatar frame picker + toast ---------- */
-
-.modal-overlay { opacity: 0; transition: opacity .2s ease; }
-.modal-overlay[hidden] { display: none; opacity: 0; }
-.modal-overlay:not([hidden]) { display: flex; }
-.modal-overlay.modal-overlay-show { opacity: 1; }
+/* Scoped to #framePickerOverlay only — .modal-overlay is used by many
+   other modals (Daily Goal, Daily Word Training's mode-picker/anagram/
+   break screens, etc.) that show themselves via the [hidden] attribute
+   alone and never add modal-overlay-show, so a blanket opacity:0 default
+   on the base .modal-overlay class made every one of those invisible
+   while still blocking clicks/covering the screen. Only the frame
+   picker's own requestAnimationFrame + classList.add('modal-overlay-show')
+   dance (see frames-ui.js) needs this fade-in behavior. */
+#framePickerOverlay { opacity: 0; transition: opacity .2s ease; }
+#framePickerOverlay[hidden] { display: none; opacity: 0; }
+#framePickerOverlay:not([hidden]) { display: flex; }
+#framePickerOverlay.modal-overlay-show { opacity: 1; }
 
 .frame-picker-box {
   max-width: 640px;
