@@ -234,12 +234,27 @@
     };
   }
 
+  // ---------- Recent accuracy (used by Daily Word Training's adaptive
+  // word-count nudge, spec section 10) ----------
+  // Accuracy over the last `n` learn-log entries (chronological, most
+  // recent last in storage) rather than the whole all-time log — a
+  // learner's current day should react to how they've been doing lately,
+  // not to a session from months ago. Same reduceBucket() every other
+  // breakdown here already uses; sampleSize: 0 / accuracy: null when
+  // there isn't enough log yet, same honesty as the rest of this file.
+  function recentAccuracy(n) {
+    const log = loadLearnLog();
+    const window = log.slice(Math.max(0, log.length - (n || 30)));
+    return reduceBucket(window);
+  }
+
   global.PerformanceAnalyzer = {
     breakdownByLength: breakdownByLength,
     breakdownByAnagram: breakdownByAnagram,
     breakdownByBingo: breakdownByBingo,
     breakdownByStem: breakdownByStem,
     responseTimeSummary: responseTimeSummary,
+    recentAccuracy: recentAccuracy,
     fullReport: fullReport
   };
 })(window);

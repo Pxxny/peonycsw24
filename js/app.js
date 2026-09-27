@@ -76,7 +76,7 @@
 
   const I18N = {
     th: {
-      'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 สร้างคำศัพท์', 'tab.quiz': '🎯 แบบทดสอบ',
+      'tab.train': '🧠 ฝึกวันนี้', 'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 สร้างคำศัพท์', 'tab.quiz': '🎯 แบบทดสอบ',
       'tab.cardbox': '🗂️ Cardbox', 'tab.addwords': '➕ เพิ่มคำศัพท์', 'tab.browse': '📖 คลังคำศัพท์', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
       'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievement', 'tab.settings': '⚙️ Setting', 'tab.note': '📝 Note',
       'tab.learn': '🎓 Learn', 'tab.stats': '📈 Stats',
@@ -85,6 +85,13 @@
       'learn.dueReviewDetail': 'ไม่มีคำถึงกำหนดตอนนี้',
       'learn.extraSoon': '🚧 Extra — เร็วๆ นี้',
       'dash.learnBtn': '🎓 Learn',
+      'train.headline': 'วันนี้สมองคุณไหวแค่ไหน?',
+      'train.subhead': 'เลือกโหมดที่เหมาะกับวันนี้ แล้วให้ระบบจัดตารางฝึกให้คุณอัตโนมัติ',
+      'train.pickForMeBtn': '✨ เลือกให้ฉัน',
+      'train.selectBtn': 'เลือกโหมดนี้',
+      'train.selectedToast': 'เลือกโหมด {mode} แล้ว',
+      'train.starsLabel': 'ความหนัก', 'train.timeLabel': 'เวลา', 'train.wordsLabel': 'จำนวนศัพท์',
+      'train.wordsUnit': ' คำ', 'train.minUnit': ' นาที', 'train.variesLabel': 'ขึ้นกับที่เลือก',
       'ach.title': '🏆 Achievement', 'ach.sub': 'ปลดล็อกเหรียญตราจากการเรียนและเล่นมินิเกม ข้อมูลเก็บไว้ในเบราว์เซอร์นี้เท่านั้น',
       'app.title': 'CSW24 Word Lab',
       'app.subtitle': 'เจนคำศัพท์ · หา Anagram · เก็บลง Cardbox · ทบทวนแบบ Spaced Repetition · Minigame',
@@ -196,7 +203,7 @@
       'settings.anagramModeManualHint': 'พิมพ์คำตอบแล้วกด Enter ตรวจทีละคำ · ครบแล้วกด Enter ตอนช่องว่างเพื่อส่งทั้งชุด · เร็วกว่าเพราะไม่ต้องย้ายนิ้วแต่กดเกินมาหนึ่งทีคือส่งทั้งชุดทันที'
     },
     en: {
-      'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 Generate', 'tab.quiz': '🎯 Quiz',
+      'tab.train': '🧠 Train Today', 'tab.dashboard': '📊 Dashboard', 'tab.generate': '📝 Generate', 'tab.quiz': '🎯 Quiz',
       'tab.cardbox': '🗂️ Cardbox', 'tab.addwords': '➕ Add Words', 'tab.browse': '📖 Word Browser', 'tab.builder': '🧩 Word Builder', 'tab.minigame': '🕹️ Minigame',
       'tab.play': '♟️ Play', 'tab.achievements': '🏆 Achievements', 'tab.settings': '⚙️ Settings', 'tab.stats': '📈 Stats', 'tab.note': '📝 Note',
       'tab.learn': '🎓 Learn',
@@ -205,6 +212,13 @@
       'learn.dueReviewDetail': 'No words due right now',
       'learn.extraSoon': '🚧 Extra — coming soon',
       'dash.learnBtn': '🎓 Learn',
+      'train.headline': 'How\u2019s your brain today?',
+      'train.subhead': 'Pick the mode that fits today, and we\u2019ll build the plan for you.',
+      'train.pickForMeBtn': '✨ Pick for me',
+      'train.selectBtn': 'Choose this mode',
+      'train.selectedToast': '{mode} selected',
+      'train.starsLabel': 'Intensity', 'train.timeLabel': 'Time', 'train.wordsLabel': 'Words',
+      'train.wordsUnit': ' words', 'train.minUnit': ' min', 'train.variesLabel': 'Depends on your pick',
       'ach.title': '🏆 Achievements', 'ach.sub': 'Unlock badges by studying and playing minigames. All data is stored in this browser only.',
       'app.title': 'CSW24 Word Lab',
       'app.subtitle': 'Generate words · Find Anagrams · Save to Cardbox · Spaced Repetition review · Minigames',
@@ -2014,7 +2028,7 @@
 
   function initTabs() {
     const btns = document.querySelectorAll('.tab-btn');
-    const defaultBtn = document.querySelector('.tab-btn[data-tab="dashboard"]');
+    const defaultBtn = document.querySelector('.tab-btn[data-tab="train"]');
     if (defaultBtn) {
       defaultBtn.classList.add('active');
       updateCurrentTabLabel(defaultBtn);
@@ -2137,6 +2151,7 @@
     if (enteringMinigame && typeof tgIsGameInProgress === 'function' && tgIsGameInProgress() && !document.hidden) {
       tgStartTimer();
     }
+    if (tabName === 'train') renderTrainHome();
     if (tabName === 'cardbox') renderCardboxTab();
     if (tabName === 'dashboard') renderDashboard();
     if (tabName === 'settings') { renderDashboard(); }
@@ -5724,6 +5739,529 @@
     });
   }
 
+  // ---------- Daily Word Training: mode picker home (#tab-train) ----------
+  // Renders TrainingModes.js's 12 pure-data modes as cards (spec sections
+  // 1-3). Selection is stored WITH the date (spec section 11's Dashboard
+  // needs "โหมดวันนี้" specifically — a mode picked yesterday must not
+  // silently read back as today's mode tomorrow).
+  const TRAIN_SELECTED_MODE_KEY = 'csw24_selected_mode_v1';
+
+  function trainLang() { return (settings.lang === 'en') ? 'en' : 'th'; }
+
+  // Returns the mode id chosen today, or null if nothing has been picked
+  // yet today (a stale pick from a previous day is deliberately NOT
+  // returned here — that's the whole point of storing the date).
+  function trainTodaysModeId() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(TRAIN_SELECTED_MODE_KEY) || 'null');
+      if (!raw || !raw.modeId || !raw.dateKey) return null;
+      return (raw.dateKey === dateKeyToday()) ? raw.modeId : null;
+    } catch (e) { return null; }
+  }
+
+  function trainModeCardHtml(mode) {
+    const lang = trainLang();
+    const starsTxt = mode.stars ? '⭐'.repeat(mode.stars) : '⭐⭐–⭐⭐⭐⭐';
+    const timeTxt = mode.timeMin ? global.TrainingModes.formatRange(mode.timeMin, t('train.minUnit')) : t('train.variesLabel');
+    const wordsTxt = mode.wordsApprox ? global.TrainingModes.formatRange(mode.wordsApprox, t('train.wordsUnit')) : t('train.variesLabel');
+    return '' +
+      '<button type="button" class="train-mode-card" data-mode="' + mode.id + '">' +
+        '<span class="train-mode-icon">' + mode.icon + '</span>' +
+        '<span class="train-mode-name">' + escapeHtml(mode.name[lang]) + '</span>' +
+        '<span class="train-mode-tagline">' + escapeHtml(mode.tagline[lang]) + '</span>' +
+        '<span class="train-mode-meta">' +
+          '<span class="train-mode-stars">' + starsTxt + '</span>' +
+          '<span>⏱ ' + timeTxt + '</span>' +
+          '<span>📖 ' + wordsTxt + '</span>' +
+        '</span>' +
+      '</button>';
+  }
+
+  function trainShowToast(msg) {
+    let el = document.getElementById('trainToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'trainToast';
+      el.className = 'train-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('visible');
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(function () { el.classList.remove('visible'); }, 2200);
+  }
+
+  function trainSelectMode(modeId, cardEl) {
+    const mode = global.TrainingModes.get(modeId);
+    if (!mode) return;
+    try { localStorage.setItem(TRAIN_SELECTED_MODE_KEY, JSON.stringify({ modeId: modeId, dateKey: dateKeyToday() })); } catch (e) {}
+    if (cardEl) {
+      cardEl.classList.add('selecting');
+      setTimeout(function () { cardEl.classList.remove('selecting'); }, 500);
+    }
+    const lang = trainLang();
+    trainShowToast(t('train.selectedToast').replace('{mode}', mode.icon + ' ' + mode.name[lang]));
+    if (window.Achievements) window.Achievements.record('training_mode_selected', { mode: modeId });
+    setTimeout(function () { trainOpenSettingsFor(modeId); }, 550);
+  }
+
+  function renderTrainHome() {
+    const grid = document.getElementById('trainModeGrid');
+    if (!grid || !global.TrainingModes) return;
+    grid.innerHTML = global.TrainingModes.all().map(trainModeCardHtml).join('');
+    grid.querySelectorAll('.train-mode-card').forEach(function (card) {
+      card.addEventListener('click', function () { trainSelectMode(card.dataset.mode, card); });
+    });
+    renderLengthProgress('trainLengthProgressList');
+    renderTrainSuggestionBanner();
+  }
+
+  // ---------- spec section 10: two remaining Adaptive Learning rules ----------
+  // "ไม่ได้ฝึกหลายวัน → เสนอ Review Day" and "ตอบผิดบ่อย → ลดศัพท์ใหม่"
+  // (the ลดศัพท์ใหม่ half of that second rule already happens live inside
+  // a plan via applyAdaptiveNudge(); this banner is the "เสนอ" / suggest
+  // half spec section 10 asks for up front, on the Train home screen).
+  // A suggestion, never a forced switch — spec section 20 is explicit
+  // that no mode is ever mandatory; the learner can ignore this banner
+  // and pick anything.
+  function daysSinceLastStudy() {
+    const hist = loadHistory();
+    let lastT = 0;
+    Object.keys(hist).forEach(function (word) {
+      hist[word].forEach(function (e) { if (e && e.t > lastT) lastT = e.t; });
+    });
+    if (!lastT) return null; // never studied at all — not the same as "stale"
+    return Math.floor((Date.now() - lastT) / 86400000);
+  }
+
+  function renderTrainSuggestionBanner() {
+    let box = document.getElementById('trainSuggestionBanner');
+    const grid = document.getElementById('trainModeGrid');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'trainSuggestionBanner';
+      box.className = 'train-suggestion-banner';
+      if (grid && grid.parentNode) grid.parentNode.insertBefore(box, grid);
+    }
+
+    const gapDays = daysSinceLastStudy();
+    const recent = (window.PerformanceAnalyzer && window.PerformanceAnalyzer.recentAccuracy)
+      ? window.PerformanceAnalyzer.recentAccuracy(20) : { sampleSize: 0, accuracy: null };
+
+    let html = '';
+    if (gapDays !== null && gapDays >= 3) {
+      html += '<div class="train-suggestion-chip" data-suggest-mode="review_day">🔄 ไม่ได้ฝึกมา ' + gapDays + ' วันแล้ว — ลอง Review Day ดูไหม?</div>';
+    }
+    if (recent.sampleSize >= 10 && recent.accuracy !== null && recent.accuracy < 60) {
+      html += '<div class="train-suggestion-chip" data-suggest-mode="rescue">🔥 ช่วงนี้ตอบผิดบ่อย (แม่นยำ ' + recent.accuracy + '%) — ลองกู้ศัพท์ที่ลืมก่อนเพิ่มคำใหม่ไหม?</div>';
+    }
+    box.innerHTML = html;
+    box.hidden = !html;
+    box.querySelectorAll('.train-suggestion-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        const card = grid.querySelector('.train-mode-card[data-mode="' + chip.dataset.suggestMode + '"]');
+        if (card) trainSelectMode(chip.dataset.suggestMode, card);
+      });
+    });
+  }
+
+  // "เลือกให้ฉัน" (spec section 19) — three quick single-choice questions,
+  // then map the answers to one real mode from TrainingModes.js. No new
+  // mode is invented here; this only picks among the 12 that already exist.
+  function trainAutoPickMode(timeAnswer, energyAnswer, focusAnswer) {
+    // เวลา: too little time always wins toward a short mode regardless of
+    // energy/focus, since a 10-minute answer can't honestly serve a
+    // 60-120 minute mode's recipe.
+    if (timeAnswer === '10') return 'speed';
+    if (energyAnswer === 'chill') return (focusAnswer === 'old') ? 'rescue' : 'chill';
+    if (energyAnswer === 'challenge') {
+      if (timeAnswer === '120plus') return 'full_grind';
+      return 'challenge';
+    }
+    // ปกติ
+    if (focusAnswer === 'anagram') return 'brain_training';
+    if (focusAnswer === 'weak') return 'length_focus';
+    if (focusAnswer === 'old') return 'review_day';
+    if (focusAnswer === 'everything') return (timeAnswer === '120plus' || timeAnswer === '60') ? 'marathon' : 'steady';
+    return 'steady';
+  }
+
+  function initTrainPickForMe() {
+    const btn = document.getElementById('trainPickForMeBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      ask3StepModal({
+        title: '✨ ' + t('train.pickForMeBtn'),
+        steps: [
+          {
+            question: 'วันนี้มีเวลาเท่าไร?',
+            options: [
+              { value: '10', label: '10 นาที' }, { value: '20', label: '20 นาที' },
+              { value: '30', label: '30 นาที' }, { value: '60', label: '1 ชั่วโมง' },
+              { value: '120plus', label: '2 ชั่วโมง+' }
+            ]
+          },
+          {
+            question: 'วันนี้อยากฝึกแบบไหน?',
+            options: [
+              { value: 'chill', label: 'ชิล ๆ' }, { value: 'normal', label: 'ปกติ' },
+              { value: 'serious', label: 'จริงจัง' }, { value: 'challenge', label: 'ท้าทายตัวเอง' }
+            ]
+          },
+          {
+            question: 'วันนี้อยากเน้นอะไร?',
+            options: [
+              { value: 'new', label: 'ศัพท์ใหม่' }, { value: 'old', label: 'จำศัพท์เก่า' },
+              { value: 'anagram', label: 'Anagram' }, { value: 'weak', label: 'Letters ที่อ่อน' },
+              { value: 'everything', label: 'ทุกอย่าง' }
+            ]
+          }
+        ],
+        onComplete: function (answers) {
+          const modeId = trainAutoPickMode(answers[0], answers[1], answers[2]);
+          const card = document.querySelector('.train-mode-card[data-mode="' + modeId + '"]');
+          if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          trainSelectMode(modeId, card);
+        }
+      });
+    });
+  }
+
+  // Minimal generic 3-question single-select modal, built from the same
+  // .modal-overlay/.modal-box/.chip-row pieces the Daily Goal modal
+  // already uses elsewhere in this file — no new modal chrome invented.
+  function ask3StepModal(config) {
+    let overlay = document.getElementById('ask3StepModal');
+    if (overlay) overlay.remove();
+    overlay = document.createElement('div');
+    overlay.id = 'ask3StepModal';
+    overlay.className = 'modal-overlay';
+    document.body.appendChild(overlay);
+
+    const answers = [];
+    let stepIndex = 0;
+
+    function renderStep() {
+      const step = config.steps[stepIndex];
+      overlay.innerHTML =
+        '<div class="modal-box">' +
+          '<h2>' + escapeHtml(config.title) + '</h2>' +
+          '<p class="panel-sub">' + escapeHtml(step.question) + '</p>' +
+          '<div class="chip-row" id="ask3StepChips">' +
+            step.options.map(function (o) {
+              return '<button type="button" class="mode-chip" data-value="' + escapeHtml(o.value) + '">' + escapeHtml(o.label) + '</button>';
+            }).join('') +
+          '</div>' +
+          '<div class="modal-close-row"><button type="button" class="btn btn-outline btn-sm" id="ask3StepCloseBtn">ปิด</button></div>' +
+        '</div>';
+      overlay.querySelectorAll('#ask3StepChips .mode-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          answers.push(chip.dataset.value);
+          stepIndex++;
+          if (stepIndex >= config.steps.length) {
+            overlay.remove();
+            config.onComplete(answers);
+          } else {
+            renderStep();
+          }
+        });
+      });
+      const closeBtn = overlay.querySelector('#ask3StepCloseBtn');
+      if (closeBtn) closeBtn.addEventListener('click', function () { overlay.remove(); });
+    }
+    renderStep();
+  }
+
+  // ---------- Daily Word Training: settings screen + plan builder ----------
+  // Second/third screens within #tab-train (spec sections 4-5). Selecting
+  // a mode card scrolls straight into the settings screen instead of
+  // opening a separate tab, so "หน้าแรก" stays a single flow.
+  let trainDraftModeId = null;
+  let trainDraftSizeChoice = 'normal';
+  let trainDraftLengths = [];
+  let trainCurrentPlan = null;
+
+  function trainShowScreen(screen) {
+    const hero = document.getElementById('trainHeroBlock');
+    const grid = document.getElementById('trainModeGrid');
+    const settingsCard = document.getElementById('trainSettingsCard');
+    const planCard = document.getElementById('trainPlanCard');
+    const showHero = screen === 'picker';
+    if (hero) hero.hidden = !showHero;
+    if (grid) grid.hidden = !showHero;
+    if (settingsCard) settingsCard.hidden = (screen !== 'settings');
+    if (planCard) planCard.hidden = (screen !== 'plan');
+  }
+
+  function trainCardboxWordSet() {
+    return new Set(loadCardbox().map(function (c) { return c.word; }));
+  }
+
+  function trainOpenSettingsFor(modeId) {
+    const mode = global.TrainingModes.get(modeId);
+    if (!mode) return;
+    trainDraftModeId = modeId;
+    trainDraftSizeChoice = 'normal';
+    trainDraftLengths = [];
+
+    const lang = trainLang();
+    document.getElementById('trainSettingsModeTitle').textContent = mode.icon + ' ' + mode.name[lang];
+    document.getElementById('trainSettingsModeTagline').textContent = mode.tagline[lang];
+
+    // reset size chips to 'normal', clear custom input
+    document.querySelectorAll('#trainSizeChips .mode-chip').forEach(function (chip) {
+      chip.classList.toggle('active', chip.dataset.size === 'normal');
+    });
+    document.getElementById('trainCustomCount').hidden = true;
+
+    // Letters section only makes sense for modes that don't already fix
+    // their own lengths to "all 3-9" — เจาะ Letters requires a pick,
+    // other modes don't expose the control at all (spec doesn't ask
+    // fixed-length modes to be re-narrowed here).
+    const lettersSection = document.getElementById('trainLettersSection');
+    lettersSection.hidden = !mode.requiresLengthSelection;
+    document.querySelectorAll('#trainLenChips .length-chip').forEach(function (chip) {
+      chip.classList.remove('active');
+    });
+    document.getElementById('trainLenRequiredHint').hidden = true;
+
+    trainShowScreen('settings');
+  }
+
+  function trainReadSizeChoice() {
+    const active = document.querySelector('#trainSizeChips .mode-chip.active');
+    return active ? active.dataset.size : 'normal';
+  }
+
+  function trainGeneratePlan() {
+    const mode = global.TrainingModes.get(trainDraftModeId);
+    if (!mode) return;
+    const sizeChoice = trainReadSizeChoice();
+    const customCount = parseInt(document.getElementById('trainCustomCount').value, 10) || 0;
+
+    if (mode.requiresLengthSelection && !trainDraftLengths.length) {
+      document.getElementById('trainLenRequiredHint').hidden = false;
+      return;
+    }
+
+    const plan = global.TrainingPlanner.buildPlan(trainDraftModeId, {
+      sizeChoice: sizeChoice,
+      customCount: customCount,
+      chosenLengths: mode.requiresLengthSelection ? trainDraftLengths : null,
+      lengthPoolFn: lengthPool,
+      existingWords: trainCardboxWordSet()
+    });
+    if (!plan) return;
+    trainCurrentPlan = plan;
+    trainPersistTodaysPlan(plan);
+    trainRenderPlan(plan, mode);
+    trainShowScreen('plan');
+  }
+
+  // Persist the generated plan under today's date so the Dashboard
+  // (spec section 11: "โหมดวันนี้", New/Review/Quiz counts) can read it
+  // back correctly even after a reload or tab switch — trainCurrentPlan
+  // alone only lives in memory for this page session. Keyed by date for
+  // the same reason trainTodaysModeId() is: a plan built yesterday must
+  // not silently read back as today's.
+  const TRAIN_TODAYS_PLAN_KEY = 'csw24_todays_plan_v1';
+
+  function trainPersistTodaysPlan(plan) {
+    try {
+      localStorage.setItem(TRAIN_TODAYS_PLAN_KEY, JSON.stringify({ dateKey: dateKeyToday(), plan: plan }));
+    } catch (e) {}
+  }
+
+  function trainLoadTodaysPlan() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(TRAIN_TODAYS_PLAN_KEY) || 'null');
+      if (!raw || raw.dateKey !== dateKeyToday()) return null;
+      return raw.plan;
+    } catch (e) { return null; }
+  }
+
+  const TRAIN_STEP_ICONS = {
+    new_words: '🆕', review: '🔁', review_queue: '🔁', recall: '🧠', anagram: '🔀',
+    unscramble: '🧩', missing_letters: '❓', reverse_recall: '🔄', multiple_choice: '☑️',
+    timed_quiz: '⏱️', mixed_quiz: '🎯', weak_words: '⚠️', final_test: '🏁', break: '☕'
+  };
+
+  function trainRenderPlan(plan, mode) {
+    const lang = trainLang();
+    document.getElementById('trainPlanTitle').textContent = mode.icon + ' ' + t('train.headline').replace('?', '') + ' — ' + mode.name[lang];
+    let summary = 'คำใหม่ ' + plan.newWordsPlaced + '/' + plan.newWordsTarget + ' คำ';
+    if (plan.shortfall && plan.shortfall.reason === 'pool_exhausted') {
+      summary += ' (คลังคำที่ยังไม่เคยฝึกในความยาวนี้เหลือไม่พอ ได้แค่ ' + plan.newWordsPlaced + ' คำ)';
+    }
+    document.getElementById('trainPlanSummary').textContent = summary;
+
+    const list = document.getElementById('trainPlanBlocks');
+    list.innerHTML = plan.blocks.map(function (b, i) {
+      const icon = TRAIN_STEP_ICONS[b.type] || '•';
+      const label = (b.label && b.label[lang]) || b.type;
+      const countTxt = b.type === 'break'
+        ? (b.breakMinutes + ' นาที')
+        : (b.words.length ? (b.words.length + ' คำ') : '');
+      const isAnagramBlock = (b.type === 'anagram') && b.words.length > 0;
+      return '' +
+        '<div class="train-plan-block' + (b.type === 'break' ? ' is-break' : '') + (isAnagramBlock ? ' is-clickable' : '') + '"' +
+          (isAnagramBlock ? ' data-anagram-block-index="' + i + '"' : '') + '>' +
+          '<span class="train-plan-block-icon">' + icon + '</span>' +
+          '<span class="train-plan-block-body">' +
+            '<span class="train-plan-block-label">' + escapeHtml(label) + (isAnagramBlock ? ' 👁 ดูตัวอย่าง' : '') + '</span><br>' +
+            '<span class="train-plan-block-count">' + escapeHtml(countTxt) + '</span>' +
+          '</span>' +
+        '</div>';
+    }).join('');
+
+    list.querySelectorAll('.train-plan-block[data-anagram-block-index]').forEach(function (blockEl) {
+      blockEl.addEventListener('click', function () {
+        const idx = parseInt(blockEl.dataset.anagramBlockIndex, 10);
+        trainOpenAnagramLookup(plan.blocks[idx].words);
+      });
+    });
+  }
+
+  // ---------- spec section 8: Anagram Training lookup widget ----------
+  // A plain, UNSCORED preview — "WORD / LETTERS / ANAGRAM ที่มีอยู่ในฐาน
+  // ข้อมูล" plus [ลองตอบ] / [แสดงคำตอบ], exactly as spec section 8 asks —
+  // distinct from the app's existing scored Anagram session
+  // (startStudySession(..., 'anagram', ...) / renderAnagramCard), which
+  // times, grades and records the attempt. This widget does neither: it
+  // never calls updateCardResult or logs history, purely a look-and-try
+  // browser over the plan's own anagram words before/without committing
+  // to the real graded session.
+  let trainAnagramLookupWords = [];
+  let trainAnagramLookupIndex = 0;
+
+  function trainOpenAnagramLookup(words) {
+    trainAnagramLookupWords = words.slice();
+    trainAnagramLookupIndex = 0;
+    trainRenderAnagramLookupCard();
+  }
+
+  function trainRenderAnagramLookupCard() {
+    let overlay = document.getElementById('trainAnagramLookupModal');
+    if (overlay) overlay.remove();
+    overlay = document.createElement('div');
+    overlay.id = 'trainAnagramLookupModal';
+    overlay.className = 'modal-overlay';
+    document.body.appendChild(overlay);
+
+    const word = trainAnagramLookupWords[trainAnagramLookupIndex];
+    const letters = sortLetters(word);
+    const partners = getAnagrams(word); // real anagrams already in the dictionary, same accessor everywhere else uses
+
+    overlay.innerHTML =
+      '<div class="modal-box">' +
+        '<h2>🔀 Anagram Training</h2>' +
+        '<p class="panel-sub">' + (trainAnagramLookupIndex + 1) + ' / ' + trainAnagramLookupWords.length + '</p>' +
+        '<div class="train-anagram-letters">' + letters.split('').join(' ') + '</div>' +
+        '<form id="trainAnagramLookupForm">' +
+          '<input type="text" id="trainAnagramLookupInput" autocomplete="off" placeholder="ลองตอบ...">' +
+        '</form>' +
+        '<div id="trainAnagramLookupFeedback" class="session-feedback"></div>' +
+        '<div class="modal-close-row">' +
+          '<button type="button" class="btn btn-outline btn-sm" id="trainAnagramRevealBtn">แสดงคำตอบ</button>' +
+          '<button type="button" class="btn btn-outline btn-sm" id="trainAnagramNextBtn">ถัดไป →</button>' +
+          '<button type="button" class="btn btn-outline btn-sm" id="trainAnagramCloseBtn">ปิด</button>' +
+        '</div>' +
+      '</div>';
+
+    const feedback = document.getElementById('trainAnagramLookupFeedback');
+    const form = document.getElementById('trainAnagramLookupForm');
+    const input = document.getElementById('trainAnagramLookupInput');
+    const allAnswers = [word].concat(partners);
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      const guess = (input.value || '').trim().toUpperCase();
+      if (allAnswers.indexOf(guess) !== -1) {
+        feedback.textContent = '✅ ถูกต้อง! ' + guess;
+        feedback.className = 'session-feedback correct';
+      } else {
+        feedback.textContent = '❌ ยังไม่ถูก ลองอีกครั้ง';
+        feedback.className = 'session-feedback wrong';
+      }
+      input.value = '';
+    });
+
+    document.getElementById('trainAnagramRevealBtn').addEventListener('click', function () {
+      feedback.textContent = 'คำตอบ: ' + allAnswers.join(', ');
+      feedback.className = 'session-feedback';
+    });
+    document.getElementById('trainAnagramNextBtn').addEventListener('click', function () {
+      trainAnagramLookupIndex = (trainAnagramLookupIndex + 1) % trainAnagramLookupWords.length;
+      trainRenderAnagramLookupCard();
+    });
+    document.getElementById('trainAnagramCloseBtn').addEventListener('click', function () { overlay.remove(); });
+  }
+
+  // "เริ่มฝึก" (spec section 5's actual practice start): add every new
+  // word this plan picked into the real Cardbox, then hand off to the
+  // existing Cardbox study session (startStudySession) — the same real
+  // session runner every other tab already uses, not a parallel one.
+  function trainStartPlan() {
+    if (!trainCurrentPlan) return;
+    const allWords = [];
+    trainCurrentPlan.blocks.forEach(function (b) {
+      (b.words || []).forEach(function (w) { if (allWords.indexOf(w) === -1) allWords.push(w); });
+    });
+    if (!allWords.length) {
+      trainShowToast('ยังไม่มีคำในแผนนี้ให้เริ่มฝึก');
+      return;
+    }
+    addWordsToCardbox(allWords);
+    activateTab('cardbox');
+    const cards = loadCardbox().filter(function (c) { return allWords.indexOf(c.word) !== -1; });
+    startStudySession(cards, 'flashcard', 'sequential', null, {});
+    if (window.Achievements) window.Achievements.record('training_plan_started', { mode: trainCurrentPlan.modeId });
+  }
+
+  function initTrainSettingsScreen() {
+    document.querySelectorAll('.train-mode-card').length; // no-op placeholder for readability
+
+    document.getElementById('trainSettingsBackBtn').addEventListener('click', function () {
+      trainShowScreen('picker');
+    });
+    document.getElementById('trainPlanBackBtn').addEventListener('click', function () {
+      trainShowScreen('settings');
+    });
+
+    document.querySelectorAll('#trainSizeChips .mode-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        document.querySelectorAll('#trainSizeChips .mode-chip').forEach(function (c) { c.classList.remove('active'); });
+        chip.classList.add('active');
+        document.getElementById('trainCustomCount').hidden = (chip.dataset.size !== 'custom');
+      });
+    });
+
+    // Letters: multi-select toggle (spec: "สามารถเลือกหลายระดับพร้อมกันได้"),
+    // unlike the single-select length-chip pattern used elsewhere (e.g.
+    // #learnLenChips) — each chip toggles independently here.
+    document.querySelectorAll('#trainLenChips .length-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        const L = parseInt(chip.dataset.len, 10);
+        chip.classList.toggle('active');
+        const idx = trainDraftLengths.indexOf(L);
+        if (chip.classList.contains('active') && idx === -1) trainDraftLengths.push(L);
+        if (!chip.classList.contains('active') && idx !== -1) trainDraftLengths.splice(idx, 1);
+        if (trainDraftLengths.length) document.getElementById('trainLenRequiredHint').hidden = true;
+      });
+    });
+    document.getElementById('trainLenSelectAllBtn').addEventListener('click', function () {
+      document.querySelectorAll('#trainLenChips .length-chip').forEach(function (chip) {
+        chip.classList.add('active');
+        const L = parseInt(chip.dataset.len, 10);
+        if (trainDraftLengths.indexOf(L) === -1) trainDraftLengths.push(L);
+      });
+      document.getElementById('trainLenRequiredHint').hidden = true;
+    });
+
+    document.getElementById('trainGeneratePlanBtn').addEventListener('click', trainGeneratePlan);
+    document.getElementById('trainStartPlanBtn').addEventListener('click', trainStartPlan);
+  }
+
   function renderDashboard() {
     const box = loadCardbox();
     const now = Date.now();
@@ -5760,6 +6298,204 @@
     renderDashActions(box, now, dueCount);
     renderDashSuggested();
     renderDashGreeting();
+    renderLengthProgress('dashLengthProgressList');
+    renderDashTodayMode();
+    renderDashWeeklySummary();
+  }
+
+  // ---------- spec section 15: Weekly Summary card ----------
+  // A rolling trailing-7-day summary (real numbers pulled from
+  // TrainingPlanner.weeklySummary — see that function's own header
+  // comment for exactly which existing engine supplies each figure).
+  // Hidden entirely when there's no week of data at all yet, since an
+  // all-zero summary card would just be noise on a brand-new install.
+  function renderDashWeeklySummary() {
+    const card = document.getElementById('dashWeeklySummaryCard');
+    if (!card || !window.TrainingPlanner) return;
+
+    const hist = loadHistory();
+    const weekStart = Date.now() - 7 * 86400000;
+    const log = loadLearnLog().filter(function (e) { return e && e.t >= weekStart; });
+    const summary = window.TrainingPlanner.weeklySummary(hist, log, loadCardbox());
+
+    if (!summary.wordsLearned && summary.daysTrained === 0) {
+      card.hidden = true;
+      return;
+    }
+    card.hidden = false;
+
+    document.getElementById('dashWeeklyStatGrid').innerHTML =
+      statCard(summary.wordsLearned, 'คำที่เจอสัปดาห์นี้', '') +
+      statCard(summary.accuracyPct != null ? (summary.accuracyPct + '%') : '—', 'Accuracy', '') +
+      statCard((summary.daysTrained != null ? summary.daysTrained : '—') + '/' + summary.totalDays, 'วันที่ฝึก', '');
+
+    const lang = trainLang();
+    const lines = [];
+    if (summary.mostTrainedLength) lines.push('ความยาวที่ฝึกมากที่สุด: ' + summary.mostTrainedLength + 'L');
+    if (summary.wordsToReview != null) lines.push('คำที่ยังต้องทบทวน: ' + summary.wordsToReview);
+    if (summary.currentStreak != null && summary.currentStreak > 0) lines.push('สตรีคปัจจุบัน: ' + summary.currentStreak + ' วัน');
+    document.getElementById('dashWeeklyDetailLine').textContent = lines.join(' · ');
+    document.getElementById('dashWeeklyEncouragement').textContent = summary.encouragement[lang];
+  }
+
+  // ---------- spec section 11: Dashboard "โหมดวันนี้" card ----------
+  // Shows today's chosen mode + the plan generated for it (both read back
+  // from the dated storage trainSelectMode()/trainPersistTodaysPlan()
+  // write), New/Review/Quiz-ish counts taken straight from the plan's own
+  // blocks (no separate invented tally), and "Today's Progress" as the
+  // real fraction of the plan's distinct words already touched today per
+  // loadHistory() — the same real event log the Calendar drill-down
+  // already reads, not a new completion counter.
+  function renderDashTodayMode() {
+    const card = document.getElementById('dashTodayModeCard');
+    const noModeCard = document.getElementById('dashNoModeCard');
+    if (!card || !noModeCard) return;
+
+    const modeId = trainTodaysModeId();
+    const plan = trainLoadTodaysPlan();
+    if (!modeId || !plan || !global.TrainingModes) {
+      card.hidden = true;
+      noModeCard.hidden = false;
+      const checklistCard = document.getElementById('dashChecklistCard');
+      if (checklistCard) checklistCard.hidden = true;
+      return;
+    }
+    card.hidden = false;
+    noModeCard.hidden = true;
+
+    const mode = global.TrainingModes.get(modeId);
+    const lang = trainLang();
+    document.getElementById('dashTodayModeName').textContent = mode ? (mode.icon + ' ' + mode.name[lang]) : modeId;
+
+    // New/Review/Quiz-ish counts straight from the plan's own blocks —
+    // grouping the same block `type`s the Daily Plan screen already
+    // shows, not a different classification invented for this card.
+    let newWords = 0, reviewWords = 0, quizWords = 0;
+    plan.blocks.forEach(function (b) {
+      const n = (b.words || []).length;
+      if (b.type === 'new_words') newWords += n;
+      else if (b.type === 'review' || b.type === 'review_queue' || b.type === 'weak_words') reviewWords += n;
+      else if (n) quizWords += n;
+    });
+    document.getElementById('dashTodayModeStatGrid').innerHTML =
+      statCard(newWords, 'New Words', '') +
+      statCard(reviewWords, 'Review', '') +
+      statCard(quizWords, 'Quiz', '');
+
+    // Today's Progress: real fraction of this plan's distinct words
+    // already touched today, from the same history log the Calendar
+    // detail view reads — never a fabricated session counter.
+    const allPlanWords = [];
+    plan.blocks.forEach(function (b) { (b.words || []).forEach(function (w) { if (allPlanWords.indexOf(w) === -1) allPlanWords.push(w); }); });
+    const hist = loadHistory();
+    const todayKey = dateKeyToday();
+    const touchedTodaySet = new Set();
+    allPlanWords.forEach(function (w) {
+      const events = hist[w] || [];
+      if (events.some(function (e) { return e && dateKeyFromMs(e.t) === todayKey; })) touchedTodaySet.add(w);
+    });
+    const touchedToday = touchedTodaySet.size;
+    const pct = allPlanWords.length ? Math.round((touchedToday / allPlanWords.length) * 100) : 0;
+    document.getElementById('dashTodayProgressFill').style.width = pct + '%';
+    document.getElementById('dashTodayProgressLabel').textContent = touchedToday + ' / ' + allPlanWords.length + ' คำ (' + pct + '%)';
+
+    renderDashChecklist(plan, touchedTodaySet);
+  }
+
+  // ---------- spec section 12: Daily Checklist ----------
+  // 7 length checkboxes (3-9L) + 5 activity checkboxes, checked off
+  // against REAL completion, never a manually-toggled checkbox a
+  // learner could tick without actually doing the work:
+  //  - a length is "done" when every one of today's plan words at that
+  //    length has been touched today (touchedTodaySet, same real
+  //    history-derived set the progress bar above already computed)
+  //  - an activity (New Words / Review / Anagram / Recall / Final Quiz)
+  //    is "done" when every word in that activity's own plan block(s)
+  //    has been touched today. An activity type absent from today's
+  //    plan entirely (e.g. no anagram block in a Speed-mode plan) is
+  //    shown as done — spec section 12 is a completion list for a
+  //    finished plan, and a plan can validly omit an activity a mode's
+  //    own recipe doesn't include, so there is nothing outstanding to
+  //    demand for it.
+  const CHECKLIST_ACTIVITIES = [
+    { key: 'new_words', label: 'New Words', blockTypes: ['new_words'] },
+    { key: 'review', label: 'Review', blockTypes: ['review', 'review_queue', 'weak_words'] },
+    { key: 'anagram', label: 'Anagram', blockTypes: ['anagram'] },
+    { key: 'recall', label: 'Recall', blockTypes: ['recall', 'reverse_recall'] },
+    { key: 'final_quiz', label: 'Final Quiz', blockTypes: ['final_test'] }
+  ];
+
+  function renderDashChecklist(plan, touchedTodaySet) {
+    const card = document.getElementById('dashChecklistCard');
+    if (!card) return;
+    card.hidden = false;
+
+    const wordsByLength = {};
+    for (let L = 3; L <= 9; L++) wordsByLength[L] = [];
+    plan.blocks.forEach(function (b) {
+      (b.words || []).forEach(function (w) {
+        const L = w.length;
+        if (wordsByLength[L]) wordsByLength[L].push(w);
+      });
+    });
+    const lenHtml = [];
+    for (let L = 3; L <= 9; L++) {
+      const words = wordsByLength[L];
+      const hasWords = words.length > 0;
+      const done = hasWords && words.every(function (w) { return touchedTodaySet.has(w); });
+      lenHtml.push(
+        '<span class="checklist-chip' + (done ? ' done' : '') + '">' +
+          '<span class="check-icon">' + (done ? '✅' : (hasWords ? '⬜' : '➖')) + '</span>' + L + 'L' +
+        '</span>'
+      );
+    }
+    document.getElementById('dashChecklistLengths').innerHTML = lenHtml.join('');
+
+    const actHtml = CHECKLIST_ACTIVITIES.map(function (act) {
+      const words = [];
+      plan.blocks.forEach(function (b) {
+        if (act.blockTypes.indexOf(b.type) !== -1) {
+          (b.words || []).forEach(function (w) { if (words.indexOf(w) === -1) words.push(w); });
+        }
+      });
+      // no block of this activity type in today's plan at all -> nothing
+      // to complete, shown as done rather than as a permanently-unmet ⬜
+      const inPlan = plan.blocks.some(function (b) { return act.blockTypes.indexOf(b.type) !== -1; });
+      const done = !inPlan || (words.length > 0 && words.every(function (w) { return touchedTodaySet.has(w); }));
+      return '<span class="checklist-chip' + (done ? ' done' : '') + '">' +
+        '<span class="check-icon">' + (done ? '✅' : '⬜') + '</span>' + escapeHtml(act.label) +
+      '</span>';
+    }).join('');
+    document.getElementById('dashChecklistActivities').innerHTML = actHtml;
+  }
+
+  function initDashTodayModeCard() {
+    const changeBtn = document.getElementById('dashTodayModeChangeBtn');
+    const pickBtn = document.getElementById('dashGoPickModeBtn');
+    if (changeBtn) changeBtn.addEventListener('click', function () { activateTab('train'); });
+    if (pickBtn) pickBtn.addEventListener('click', function () { activateTab('train'); });
+  }
+
+  // ---------- spec section 7: 3-9 Letters progress bars ----------
+  // Pure render layer over TrainingPlanner.js's lengthProgress() — every
+  // pool size / mastered count / percentage comes from there, computed
+  // against the real Cardbox and the real dictionary pool per length
+  // (lengthPool() is the same accessor the rest of app.js already uses,
+  // so custom-imported words count too). Shared by both the Dashboard
+  // tab and the Train home screen so the two never show different math.
+  function renderLengthProgress(targetElId) {
+    const el = document.getElementById(targetElId);
+    if (!el || !window.TrainingPlanner) return;
+    const box = loadCardbox();
+    const progress = window.TrainingPlanner.lengthProgress(box, lengthPool);
+    el.innerHTML = progress.map(function (p) {
+      return '' +
+        '<div class="length-progress-row">' +
+          '<span class="length-progress-label">' + p.length + 'L</span>' +
+          '<span class="length-progress-track"><span class="length-progress-fill" style="width:' + p.pct + '%"></span></span>' +
+          '<span class="length-progress-detail">' + p.mastered + '/' + p.poolSize + ' (' + p.pct + '%)</span>' +
+        '</div>';
+    }).join('');
   }
 
   function statCard(num, label, cls) {
@@ -5922,12 +6658,99 @@
       const cellsHTML = week.map(function (day) {
         if (!day) return '<span class="retention-cell retention-cell-empty"></span>';
         const title = day.date + ' · ' + day.count + ' ครั้ง' + (day.accuracyPct != null ? ' · แม่นยำ ' + day.accuracyPct + '%' : '');
-        return '<span class="retention-cell" data-level="' + day.level + '" title="' + title + '"></span>';
+        return '<span class="retention-cell" data-level="' + day.level + '" data-date="' + day.date + '" title="' + title + '"></span>';
       }).join('');
       return '<div class="retention-week"><span class="retention-month-label">' + monthLabel + '</span><div class="retention-week-cells">' + cellsHTML + '</div></div>';
     }).join('');
 
     grid.innerHTML = colsHTML;
+    grid.querySelectorAll('.retention-cell[data-date]').forEach(function (cell) {
+      cell.addEventListener('click', function () { renderCalendarDayDetail(cell.dataset.date); });
+    });
+  }
+
+  // ---------- Calendar day drill-down (spec section 18) ----------
+  // Clicking a heatmap cell shows that day's real activity: which words
+  // were touched, split by which real drill mode logged them
+  // (logWordEncounter's own `mode` field — MODE_LABELS already names
+  // every mode string this app uses) and by real word length. There is
+  // no single "the mode used that day" field anywhere in storage — a day
+  // can span several modes — so this deliberately lists all of them
+  // rather than picking one to match the spec mockup's single-mode line.
+  function calendarDayDetail(dateKey) {
+    const hist = loadHistory();
+    const dayStart = new Date(dateKey + 'T00:00:00').getTime();
+    const dayEnd = dayStart + 86400000;
+    const wordsByMode = {};
+    const wordsByLength = {};
+    const wordsSeen = new Set();
+
+    Object.keys(hist).forEach(function (word) {
+      hist[word].forEach(function (e) {
+        if (!e || typeof e.t !== 'number' || e.t < dayStart || e.t >= dayEnd) return;
+        wordsSeen.add(word);
+        (wordsByMode[e.mode] = wordsByMode[e.mode] || []).push(word);
+        const L = word.length;
+        (wordsByLength[L] = wordsByLength[L] || []).push(word);
+      });
+    });
+
+    // Accuracy for the day, same source renderRetentionHeatmap's own
+    // count/accuracyPct already reads (learn-log correct/total) — not
+    // recomputed differently here.
+    const log = (function () { try { return JSON.parse(localStorage.getItem('csw24_learn_log_v1') || '[]'); } catch (e) { return []; } })();
+    let correct = 0, total = 0;
+    const wrongWords = [];
+    log.forEach(function (e) {
+      if (!e || typeof e.t !== 'number' || e.t < dayStart || e.t >= dayEnd) return;
+      total++;
+      if (e.correct) correct++; else if (e.word) wrongWords.push(e.word);
+    });
+
+    return {
+      date: dateKey,
+      totalWordTouches: wordsSeen.size,
+      modeBreakdown: Object.keys(wordsByMode).map(function (m) {
+        return { mode: m, label: MODE_LABELS[m] || m, count: wordsByMode[m].length };
+      }).sort(function (a, b) { return b.count - a.count; }),
+      lengthBreakdown: Object.keys(wordsByLength).map(function (L) {
+        return { length: parseInt(L, 10), count: wordsByLength[L].length };
+      }).sort(function (a, b) { return a.length - b.length; }),
+      accuracyPct: total ? Math.round((correct / total) * 100) : null,
+      wrongWords: Array.from(new Set(wrongWords)).slice(0, 20)
+    };
+  }
+
+  function renderCalendarDayDetail(dateKey) {
+    const detail = calendarDayDetail(dateKey);
+    let box = document.getElementById('calendarDayDetailBox');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'calendarDayDetailBox';
+      box.className = 'calendar-day-detail panel-card';
+      const wrap = document.getElementById('retentionHeatmapWrap');
+      if (wrap && wrap.parentNode) wrap.parentNode.insertBefore(box, wrap.nextSibling);
+    }
+    if (!detail.totalWordTouches) {
+      box.innerHTML = '<h3>' + detail.date + '</h3><p class="panel-sub">วันนี้ยังไม่มีการฝึก</p>';
+      return;
+    }
+    const modeHtml = detail.modeBreakdown.map(function (m) {
+      return '<span class="calendar-detail-chip">' + escapeHtml(m.label) + ' · ' + m.count + '</span>';
+    }).join('');
+    const lengthHtml = detail.lengthBreakdown.map(function (l) {
+      return '<span class="calendar-detail-chip">' + l.length + 'L · ' + l.count + '</span>';
+    }).join('');
+    const wrongHtml = detail.wrongWords.length
+      ? '<p class="panel-sub">คำที่ตอบผิดวันนั้น: ' + detail.wrongWords.map(escapeHtml).join(', ') + '</p>'
+      : '';
+    box.innerHTML =
+      '<h3>📅 ' + detail.date + '</h3>' +
+      '<p class="panel-sub">เจอคำทั้งหมด ' + detail.totalWordTouches + ' คำ' +
+        (detail.accuracyPct != null ? ' · ความแม่นยำ ' + detail.accuracyPct + '%' : '') + '</p>' +
+      '<div class="chip-row">' + modeHtml + '</div>' +
+      '<div class="chip-row">' + lengthHtml + '</div>' +
+      wrongHtml;
   }
 
   // ---------- Practice tab (secret — unlocked via AI Coach: "PRACTICE") ----------
@@ -10020,6 +10843,11 @@
     initDrawerMenu();
     initMobileNavStyleSetting();
     applyI18n();
+    renderTrainHome();
+    initTrainPickForMe();
+    initTrainSettingsScreen();
+    initDashTodayModeCard();
+    trainCurrentPlan = trainLoadTodaysPlan();
     initSettingsTab();
     initGenerator();
     initQuizTab();
