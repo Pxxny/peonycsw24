@@ -626,8 +626,9 @@ main {
 .retention-cell {
   width: 11px; height: 11px; border-radius: 3px; display: inline-block;
   background: rgba(255,255,255,.06);
+  cursor: pointer;
 }
-.retention-cell-empty { background: transparent; }
+.retention-cell-empty { background: transparent; cursor: default; }
 .retention-cell[data-level="1"] { background: color-mix(in srgb, var(--teal) 30%, transparent); }
 .retention-cell[data-level="2"] { background: color-mix(in srgb, var(--teal) 55%, transparent); }
 .retention-cell[data-level="3"] { background: color-mix(in srgb, var(--teal) 78%, transparent); }
@@ -1839,6 +1840,204 @@ main {
 }
 .mode-chip:hover { border-color: var(--teal); }
 .mode-chip.active { background: var(--brass); color: var(--ink); border-color: var(--brass-deep); }
+
+/* ---------- Daily Word Training: mode picker home (#tab-train) ---------- */
+.train-hero { text-align: center; margin: 0.4rem 0 1.6rem; }
+.train-headline {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 2rem;
+  margin: 0 0 0.5rem;
+}
+.train-subhead { margin: 0 auto 1.1rem; color: #8890A8; font-size: 0.95rem; max-width: 46ch; }
+.train-hero .btn-hero { padding: 0.7rem 1.6rem; font-size: 0.95rem; }
+
+.train-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+@media (max-width: 560px) { .train-mode-grid { grid-template-columns: 1fr 1fr; gap: 0.7rem; } }
+
+.train-mode-card {
+  background: var(--board-2);
+  border: 1px solid var(--rail);
+  border-radius: 16px;
+  padding: 1.1rem 1.1rem 1rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--cream);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: transform .12s ease, border-color .12s ease;
+  position: relative;
+}
+.train-mode-card:hover { border-color: var(--teal); transform: translateY(-2px); }
+.train-mode-card:active { transform: translateY(0); }
+.train-mode-card.selecting { border-color: var(--brass); animation: trainCardPulse .5s ease; }
+@keyframes trainCardPulse {
+  0% { box-shadow: 0 0 0 0 rgba(124,158,255,.5); }
+  100% { box-shadow: 0 0 0 12px rgba(124,158,255,0); }
+}
+
+.train-mode-icon { font-size: 1.9rem; line-height: 1; }
+.train-mode-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin: 0.1rem 0 0;
+}
+.train-mode-tagline { font-size: 0.82rem; color: #AEB4D0; line-height: 1.4; min-height: 2.2em; }
+.train-mode-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.7rem;
+  font-size: 0.76rem;
+  color: #8890A8;
+  margin-top: 0.15rem;
+}
+.train-mode-meta span { white-space: nowrap; }
+.train-mode-stars { color: var(--brass); letter-spacing: 0.05em; }
+
+.train-toast {
+  position: fixed;
+  bottom: calc(1.2rem + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--board-2);
+  border: 1px solid var(--teal);
+  color: var(--cream);
+  padding: 0.6rem 1.1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.train-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+
+/* ---------- Daily Word Training: settings + plan screens ---------- */
+.train-back-btn {
+  background: none;
+  border: none;
+  color: #8890A8;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0 0 0.6rem;
+  display: block;
+}
+.train-back-btn:hover { color: var(--teal); }
+
+.train-settings-section { margin: 1.1rem 0; }
+.train-settings-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--cream);
+  margin-bottom: 0.5rem;
+}
+.train-custom-count {
+  margin-top: 0.6rem;
+  width: 100%;
+  max-width: 160px;
+  background: var(--board-2);
+  border: 1px solid var(--rail);
+  color: var(--cream);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  font-family: var(--font-body);
+}
+.train-settings-hint { color: #E08A8A; font-size: 0.8rem; margin-top: 0.5rem; }
+#trainLenSelectAllBtn { margin-top: 0.6rem; }
+
+.train-plan-block {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--rail);
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+  background: var(--board-2);
+}
+.train-plan-block.is-break { opacity: 0.7; border-style: dashed; }
+.train-plan-block-icon { font-size: 1.1rem; }
+.train-plan-block-body { flex: 1; }
+.train-plan-block-label { font-weight: 600; font-size: 0.92rem; }
+.train-plan-block-count { color: #8890A8; font-size: 0.78rem; }
+.train-plan-block.is-clickable { cursor: pointer; }
+.train-plan-block.is-clickable:hover { border-color: var(--teal); }
+.train-anagram-letters {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+  margin: 0.8rem 0 1.1rem;
+  color: var(--brass);
+}
+
+.train-suggestion-banner { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.train-suggestion-chip {
+  background: color-mix(in srgb, var(--brass) 14%, var(--board-2));
+  border: 1px solid var(--brass);
+  border-radius: 12px;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.train-suggestion-chip:hover { filter: brightness(1.08); }
+
+.dash-today-mode-card { margin-bottom: 1rem; }
+.dash-today-mode-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: .8rem; }
+.dash-today-mode-name { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; }
+.dash-today-progress-track {
+  height: 10px; border-radius: 6px; background: rgba(255,255,255,.06); overflow: hidden; margin-top: .9rem;
+}
+.dash-today-progress-fill { height: 100%; background: var(--brass); border-radius: 6px; transition: width .3s ease; }
+.dash-today-progress-label { font-size: .78rem; color: #8890A8; margin: .4rem 0 0; }
+
+.checklist-group { margin-bottom: 1rem; }
+.checklist-group:last-child { margin-bottom: 0; }
+.checklist-group-label { font-size: .8rem; color: #8890A8; margin: 0 0 .5rem; }
+.checklist-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+.checklist-chip {
+  display: flex; align-items: center; gap: .4rem;
+  background: var(--board-2); border: 1px solid var(--rail);
+  border-radius: 10px; padding: .4rem .7rem; font-size: .82rem;
+}
+.checklist-chip.done { border-color: var(--teal); background: color-mix(in srgb, var(--teal) 14%, var(--board-2)); }
+.checklist-chip .check-icon { font-size: .9rem; }
+
+.dash-weekly-line { font-size: .85rem; color: #AEB4D0; margin: .6rem 0 0; }
+.dash-weekly-encouragement { font-size: .88rem; color: var(--teal); font-weight: 600; margin: .5rem 0 0; }
+
+.calendar-day-detail { margin-top: 0.9rem; }
+.calendar-detail-chip {
+  display: inline-block;
+  background: var(--board-2);
+  border: 1px solid var(--rail);
+  border-radius: 14px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  margin: 0.15rem 0.3rem 0.15rem 0;
+}
+
+.length-progress-row { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.55rem; }
+.length-progress-label { width: 2.6rem; font-size: 0.82rem; font-weight: 600; color: #AEB4D0; flex-shrink: 0; }
+.length-progress-track {
+  flex: 1;
+  height: 9px;
+  border-radius: 5px;
+  background: rgba(255,255,255,.06);
+  overflow: hidden;
+}
+.length-progress-fill { height: 100%; background: var(--teal); border-radius: 5px; transition: width .3s ease; }
+.length-progress-detail { font-size: 0.74rem; color: #8890A8; width: 5.2rem; text-align: right; flex-shrink: 0; }
 
 /* ---------- additions: theme preset swatches ---------- */
 
