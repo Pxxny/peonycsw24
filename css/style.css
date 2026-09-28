@@ -1857,6 +1857,12 @@ main {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 0.9rem;
 }
+/* .train-mode-grid's own `display: grid` above otherwise beats the
+   browser's default [hidden] { display: none } rule (same specificity,
+   later in the cascade) — this element was never actually hiding when
+   trainShowScreen() set grid.hidden = true, leaving it stacked on top
+   of the settings/plan screens with no way to tell they'd even opened. */
+.train-mode-grid[hidden] { display: none; }
 @media (max-width: 560px) { .train-mode-grid { grid-template-columns: 1fr 1fr; gap: 0.7rem; } }
 
 .train-mode-card {
@@ -1992,6 +1998,7 @@ main {
 }
 
 .train-suggestion-banner { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.train-suggestion-banner[hidden] { display: none; }
 .train-suggestion-chip {
   background: color-mix(in srgb, var(--brass) 14%, var(--board-2));
   border: 1px solid var(--brass);
