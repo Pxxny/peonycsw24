@@ -5816,12 +5816,14 @@
   function renderTrainHome() {
     const grid = document.getElementById('trainModeGrid');
     if (!grid || !window.TrainingModes) return;
-    grid.innerHTML = window.TrainingModes.all().map(trainModeCardHtml).join('');
+    grid.innerHTML = window.TrainingModes.all().map(function (m) {
+      try { return trainModeCardHtml(m); } catch (e) { return ''; }
+    }).join('');
     grid.querySelectorAll('.train-mode-card').forEach(function (card) {
       card.addEventListener('click', function () { trainSelectMode(card.dataset.mode, card); });
     });
-    renderLengthProgress('trainLengthProgressList');
-    renderTrainSuggestionBanner();
+    try { renderLengthProgress('trainLengthProgressList'); } catch (e) { console.error(e); }
+    try { renderTrainSuggestionBanner(); } catch (e) { console.error(e); }
   }
 
   // ---------- spec section 10: two remaining Adaptive Learning rules ----------
@@ -10963,63 +10965,68 @@
   // ---------- init ----------
 
   document.addEventListener('DOMContentLoaded', function () {
-    loadSettings();
-    applyTheme();
-    applyTileTheme();
-    applyFontSettings();
-    loadCustomWords();
-    initTabs();
-    initNavMoreMenu();
-    initDrawerMenu();
-    initMobileNavStyleSetting();
-    applyI18n();
-    renderTrainHome();
-    initTrainPickForMe();
-    initTrainSettingsScreen();
-    initTrainQuicklinks();
-    initDashTodayModeCard();
+    // One failing init must never stop the rest of the page from
+    // rendering (a throw here used to leave Train Today's mode grid empty).
+    function safeInit(fn) {
+      try { fn(); } catch (e) { try { console.error('[init] ' + (fn && fn.name), e); } catch (_) {} }
+    }
+    safeInit(loadSettings);
+    safeInit(applyTheme);
+    safeInit(applyTileTheme);
+    safeInit(applyFontSettings);
+    safeInit(loadCustomWords);
+    safeInit(initTabs);
+    safeInit(initNavMoreMenu);
+    safeInit(initDrawerMenu);
+    safeInit(initMobileNavStyleSetting);
+    safeInit(applyI18n);
+    safeInit(renderTrainHome);
+    safeInit(initTrainPickForMe);
+    safeInit(initTrainSettingsScreen);
+    safeInit(initTrainQuicklinks);
+    safeInit(initDashTodayModeCard);
     trainCurrentPlan = trainLoadTodaysPlan();
-    initSettingsTab();
-    initGenerator();
-    initQuizTab();
-    initCardboxTab();
-    initAddWordsPanel();
-    initCardboxList();
-    initAnagramReview();
-    initDueTimeControls();
-    initImportExport();
-    initIdbBackup();
-    initCardboxImportExport();
-    initCardboxGroups();
-    initDueEditOverlay();
-    initWordBuilder();
-    initTypingGame();
-    initTgTypedPanel();
-    initRacksGame();
-    initAlphaGame();
-    initMarathonGame();
-    initWordMarathonGame();
-    initMinigameTabs();
-    initPracticeShortcuts();
-    initOddsTrainerUI();
-    initVowelDumpUI();
-    initRackBalanceUI();
-    initEndgameUI();
-    initParallelUI();
-    initDashSuggested();
-    initDashActions();
-    initLearnTab();
-    initGlobalShortcuts();
-    initTooltips();
+    safeInit(initSettingsTab);
+    safeInit(initGenerator);
+    safeInit(initQuizTab);
+    safeInit(initCardboxTab);
+    safeInit(initAddWordsPanel);
+    safeInit(initCardboxList);
+    safeInit(initAnagramReview);
+    safeInit(initDueTimeControls);
+    safeInit(initImportExport);
+    safeInit(initIdbBackup);
+    safeInit(initCardboxImportExport);
+    safeInit(initCardboxGroups);
+    safeInit(initDueEditOverlay);
+    safeInit(initWordBuilder);
+    safeInit(initTypingGame);
+    safeInit(initTgTypedPanel);
+    safeInit(initRacksGame);
+    safeInit(initAlphaGame);
+    safeInit(initMarathonGame);
+    safeInit(initWordMarathonGame);
+    safeInit(initMinigameTabs);
+    safeInit(initPracticeShortcuts);
+    safeInit(initOddsTrainerUI);
+    safeInit(initVowelDumpUI);
+    safeInit(initRackBalanceUI);
+    safeInit(initEndgameUI);
+    safeInit(initParallelUI);
+    safeInit(initDashSuggested);
+    safeInit(initDashActions);
+    safeInit(initLearnTab);
+    safeInit(initGlobalShortcuts);
+    safeInit(initTooltips);
     if (window.Achievements) {
       window.Achievements.init();
       window.Achievements.renderTab();
       window.Achievements.record('app_opened');
     }
-    renderCardboxTab();
-    renderCardboxGroups();
-    renderResumeBanner();
-    renderDashboard();
+    safeInit(renderCardboxTab);
+    safeInit(renderCardboxGroups);
+    safeInit(renderResumeBanner);
+    safeInit(renderDashboard);
     if (window.lucide) window.lucide.createIcons(); // picks up the static Stats-tab icon
 
     // ---------- CoachUI bridge ----------
@@ -11097,4 +11104,20 @@
       }
     };
   });
+
+  // Safety net: if anything left Train Today's mode grid empty (script order,
+  // an early init error, auth restore rewriting storage), paint it again.
+  function ensureTrainHomeRendered() {
+    try {
+      const grid = document.getElementById('trainModeGrid');
+      if (grid && window.TrainingModes && !grid.children.length) renderTrainHome();
+    } catch (e) { try { console.error('[train] repaint failed', e); } catch (_) {} }
+  }
+  window.addEventListener('load', function () {
+    ensureTrainHomeRendered();
+    setTimeout(ensureTrainHomeRendered, 600);
+    setTimeout(ensureTrainHomeRendered, 2000);
+  });
+  window.addEventListener('pageshow', ensureTrainHomeRendered);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) ensureTrainHomeRendered(); });
 })();
