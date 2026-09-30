@@ -3806,6 +3806,16 @@
   // AILERON / ALERION) should appear as a single card rather than one
   // card per word, since answering one is really the same "find the
   // anagram set" task. Keep the first-seen card of each alphagram group.
+  // Cards for a list of words: the real Cardbox card when the word is in
+  // Cardbox, otherwise a bare { word } card. Grading a bare card is a
+  // harmless no-op (updateCardResult returns null for unknown words), so
+  // words can be drilled without being saved to Cardbox first.
+  function cardsForWordsAny(words) {
+    const byWord = {};
+    loadCardbox().forEach(function (c) { byWord[c.word] = c; });
+    return words.map(function (w) { return byWord[w] || { word: w }; });
+  }
+
   function dedupeByAlphagram(cards) {
     const seen = new Set();
     const result = [];
@@ -3960,10 +3970,8 @@
       const studyMissedBtn = document.getElementById('sessionStudyMissedBtn');
       if (studyMissedBtn) {
         studyMissedBtn.addEventListener('click', function () {
-          const box = loadCardbox();
-          const missedSet = new Set(missedWords);
-          const missedCards = box.filter(function (c) { return missedSet.has(c.word); });
-          if (!missedCards.length) { showToast('ไม่พบคำที่พลาดใน Cardbox'); return; }
+          const missedCards = cardsForWordsAny(missedWords);
+          if (!missedCards.length) { showToast('ไม่พบคำที่พลาด'); return; }
           startStudySession(missedCards, session.mode, session.anagramOrder, session.cycleInterval, { force: true, returnTab: session.returnTab });
         });
       }
@@ -3972,10 +3980,8 @@
       const reviewAllBtn = document.getElementById('sessionReviewAllBtn');
       if (reviewAllBtn) {
         reviewAllBtn.addEventListener('click', function () {
-          const box = loadCardbox();
-          const wordSet = new Set(session.queue.map(function (c) { return c.word; }));
-          const cards = box.filter(function (c) { return wordSet.has(c.word); });
-          if (!cards.length) { showToast('ไม่พบคำใน Cardbox'); return; }
+          const cards = cardsForWordsAny(session.queue.map(function (c) { return c.word; }));
+          if (!cards.length) { showToast('ไม่พบคำในเซสชันนี้'); return; }
           startStudySession(shuffle(cards.slice()), session.mode, session.anagramOrder, session.cycleInterval, { returnTab: session.returnTab });
         });
       }
@@ -9486,7 +9492,20 @@
           '<div class="session-controls"><button class="btn btn-outline btn-sm" id="tgAnagramHintBtn">🔤 ดู Anagram ของคำนี้</button></div>' +
           '<div class="anagram-detail" id="tgAnagramHintDetail"></div>'
           : '') +
-      '</div>';
+      '</div>' +
+      (tg.typed.length
+        ? '<div class="session-controls" style="margin-top:0.8rem"><button type="button" class="btn btn-outline btn-sm" id="tgShowTypedBtn">📋 คำที่พิมพ์แล้ว (' + tg.typed.length + ') — Copy / ทบทวน</button></div>'
+        : '');
+
+    const showTypedBtn = document.getElementById('tgShowTypedBtn');
+    if (showTypedBtn) {
+      showTypedBtn.addEventListener('click', function () {
+        const panel = document.getElementById('tgTypedPanel');
+        if (panel && panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+        tgRenderTypedPanel();
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
 
     const input = document.getElementById('tgInput');
     input.addEventListener('input', function () { tgHandleInput(word, input); });
@@ -9905,6 +9924,43 @@
       showToast('บันทึกลง Cardbox แล้ว ' + added + ' คำ');
       if (window.Achievements) window.Achievements.record('cardbox_add');
     });
+
+    // Words to act on: the ticked ones, or every typed word if none ticked.
+    function tgTypedTargetWords() {
+      const src = tg.typedSelected.size ? Array.from(tg.typedSelected) : tg.typed.slice();
+      return src.filter(function (w, i) { return src.indexOf(w) === i; });
+    }
+
+    document.getElementById('tgTypedCopyBtn').addEventListener('click', function () {
+      const words = tgTypedTargetWords();
+      if (!words.length) { showToast('ยังไม่มีคำที่พิมพ์'); return; }
+      const text = words.join('\n'); // one word per line = the format Add Words expects
+      function done() { showToast('คัดลอกแล้ว ' + words.length + ' คำ (บรรทัดละคำ) — วางในหน้าเพิ่มคำศัพท์ได้เลย'); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { tgCopyFallback(text); done(); });
+      } else { tgCopyFallback(text); done(); }
+    });
+
+    document.getElementById('tgTypedReviewBtn').addEventListener('click', function () {
+      const words = tgTypedTargetWords();
+      if (!words.length) { showToast('ยังไม่มีคำที่พิมพ์'); return; }
+      // Same Cardbox session runner, Anagram mode with letters A→Z; comes
+      // back to Minigame when the summary's เสร็จสิ้น is pressed. Words not
+      // in Cardbox are reviewed as-is without being added to it.
+      activateTab('cardbox');
+      startStudySession(cardsForWordsAny(words), 'anagram', 'alpha', null, { returnTab: 'minigame' });
+    });
+  }
+
+  function tgCopyFallback(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    ta.remove();
   }
 
   // ---------- Minigame: random racks ----------
