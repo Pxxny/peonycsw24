@@ -3255,6 +3255,7 @@
 
   const session = { queue: [], index: 0, mode: 'flashcard', anagramOrder: 'alpha', cycleInterval: 3, correct: 0, incorrect: 0, flipped: false, hintLevel: 0, hintUsed: false, missed: [], reshuffleHandle: null,
     // ---- Resume bookkeeping (see "Study session resume" block below) ----
+    returnTab: null,       // tab to jump back to when the learner presses เสร็จสิ้น (e.g. 'train' when the session was started from the daily training plan)
     id: null,              // unique id of this session's saved slot, so multiple pending sessions can be stored side by side
     startedAt: 0,
     active: false,        // true from startStudySession until the summary/exit is confirmed
@@ -3489,6 +3490,7 @@
       mode: session.mode,
       anagramOrder: session.anagramOrder,
       cycleInterval: session.cycleInterval,
+      returnTab: session.returnTab || null,
       queue: session.queue.map(snapshotQueueCard),
       index: session.index,
       correct: session.correct,
@@ -3731,6 +3733,7 @@
     session.queue = snap.queue.map(function (c) { return byWord[c.word] || { word: c.word }; });
     session.index = snap.index;
     session.mode = snap.mode;
+    session.returnTab = snap.returnTab || null;
     session.anagramOrder = snap.anagramOrder || 'alpha';
     session.cycleInterval = snap.cycleInterval != null ? snap.cycleInterval : settings.anagramCycleInterval;
     session.correct = snap.correct || 0;
@@ -3823,6 +3826,7 @@
     // call sites don't need to change.
     if (mode === 'anagram') cards = dedupeByAlphagram(cards);
     session.id = newSessionId();
+    session.returnTab = (opts && opts.returnTab) || null;
     session.startedAt = Date.now();
     session.active = true;
     session.cardState = null;
@@ -3857,8 +3861,10 @@
     // later from the Cardbox tab — any OTHER pending sessions are untouched
     // either way.
     const finished = session.index >= session.queue.length;
+    const returnTab = session.returnTab;
     if (finished) clearSessionSnapshot(session.id); else flushSessionSnapshot();
     session.active = false;
+    session.returnTab = null;
     session.id = null;
     session.cardState = null;
     session.resumeCard = null;
@@ -3868,6 +3874,12 @@
     document.getElementById('cardboxList').style.display = '';
     renderCardboxTab();
     renderResumeBanner();
+    // Finished a session that was launched from the daily training page
+    // ("เริ่มฝึก") => land back on that page instead of staying in Cardbox.
+    if (finished && returnTab) {
+      activateTab(returnTab);
+      if (returnTab === 'train' && typeof trainShowScreen === 'function') trainShowScreen('picker');
+    }
   }
 
   function updateSessionProgressBar() {
@@ -3940,6 +3952,7 @@
           missedHTML +
           '<div class="session-controls">' +
             (missedWords.length ? '<button class="btn btn-outline" id="sessionStudyMissedBtn">🔁 ทบทวนเฉพาะคำที่พลาด</button>' : '') +
+            '<button class="btn btn-teal" id="sessionReviewAllBtn">⚡ ทบทวนทันที (ทั้งชุด)</button>' +
             '<button class="btn btn-primary" id="sessionFinishBtn">เสร็จสิ้น</button>' +
           '</div>' +
         '</div>';
@@ -3951,7 +3964,19 @@
           const missedSet = new Set(missedWords);
           const missedCards = box.filter(function (c) { return missedSet.has(c.word); });
           if (!missedCards.length) { showToast('ไม่พบคำที่พลาดใน Cardbox'); return; }
-          startStudySession(missedCards, session.mode, session.anagramOrder, session.cycleInterval, { force: true });
+          startStudySession(missedCards, session.mode, session.anagramOrder, session.cycleInterval, { force: true, returnTab: session.returnTab });
+        });
+      }
+      // Review the whole set right away — not gated by SM-2 due dates, so
+      // words that were just learned can be drilled again immediately.
+      const reviewAllBtn = document.getElementById('sessionReviewAllBtn');
+      if (reviewAllBtn) {
+        reviewAllBtn.addEventListener('click', function () {
+          const box = loadCardbox();
+          const wordSet = new Set(session.queue.map(function (c) { return c.word; }));
+          const cards = box.filter(function (c) { return wordSet.has(c.word); });
+          if (!cards.length) { showToast('ไม่พบคำใน Cardbox'); return; }
+          startStudySession(shuffle(cards.slice()), session.mode, session.anagramOrder, session.cycleInterval, { returnTab: session.returnTab });
         });
       }
       if (window.Achievements) {
@@ -6317,7 +6342,7 @@
     addWordsToCardbox(allWords);
     activateTab('cardbox');
     const cards = loadCardbox().filter(function (c) { return allWords.indexOf(c.word) !== -1; });
-    startStudySession(cards, 'flashcard', 'sequential', null, {});
+    startStudySession(cards, 'flashcard', 'sequential', null, { returnTab: 'train' });
     if (window.Achievements) window.Achievements.record('training_plan_started', { mode: trainCurrentPlan.modeId });
   }
 
