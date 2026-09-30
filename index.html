@@ -832,6 +832,7 @@
       <div id="typingPlay" style="display:none"></div>
       <div class="panel-card" id="tgTypedPanel" style="display:none;margin-top:1rem">
         <h2 style="font-size:1.05rem">📋 คำที่พิมพ์ไปแล้ว</h2>
+        <p class="panel-sub" style="margin:0 0 0.6rem">ไม่ติ๊กเลือก = ใช้ทุกคำ · ติ๊กเลือก = ใช้เฉพาะคำที่เลือก</p>
         <div class="quiz-list-head">
           <label class="checkbox-field"><input type="checkbox" id="tgTypedSelectAll"> เลือกทั้งหมด</label>
           <span class="selected-count" id="tgTypedSelectedCount">เลือกแล้ว 0 คำ</span>
@@ -839,6 +840,8 @@
         <div id="tgTypedList"></div>
         <div class="btn-row">
           <button class="btn btn-teal" id="tgTypedSaveBtn">💾 Save to Cardbox</button>
+          <button class="btn btn-outline" id="tgTypedCopyBtn">📄 Copy คำ</button>
+          <button class="btn btn-primary" id="tgTypedReviewBtn">🔤 ทบทวน Anagram (A→Z)</button>
         </div>
       </div>
     </div>
