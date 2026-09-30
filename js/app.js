@@ -5791,7 +5791,7 @@
     el._hideTimer = setTimeout(function () { el.classList.remove('visible'); }, 2200);
   }
 
-  function trainSelectMode(modeId, cardEl) {
+  function trainSelectMode(modeId, cardEl, goStraightToPlan) {
     const mode = window.TrainingModes.get(modeId);
     if (!mode) return;
     try { localStorage.setItem(TRAIN_SELECTED_MODE_KEY, JSON.stringify({ modeId: modeId, dateKey: dateKeyToday() })); } catch (e) {}
@@ -5802,7 +5802,15 @@
     const lang = trainLang();
     trainShowToast(t('train.selectedToast').replace('{mode}', mode.icon + ' ' + mode.name[lang]));
     if (window.Achievements) window.Achievements.record('training_mode_selected', { mode: modeId });
-    setTimeout(function () { trainOpenSettingsFor(modeId); }, 550);
+    setTimeout(function () {
+      trainOpenSettingsFor(modeId);
+      // เลือกให้ฉัน: the learner already answered three questions, so
+      // build the plan for them right away instead of parking them on a
+      // settings screen. A mode that needs a manual Letters choice
+      // (เจาะ Letters) still stops at settings, since there's nothing
+      // sensible to generate until they pick lengths.
+      if (goStraightToPlan && !mode.requiresLengthSelection) trainGeneratePlan();
+    }, 550);
   }
 
   function renderTrainHome() {
@@ -5933,8 +5941,7 @@
         onComplete: function (answers) {
           const modeId = trainAutoPickMode(answers[0], answers[1], answers[2]);
           const card = document.querySelector('.train-mode-card[data-mode="' + modeId + '"]');
-          if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          trainSelectMode(modeId, card);
+          trainSelectMode(modeId, card, true);
         }
       });
     });
@@ -6002,6 +6009,20 @@
     const showHero = screen === 'picker';
     if (hero) hero.hidden = !showHero;
     if (grid) grid.hidden = !showHero;
+    // Quick links, progress bars and the suggestion banner belong to the
+    // picker screen only — leaving them up pushed the settings/plan card
+    // below the fold on phones, so the chosen plan looked like it never
+    // appeared.
+    ['trainQuicklinks', 'trainLengthProgressCard'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) el.hidden = !showHero;
+    });
+    if (showHero) renderTrainSuggestionBanner();
+    else {
+      const banner = document.getElementById('trainSuggestionBanner');
+      if (banner) banner.hidden = true;
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
     if (settingsCard) settingsCard.hidden = (screen !== 'settings');
     if (planCard) planCard.hidden = (screen !== 'plan');
   }
@@ -6101,7 +6122,7 @@
 
   function trainRenderPlan(plan, mode) {
     const lang = trainLang();
-    document.getElementById('trainPlanTitle').textContent = mode.icon + ' ' + t('train.headline').replace('?', '') + ' — ' + mode.name[lang];
+    document.getElementById('trainPlanTitle').textContent = 'แผนฝึกวันนี้ — ' + mode.icon + ' ' + mode.name[lang];
     let summary = 'คำใหม่ ' + plan.newWordsPlaced + '/' + plan.newWordsTarget + ' คำ';
     if (plan.shortfall && plan.shortfall.reason === 'pool_exhausted') {
       summary += ' (คลังคำที่ยังไม่เคยฝึกในความยาวนี้เหลือไม่พอ ได้แค่ ' + plan.newWordsPlaced + ' คำ)';
@@ -6112,9 +6133,10 @@
     list.innerHTML = plan.blocks.map(function (b, i) {
       const icon = TRAIN_STEP_ICONS[b.type] || '•';
       const label = (b.label && b.label[lang]) || b.type;
+      const isReviewLike = (b.type === 'review' || b.type === 'review_queue' || b.type === 'weak_words');
       const countTxt = b.type === 'break'
         ? (b.breakMinutes + ' นาที')
-        : (b.words.length ? (b.words.length + ' คำ') : '');
+        : (b.words.length ? (b.words.length + ' คำ') : (isReviewLike ? 'ยังไม่มีคำที่ต้องทบทวนตอนนี้' : ''));
       const isAnagramBlock = (b.type === 'anagram') && b.words.length > 0;
       const isBreakBlock = (b.type === 'break');
       return '' +
