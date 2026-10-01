@@ -41,7 +41,7 @@
       <div class="nav-group-items">
         <button class="tab-btn toolbar-tab-btn toolbar-tab-hidden" data-tab="learn" data-i18n="tab.learn"><span class="toolbar-icon">🎓</span><span class="toolbar-label">Learn</span></button>
         <button class="tab-btn toolbar-tab-btn toolbar-tab-hidden" data-tab="practice"><span class="toolbar-icon">🔒</span><span class="toolbar-label">Practice</span></button>
-        <button class="tab-btn toolbar-tab-btn" data-tab="cardbox" data-i18n="tab.cardbox"><span class="toolbar-icon">🗂️</span><span class="toolbar-label">Cardbox</span></button>
+        <button class="tab-btn toolbar-tab-btn" data-tab="cardbox" data-i18n="tab.cardbox"><span class="toolbar-icon">🗂️</span><span class="toolbar-label">Cardbox</span><span class="due-badge due-badge-corner" id="cardboxTabBadge" hidden></span></button>
         <button class="tab-btn toolbar-tab-btn" data-tab="minigame" data-i18n="tab.minigame"><span class="toolbar-icon">🕹️</span><span class="toolbar-label">Minigame</span></button>
       </div>
     </details>
@@ -79,7 +79,7 @@
     <div class="nav-more-group">
       <div class="nav-more-group-label">🎓 เรียน &amp; ฝึกฝน</div>
       <div class="nav-more-group-items">
-        <button type="button" class="nav-more-item" data-tab="cardbox">🗂️ Cardbox</button>
+        <button type="button" class="nav-more-item" data-tab="cardbox">🗂️ Cardbox <span class="due-badge" id="cardboxMoreBadge" hidden></span></button>
         <button type="button" class="nav-more-item" data-tab="minigame">🕹️ Minigame</button>
       </div>
     </div>
@@ -147,6 +147,7 @@
       <p class="train-subhead" data-i18n="train.subhead">เลือกโหมดที่เหมาะกับวันนี้ แล้วให้ระบบจัดตารางฝึกให้คุณอัตโนมัติ</p>
       <button type="button" class="btn btn-teal btn-hero" id="trainPickForMeBtn" data-i18n="train.pickForMeBtn">✨ เลือกให้ฉัน</button>
     </div>
+    <div id="trainWotdCard" style="display:none"></div>
     <div class="train-mode-grid" id="trainModeGrid"></div>
 
     <!-- spec section 17: quick links to the other 5 nav destinations
@@ -155,9 +156,11 @@
          app's existing tab bar — every link below points at a real,
          already-working tab; Calendar jumps into Stats and scrolls to
          the existing heatmap since that's where it actually lives. -->
+    <label class="checkbox-field" id="badgeTrainLabel" style="margin:0.4rem 0 0.2rem"><input type="checkbox" id="badgeTrainToggle" checked> 🔴 แสดงตัวเลขแดงจำนวนคำที่ค้างทบทวน</label>
+    <label class="checkbox-field" id="wotdTrainLabel" style="margin:0.4rem 0 0.8rem"><input type="checkbox" id="wotdTrainToggle" checked> 🌟 แสดงคำประจำวัน</label>
     <div class="train-quicklinks" id="trainQuicklinks">
       <button type="button" class="train-quicklink" data-quicklink-tab="cardbox">📚 Practice</button>
-      <button type="button" class="train-quicklink" data-quicklink-tab="cardbox" data-quicklink-review="1">🔄 Review</button>
+      <button type="button" class="train-quicklink" data-quicklink-tab="cardbox" data-quicklink-review="1">🔄 Review <span class="due-badge" id="trainReviewBadge" hidden></span></button>
       <button type="button" class="train-quicklink" data-quicklink-tab="stats">📊 Statistics</button>
       <button type="button" class="train-quicklink" data-quicklink-tab="stats" data-quicklink-scroll="retentionHeatmapGrid">📅 Calendar</button>
       <button type="button" class="train-quicklink" data-quicklink-tab="settings">⚙️ Settings</button>
@@ -209,6 +212,11 @@
       <h2 id="trainPlanTitle">แผนฝึกวันนี้</h2>
       <p class="panel-sub" id="trainPlanSummary"></p>
       <div id="trainPlanBlocks"></div>
+      <label class="checkbox-field" style="margin-bottom:0.7rem"><input type="checkbox" id="trainPreviewToggle" checked> 👀 แสดงคำตัวอย่างก่อนเริ่มฝึก</label>
+      <label class="checkbox-field" style="margin-bottom:0.7rem"><input type="checkbox" id="trainMilestoneToggle" checked> 🎉 แจ้งเตือนความคืบหน้าทุก 10 คำ</label>
+      <label class="checkbox-field" style="margin-bottom:0.7rem"><input type="checkbox" id="trainMoreToggle" checked> ➕ เสนอปุ่ม "ต่ออีก 10 คำ" ตอนจบแผน</label>
+      <label class="checkbox-field" style="margin-bottom:0.7rem"><input type="checkbox" id="trainPacingToggle" checked> ☕ บอกว่าอีกกี่คำถึงช่วงพัก (ตามแผน)</label>
+      <label class="checkbox-field" style="margin-bottom:0.7rem"><input type="checkbox" id="trainAutoFillToggle" checked> ➕ เติมคำให้ครบเป้าอัตโนมัติ ถ้าแผนมีคำน้อยกว่าที่ตั้งไว้</label>
       <button type="button" class="btn btn-teal btn-hero" id="trainStartPlanBtn">▶ เริ่มฝึก</button>
     </div>
   </section>
@@ -340,6 +348,7 @@
 
   <!-- ============== CARDBOX TAB ============== -->
   <section id="tab-cardbox" class="tab-panel">
+    <div id="cardboxWotdCard" style="display:none"></div>
     <div class="panel-card">
       <h2 data-i18n="cardbox.title">การ์ดของฉัน (Cardbox)</h2>
       <p class="panel-sub">คำศัพท์ที่บันทึกไว้ — เลือกรูปแบบทบทวนแล้วเริ่มเรียนได้เลย ระบบใช้ Spaced Repetition (SM-2 แบบย่อ) เพื่อจัดคิวคำที่ควรทบทวน ความคืบหน้าเก็บไว้ในเครื่องอัตโนมัติ</p>
@@ -381,6 +390,13 @@
             <input type="number" id="studyMaxLen" min="2" max="15" value="15">
           </div>
           <label class="checkbox-field"><input type="checkbox" id="dueOnlyToggle" checked> เฉพาะคำที่ถึงกำหนด</label>
+          <label class="checkbox-field"><input type="checkbox" id="cardboxPreviewToggle"> 👀 แสดงคำตัวอย่างก่อนเริ่ม</label>
+          <label class="checkbox-field"><input type="checkbox" id="cardboxMilestoneToggle"> 🎉 แจ้งเตือนความคืบหน้าทุก 10 คำ</label>
+          <label class="checkbox-field"><input type="checkbox" id="cardboxMoreToggle"> ➕ เสนอปุ่ม "ต่ออีก 10 คำ" ตอนจบเซสชัน</label>
+          <label class="checkbox-field"><input type="checkbox" id="badgeCardboxToggle"> 🔴 แสดงตัวเลขแดงบนปุ่ม Cardbox (คำที่ค้างทบทวน)</label>
+          <label class="checkbox-field"><input type="checkbox" id="wotdCardboxToggle"> 🌟 แสดงคำประจำวันบนหน้านี้</label>
+          <label class="checkbox-field"><input type="checkbox" id="cardboxAutoFillToggle"> ➕ เติมคำให้ครบจำนวน ถ้าคำที่ถึงกำหนดมีไม่พอ</label>
+          <div class="field"><label for="cardboxBreakEvery">☕ แจ้งพักทุก</label><select id="cardboxBreakEvery"><option value="0">ไม่ใช้</option><option value="10">10 คำ</option><option value="15">15 คำ</option><option value="20">20 คำ</option><option value="30">30 คำ</option></select></div>
           <button class="btn btn-primary" id="startStudyBtn" data-i18n="cardbox.start">▶ เริ่มทบทวน</button>
           <button class="btn btn-outline" id="startAnagramReviewBtn" data-i18n="cardbox.anagramReviewStart">📖 Anagram Review</button>
         </div>
