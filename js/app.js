@@ -419,7 +419,29 @@
     leechThreshold: 4,
     // Typing minigame: true = tap the tiles to fill the answer box (no keyboard
     // needed); false = type on the keyboard as usual.
-    tgTapTiles: false
+    tgTapTiles: false,
+    // Session preview ("teaser"): show 3 sample words before a session starts.
+    trainPreview: true,    // Daily Training plan: on by default
+    cardboxPreview: false, // Cardbox sessions: opt-in
+    // Milestone toast every 10 cards during a session.
+    trainMilestone: true,    // Daily Training plan: on by default
+    cardboxMilestone: false, // Cardbox sessions: opt-in
+    // "Continue 10 more words" button on the session summary.
+    trainMore: true,         // Daily Training plan: on by default
+    cardboxMore: false,      // Cardbox sessions: opt-in
+    // Break pacing: "N cards until the next break" + an offered break.
+    trainPacing: true,       // Daily Training: breaks come from the plan's break blocks
+    cardboxBreakEvery: 0,    // Cardbox: 0 = off, otherwise offer a break every N cards
+    // Auto top-up: if the session would have fewer words than asked for
+    // (e.g. few words due / plan ran short), fill up from the pool.
+    trainAutoFill: true,     // Daily Training: on by default
+    cardboxAutoFill: false,  // Cardbox: opt-in
+    // Word of the Day card (one word per calendar day, independent of any plan).
+    wotdTrain: true,         // Daily Training home: on by default
+    wotdCardbox: false,      // Cardbox tab: opt-in
+    // Red "due" counter: on the Train page's Review shortcut / on the Cardbox tab button.
+    badgeTrain: true,        // Daily Training page: on by default
+    badgeCardbox: false      // Cardbox tab button: opt-in
   };
 
   function loadSettings() {
@@ -2499,6 +2521,8 @@
     const dueCount = box.filter(function (c) { return (c.due || 0) <= now; }).length;
 
     renderResumeBanner();
+    renderWotd('cardboxWotdCard', settings.wotdCardbox, null);
+    updateDueBadges();
     document.getElementById('cardboxCount').textContent = box.length;
     document.getElementById('cardboxDueCount').textContent =
       box.length ? dueCount + ' คำถึงกำหนดทบทวนตอนนี้' : '';
@@ -3139,7 +3163,7 @@
 
       let pool = dueOnly ? box.filter(function (c) { return (c.due || 0) <= now; }) : box.slice();
       pool = pool.filter(function (c) { return c.word.length >= minLen && c.word.length <= maxLen; });
-      if (!pool.length) {
+      if (!pool.length && !(dueOnly && settings.cardboxAutoFill)) {
         showToast(dueOnly
           ? 'ไม่มีคำที่ถึงกำหนดทบทวนในช่วงความยาวนี้ — ลองปรับความยาวหรือปิด "เฉพาะคำที่ถึงกำหนด"'
           : 'ไม่มีคำใน Cardbox ที่อยู่ในช่วงความยาวนี้');
@@ -3147,10 +3171,26 @@
       }
       pool.sort(function (a, b) { return (a.due || 0) - (b.due || 0); });
 
-      let n = parseInt(document.getElementById('studyCount').value, 10) || pool.length;
-      n = Math.max(1, Math.min(n, pool.length));
+      const requested = parseInt(document.getElementById('studyCount').value, 10) || 0;
+      let n = requested || pool.length;
+      n = Math.max(1, Math.min(n, Math.max(pool.length, 1)));
 
-      const queue = dueOnly ? pool.slice(0, n) : shuffle(pool).slice(0, n);
+      let queue = dueOnly ? pool.slice(0, n) : shuffle(pool).slice(0, n);
+
+      // Auto top-up: fewer due words than requested -> fill the rest with
+      // the least-practised words that aren't due yet (same length range).
+      if (dueOnly && settings.cardboxAutoFill && requested > queue.length) {
+        const taken = new Set(queue.map(function (c) { return c.word; }));
+        const extra = box.filter(function (c) {
+          return !taken.has(c.word) && c.word.length >= minLen && c.word.length <= maxLen;
+        }).sort(function (a, b) { return (a.correct || 0) - (b.correct || 0) || (a.due || 0) - (b.due || 0); })
+          .slice(0, requested - queue.length);
+        if (extra.length) {
+          queue = queue.concat(extra);
+          showToast('เติมคำให้ครบ ' + queue.length + ' คำ (+' + extra.length + ' คำที่ยังไม่ถึงกำหนด)');
+        }
+      }
+      if (!queue.length) { showToast('ไม่มีคำใน Cardbox ที่อยู่ในช่วงความยาวนี้'); return; }
       const cycleInterval = parseInt(document.getElementById('anagramCycleInterval').value, 10);
       startStudySession(queue, mode, anagramOrder, cycleInterval);
     });
@@ -3255,6 +3295,7 @@
 
   const session = { queue: [], index: 0, mode: 'flashcard', anagramOrder: 'alpha', cycleInterval: 3, correct: 0, incorrect: 0, flipped: false, hintLevel: 0, hintUsed: false, missed: [], reshuffleHandle: null,
     // ---- Resume bookkeeping (see "Study session resume" block below) ----
+    breaks: [],            // [{ at: cardIndex, minutes }] — a break is offered before the card at that index
     returnTab: null,       // tab to jump back to when the learner presses เสร็จสิ้น (e.g. 'train' when the session was started from the daily training plan)
     id: null,              // unique id of this session's saved slot, so multiple pending sessions can be stored side by side
     startedAt: 0,
@@ -3491,6 +3532,7 @@
       anagramOrder: session.anagramOrder,
       cycleInterval: session.cycleInterval,
       returnTab: session.returnTab || null,
+      breaks: session.breaks || [],
       queue: session.queue.map(snapshotQueueCard),
       index: session.index,
       correct: session.correct,
@@ -3734,6 +3776,7 @@
     session.index = snap.index;
     session.mode = snap.mode;
     session.returnTab = snap.returnTab || null;
+    session.breaks = Array.isArray(snap.breaks) ? snap.breaks : [];
     session.anagramOrder = snap.anagramOrder || 'alpha';
     session.cycleInterval = snap.cycleInterval != null ? snap.cycleInterval : settings.anagramCycleInterval;
     session.correct = snap.correct || 0;
@@ -3806,6 +3849,213 @@
   // AILERON / ALERION) should appear as a single card rather than one
   // card per word, since answering one is really the same "find the
   // anagram set" task. Keep the first-seen card of each alphagram group.
+  // ---------- Session preview (teaser) ----------
+  // Pick up to 3 sample words, spread across different lengths when possible.
+  function pickPreviewSamples(words, n) {
+    n = n || 3;
+    const uniq = Array.from(new Set(words));
+    const byLen = {};
+    uniq.forEach(function (w) { (byLen[w.length] = byLen[w.length] || []).push(w); });
+    const lens = shuffle(Object.keys(byLen));
+    const picked = [];
+    lens.forEach(function (L) {
+      if (picked.length < n) picked.push(byLen[L][Math.floor(Math.random() * byLen[L].length)]);
+    });
+    const rest = shuffle(uniq.filter(function (w) { return picked.indexOf(w) === -1; }));
+    while (picked.length < n && rest.length) picked.push(rest.pop());
+    return picked;
+  }
+
+  // Overlay shown BEFORE a session starts: 3 sample words + a one-line
+  // summary. onGo runs when the learner confirms; closing does nothing.
+  function showSessionPreview(words, onGo, note) {
+    words = Array.from(new Set(words));
+    if (!words.length) { onGo(); return; }
+    const old = document.getElementById('sessionPreviewOverlay');
+    if (old) old.remove();
+
+    const now = Date.now();
+    const byWord = {};
+    loadCardbox().forEach(function (c) { byWord[c.word] = c; });
+    let newCount = 0, dueCount = 0, minL = 99, maxL = 0;
+    words.forEach(function (w) {
+      const c = byWord[w];
+      if (!c) newCount++; else if ((c.due || 0) <= now) dueCount++;
+      minL = Math.min(minL, w.length); maxL = Math.max(maxL, w.length);
+    });
+    const lenText = minL === maxL ? minL + 'L' : minL + 'L–' + maxL + 'L';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sessionPreviewOverlay';
+    overlay.className = 'session-preview-overlay';
+
+    function render(samples) {
+      overlay.innerHTML =
+        '<div class="session-preview-card">' +
+          '<div class="session-prompt-label">👀 วันนี้จะได้เจอคำแบบนี้</div>' +
+          '<div class="session-preview-words">' +
+            samples.map(function (w) {
+              return '<div class="session-preview-word">' + tileRowHTML(w, 'small') +
+                '<span class="word-meta">' + wordScore(w) + ' pts</span></div>';
+            }).join('') +
+          '</div>' +
+          '<p class="panel-sub" style="text-align:center;margin:0.4rem 0 0.9rem">รวม ' + words.length + ' คำ · ' + lenText +
+            (newCount ? ' · ใหม่ ' + newCount : '') + (dueCount ? ' · ถึงกำหนดทบทวน ' + dueCount : '') + '</p>' +
+          (note ? '<p class="panel-sub" style="text-align:center;margin:-0.5rem 0 0.9rem">' + note + '</p>' : '') +
+          '<div class="session-controls">' +
+            '<button type="button" class="btn btn-primary" id="spGoBtn">▶ เริ่มเลย</button>' +
+            (words.length > 3 ? '<button type="button" class="btn btn-outline" id="spShuffleBtn">🎲 ตัวอย่างอื่น</button>' : '') +
+            '<button type="button" class="btn btn-outline" id="spCloseBtn">ยกเลิก</button>' +
+          '</div>' +
+        '</div>';
+      document.getElementById('spGoBtn').addEventListener('click', function () { overlay.remove(); onGo(); });
+      document.getElementById('spCloseBtn').addEventListener('click', function () { overlay.remove(); });
+      const sh = document.getElementById('spShuffleBtn');
+      if (sh) sh.addEventListener('click', function () { render(pickPreviewSamples(words, 3)); });
+    }
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    render(pickPreviewSamples(words, 3));
+    document.body.appendChild(overlay);
+  }
+
+  // ---------- Due-review red badges ----------
+  // Shows how many Cardbox words are due for review right now.
+  function dueBadgeText(n) { return n > 99 ? '99+' : String(n); }
+  function updateDueBadges() {
+    let due = 0;
+    try {
+      const now = Date.now();
+      due = loadCardbox().filter(function (c) { return (c.due || 0) <= now; }).length;
+    } catch (e) { due = 0; }
+    [['trainReviewBadge', settings.badgeTrain], ['cardboxTabBadge', settings.badgeCardbox], ['cardboxMoreBadge', settings.badgeCardbox]].forEach(function (pair) {
+      const el = document.getElementById(pair[0]);
+      if (!el) return;
+      if (pair[1] && due > 0) { el.textContent = dueBadgeText(due); el.hidden = false; el.title = 'มี ' + due + ' คำถึงกำหนดทบทวน'; }
+      else el.hidden = true;
+    });
+  }
+
+  // ---------- Word of the Day ----------
+  // One word per local calendar day, the same all day (seeded by the date,
+  // no storage needed). Skips words already mastered in Cardbox.
+  function wotdHash(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function wotdDateKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function wordOfTheDay() {
+    const key = wotdDateKey();
+    const lens = [4, 5, 6, 7, 8];
+    const mastered = new Set(loadCardbox().filter(function (c) { return c.status === 'mastered'; }).map(function (c) { return c.word; }));
+    let last = null;
+    for (let salt = 0; salt < 25; salt++) {
+      const L = lens[wotdHash(key + '#L' + salt) % lens.length];
+      const pool = lengthPool(L);
+      if (!pool.length) continue;
+      const w = pool[wotdHash(key + '#W' + salt + L) % pool.length];
+      last = w;
+      if (!mastered.has(w)) return w;
+    }
+    return last;
+  }
+
+  // Renders the Word of the Day card into #containerId. `fromTab` decides
+  // where "practise now" returns to ('train' or null for Cardbox).
+  function renderWotd(containerId, enabled, fromTab) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!enabled) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    const word = wordOfTheDay();
+    if (!word) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.style.display = '';
+
+    const inBox = loadCardbox().some(function (c) { return c.word === word; });
+    const hooks = getHooks(word);
+    const ana = getAnagrams(word);
+    const dateTxt = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+    const hookLine =
+      (hooks.front.length ? '<span class="wotd-hook">หน้า: <b>' + hooks.front.join(' ') + '</b></span>' : '') +
+      (hooks.back.length ? '<span class="wotd-hook">หลัง: <b>' + hooks.back.join(' ') + '</b></span>' : '');
+
+    el.innerHTML =
+      '<div class="panel-card wotd-card">' +
+        '<div class="session-prompt-label">🌟 คำประจำวัน · ' + dateTxt + '</div>' +
+        '<div style="text-align:center;margin:0.6rem 0">' + tileRowHTML(word, 'big') + '</div>' +
+        '<div class="word-meta" style="text-align:center">' + word.length + 'L · ' + wordScore(word) + ' pts · Prob ' +
+          wordProbabilityNormalizedPct(word) + '% · Play ' + wordPlayability(word) + '</div>' +
+        (hookLine ? '<div class="wotd-hooks">' + hookLine + '</div>' : '') +
+        (ana.length ? '<div class="wotd-hooks"><span class="wotd-hook">Anagram: <b>' + ana.join(' · ') + '</b></span></div>' : '') +
+        '<p class="panel-sub wotd-def" style="text-align:center;margin:0.5rem 0" hidden></p>' +
+        '<div class="session-controls">' +
+          (inBox ? '<button type="button" class="btn btn-outline" disabled>✓ อยู่ใน Cardbox แล้ว</button>'
+                 : '<button type="button" class="btn btn-teal wotd-add-btn">➕ เพิ่มเข้า Cardbox</button>') +
+          '<button type="button" class="btn btn-primary wotd-practice-btn">🎯 ฝึกคำนี้ทันที</button>' +
+        '</div>' +
+      '</div>';
+
+    fetchDefinition(word, function (text) {
+      const d = el.querySelector('.wotd-def');
+      if (d && text) { d.textContent = text; d.hidden = false; }
+    });
+    const addBtn = el.querySelector('.wotd-add-btn');
+    if (addBtn) addBtn.addEventListener('click', function () {
+      addWordsToCardbox([word]);
+      showToast('เพิ่ม ' + word + ' เข้า Cardbox แล้ว');
+      if (window.Achievements) window.Achievements.record('cardbox_add');
+      renderWotd(containerId, enabled, fromTab);
+    });
+    el.querySelector('.wotd-practice-btn').addEventListener('click', function () {
+      addWordsToCardbox([word]);
+      activateTab('cardbox');
+      startStudySession(cardsForWordsAny([word]), 'anagram', 'alpha', null, { preview: false, returnTab: fromTab });
+    });
+  }
+
+  function renderAllWotd() {
+    try { renderWotd('trainWotdCard', settings.wotdTrain, 'train'); } catch (e) { console.error(e); }
+    try { renderWotd('cardboxWotdCard', settings.wotdCardbox, null); } catch (e) { console.error(e); }
+  }
+
+  // ---------- "Continue N more" word picker ----------
+  // Words already used in this run of sessions (a chain of "continue"
+  // clicks), so each extension brings fresh words.
+  let sessionSeenWords = new Set();
+
+  // Pick up to n extra words: due Cardbox cards first, then (if allowNew)
+  // brand-new dictionary words of the same lengths, then the least-practised
+  // remaining Cardbox cards. Never returns a word in `exclude`.
+  function pickMoreWords(exclude, n, lengths, allowNew) {
+    const now = Date.now();
+    const box = loadCardbox();
+    const inBox = new Set(box.map(function (c) { return c.word; }));
+    const lenOk = function (w) { return !lengths.length || lengths.indexOf(w.length) !== -1; };
+    const out = [];
+    function add(w) { if (out.length < n && !exclude.has(w) && out.indexOf(w) === -1) out.push(w); }
+
+    box.filter(function (c) { return !exclude.has(c.word) && lenOk(c.word) && (c.due || 0) <= now; })
+       .sort(function (a, b) { return (a.due || 0) - (b.due || 0); })
+       .forEach(function (c) { add(c.word); });
+
+    if (allowNew && out.length < n) {
+      let pool = [];
+      (lengths.length ? lengths : [4, 5, 6, 7]).forEach(function (L) {
+        pool = pool.concat(lengthPool(L).filter(function (w) { return !inBox.has(w) && !exclude.has(w); }));
+      });
+      shuffle(pool).forEach(add);
+    }
+
+    if (out.length < n) {
+      box.filter(function (c) { return !exclude.has(c.word) && lenOk(c.word); })
+         .sort(function (a, b) { return (a.correct || 0) - (b.correct || 0) || (a.due || 0) - (b.due || 0); })
+         .forEach(function (c) { add(c.word); });
+    }
+    return out;
+  }
+
   // Cards for a list of words: the real Cardbox card when the word is in
   // Cardbox, otherwise a bare { word } card. Grading a bare card is a
   // harmless no-op (updateCardResult returns null for unknown words), so
@@ -3834,9 +4084,21 @@
     // there is nothing to warn about or force past here anymore. `opts` is
     // still accepted (and opts.force still honored as a no-op) so existing
     // call sites don't need to change.
+    // Optional teaser (Cardbox setting). Skipped for flows that already
+    // previewed (Daily Training), re-drills, and anything passing preview:false.
+    if (settings.cardboxPreview && !(opts && (opts.preview === false || opts.previewDone || opts.returnTab === 'train'))) {
+      const ownOpts = Object.assign({}, opts || {}, { previewDone: true });
+      showSessionPreview(cards.map(function (c) { return c.word; }), function () {
+        startStudySession(cards, mode, anagramOrder, cycleInterval, ownOpts);
+      });
+      return;
+    }
     if (mode === 'anagram') cards = dedupeByAlphagram(cards);
+    sessionSeenWords = new Set((opts && opts.seenWords) || []);
+    cards.forEach(function (c) { sessionSeenWords.add(c.word); });
     session.id = newSessionId();
     session.returnTab = (opts && opts.returnTab) || null;
+    session.breaks = computeSessionBreaks(cards.length, opts);
     session.startedAt = Date.now();
     session.active = true;
     session.cardState = null;
@@ -3875,6 +4137,7 @@
     if (finished) clearSessionSnapshot(session.id); else flushSessionSnapshot();
     session.active = false;
     session.returnTab = null;
+    session.breaks = [];
     session.id = null;
     session.cardState = null;
     session.resumeCard = null;
@@ -3897,6 +4160,10 @@
     document.getElementById('sessionProgressLabel').textContent =
       'คำที่ ' + Math.min(session.index + 1, total) + ' / ' + total +
       '   ·   ถูก ' + session.correct + '   ผิด ' + session.incorrect +
+      (function () {
+        const nb = nextBreakAfter(session.index);
+        return nb && session.index < total ? '   ·   ☕ อีก ' + (nb.at - session.index) + ' คำถึงช่วงพัก' : '';
+      })() +
       '   ·   ⌨️ Enter = ตอบ/ถัดไป · Esc = ออก';
     const pct = total ? Math.round((session.index / total) * 100) : 0;
     document.getElementById('sessionBarFill').style.width = pct + '%';
@@ -3934,7 +4201,70 @@
     session.resumeCard = null;
     if (session.index >= session.queue.length) clearSessionSnapshot(); // that was the last card — session is complete
     else saveSessionSnapshot();
+    maybeShowMilestone();
+    const dueBreak = (session.breaks || []).find(function (b) { return b.at === session.index; });
+    if (dueBreak && session.index < session.queue.length) { renderBreakPrompt(dueBreak); return; }
     renderSessionCard();
+  }
+
+  // Where breaks fall in a session of `total` cards.
+  //  - Daily Training: opts.breaks (derived from the plan's break blocks),
+  //    only if the pacing option is on.
+  //  - Cardbox: every settings.cardboxBreakEvery cards, if set.
+  function computeSessionBreaks(total, opts) {
+    let list = [];
+    if (opts && opts.returnTab === 'train') {
+      if (settings.trainPacing && Array.isArray(opts.breaks)) list = opts.breaks.slice();
+    } else if (!(opts && opts.returnTab) && settings.cardboxBreakEvery > 0) {
+      for (let at = settings.cardboxBreakEvery; at < total; at += settings.cardboxBreakEvery) list.push({ at: at, minutes: 5 });
+    }
+    return list.filter(function (b) { return b.at > 0 && b.at < total; })
+      .sort(function (a, b) { return a.at - b.at; });
+  }
+
+  function nextBreakAfter(index) {
+    for (let i = 0; i < (session.breaks || []).length; i++) {
+      if (session.breaks[i].at > index) return session.breaks[i];
+    }
+    return null;
+  }
+
+  // Shown instead of the next card when a break point is reached. Break is
+  // optional: "พัก" opens the existing break countdown, "ฝึกต่อ" just goes on.
+  function renderBreakPrompt(brk) {
+    stopAnagramReshuffle();
+    updateSessionProgressBar();
+    const area = document.getElementById('sessionArea');
+    area.innerHTML =
+      '<div class="session-summary">' +
+        '<p class="train-break-emoji" style="font-size:2.2rem;margin:0">☕</p>' +
+        '<div class="session-prompt-label">ถึงช่วงพักแล้ว</div>' +
+        '<p>ผ่านมา ' + session.index + ' / ' + session.queue.length + ' คำ · ถูก ' + session.correct + '</p>' +
+        '<div class="session-controls">' +
+          '<button type="button" class="btn btn-outline" id="sessionTakeBreakBtn">☕ พัก ' + brk.minutes + ' นาที</button>' +
+          // id reused so the Enter-key shortcut (which clicks recallNextBtn) continues the session
+          '<button type="button" class="btn btn-primary" id="recallNextBtn">▶ ฝึกต่อ</button>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('sessionTakeBreakBtn').addEventListener('click', function () { trainOpenBreakScreen(brk.minutes); });
+    document.getElementById('recallNextBtn').addEventListener('click', function () {
+      const m = document.getElementById('trainBreakModal');
+      if (m) m.remove();
+      renderSessionCard();
+    });
+  }
+
+  // Every 10 cards (not on the last one — the summary covers that) show a
+  // short progress toast. Daily Training plans and Cardbox sessions each
+  // have their own on/off setting.
+  const SESSION_MILESTONE_EVERY = 10;
+  function maybeShowMilestone() {
+    const enabled = session.returnTab === 'train' ? settings.trainMilestone : settings.cardboxMilestone;
+    if (!enabled) return;
+    const done = session.index, total = session.queue.length;
+    if (done <= 0 || done >= total || done % SESSION_MILESTONE_EVERY !== 0) return;
+    const left = total - done;
+    showToast('🎉 ผ่านมา ' + done + ' คำแล้ว! ถูก ' + session.correct + ' · อีก ' + left + ' คำถึงเป้า');
   }
 
   function renderSessionCard() {
@@ -3954,25 +4284,43 @@
           '</div>'
         : '<p class="session-missed-none">🎉 ไม่มีคำที่พลาดเลย ตอบถูกครบทุกคำ!</p>';
 
+      const moreEnabled = session.returnTab === 'train' ? settings.trainMore
+        : (session.returnTab ? false : settings.cardboxMore);
+      const moreWords = moreEnabled
+        ? pickMoreWords(sessionSeenWords, 10, Array.from(new Set(session.queue.map(function (c) { return c.word.length; }))), session.returnTab === 'train')
+        : [];
+
       area.innerHTML =
         '<div class="session-summary">' +
           '<div class="session-prompt-label">จบเซสชันทบทวนแล้ว</div>' +
           '<div class="big-stat">' + pct + '%</div>' +
           '<p>ตอบถูก ' + session.correct + ' / ' + total + ' คำ · ตอบผิด ' + session.incorrect + ' คำ</p>' +
           missedHTML +
+          (moreWords.length && pct >= 85 && total >= 5
+            ? '<p class="panel-sub" style="text-align:center">💡 ตอบแม่นมาก — คำในชุดนี้หมดเร็ว ลองต่ออีกชุดไหม?</p>'
+            : '') +
           '<div class="session-controls">' +
             (missedWords.length ? '<button class="btn btn-outline" id="sessionStudyMissedBtn">🔁 ทบทวนเฉพาะคำที่พลาด</button>' : '') +
             '<button class="btn btn-teal" id="sessionReviewAllBtn">⚡ ทบทวนทันที (ทั้งชุด)</button>' +
+            (moreWords.length ? '<button class="btn btn-teal" id="sessionMoreBtn">➕ ต่ออีก ' + moreWords.length + ' คำ</button>' : '') +
             '<button class="btn btn-primary" id="sessionFinishBtn">เสร็จสิ้น</button>' +
           '</div>' +
         '</div>';
       document.getElementById('sessionFinishBtn').addEventListener('click', endStudySession);
+      const moreBtn = document.getElementById('sessionMoreBtn');
+      if (moreBtn) {
+        moreBtn.addEventListener('click', function () {
+          if (session.returnTab === 'train') addWordsToCardbox(moreWords);
+          startStudySession(cardsForWordsAny(moreWords), session.mode, session.anagramOrder, session.cycleInterval,
+            { preview: false, returnTab: session.returnTab, seenWords: Array.from(sessionSeenWords) });
+        });
+      }
       const studyMissedBtn = document.getElementById('sessionStudyMissedBtn');
       if (studyMissedBtn) {
         studyMissedBtn.addEventListener('click', function () {
           const missedCards = cardsForWordsAny(missedWords);
           if (!missedCards.length) { showToast('ไม่พบคำที่พลาด'); return; }
-          startStudySession(missedCards, session.mode, session.anagramOrder, session.cycleInterval, { force: true, returnTab: session.returnTab });
+          startStudySession(missedCards, session.mode, session.anagramOrder, session.cycleInterval, { force: true, preview: false, returnTab: session.returnTab });
         });
       }
       // Review the whole set right away — not gated by SM-2 due dates, so
@@ -3982,7 +4330,7 @@
         reviewAllBtn.addEventListener('click', function () {
           const cards = cardsForWordsAny(session.queue.map(function (c) { return c.word; }));
           if (!cards.length) { showToast('ไม่พบคำในเซสชันนี้'); return; }
-          startStudySession(shuffle(cards.slice()), session.mode, session.anagramOrder, session.cycleInterval, { returnTab: session.returnTab });
+          startStudySession(shuffle(cards.slice()), session.mode, session.anagramOrder, session.cycleInterval, { preview: false, returnTab: session.returnTab });
         });
       }
       if (window.Achievements) {
@@ -5855,6 +6203,8 @@
     });
     try { renderLengthProgress('trainLengthProgressList'); } catch (e) { console.error(e); }
     try { renderTrainSuggestionBanner(); } catch (e) { console.error(e); }
+    renderAllWotd();
+    updateDueBadges();
   }
 
   // ---------- spec section 10: two remaining Adaptive Learning rules ----------
@@ -6046,7 +6396,7 @@
     // picker screen only — leaving them up pushed the settings/plan card
     // below the fold on phones, so the chosen plan looked like it never
     // appeared.
-    ['trainQuicklinks', 'trainLengthProgressCard'].forEach(function (id) {
+    ['trainQuicklinks', 'trainLengthProgressCard', 'trainWotdCard', 'wotdTrainLabel', 'badgeTrainLabel'].forEach(function (id) {
       const el = document.getElementById(id);
       if (el) el.hidden = !showHero;
     });
@@ -6345,11 +6695,42 @@
       trainShowToast('ยังไม่มีคำในแผนนี้ให้เริ่มฝึก');
       return;
     }
-    addWordsToCardbox(allWords);
-    activateTab('cardbox');
-    const cards = loadCardbox().filter(function (c) { return allWords.indexOf(c.word) !== -1; });
-    startStudySession(cards, 'flashcard', 'sequential', null, { returnTab: 'train' });
-    if (window.Achievements) window.Achievements.record('training_plan_started', { mode: trainCurrentPlan.modeId });
+    const modeId = trainCurrentPlan.modeId;
+
+    // Auto top-up: when the plan came out shorter than the word count the
+    // learner asked for (pool exhausted, nothing due, high mastery...),
+    // fill the gap from the pool instead of ending the session early.
+    let fillNote = '';
+    if (settings.trainAutoFill && trainCurrentPlan.newWordsTarget > allWords.length) {
+      const need = trainCurrentPlan.newWordsTarget - allWords.length;
+      const extra = pickMoreWords(new Set(allWords), need, trainCurrentPlan.lengths || [], true);
+      if (extra.length) {
+        extra.forEach(function (w) { allWords.push(w); });
+        fillNote = '➕ เติมให้ครบเป้า +' + extra.length + ' คำ (แผนมีคำน้อยกว่าที่ตั้งไว้)';
+      }
+    }
+
+    // Break points = how many unique plan words come before each break block.
+    const breakPoints = [];
+    (function () {
+      const seen = [];
+      trainCurrentPlan.blocks.forEach(function (b) {
+        if (b.type === 'break') {
+          if (seen.length) breakPoints.push({ at: seen.length, minutes: b.breakMinutes || 5 });
+        } else {
+          (b.words || []).forEach(function (w) { if (seen.indexOf(w) === -1) seen.push(w); });
+        }
+      });
+    })();
+    function go() {
+      addWordsToCardbox(allWords);
+      activateTab('cardbox');
+      const cards = loadCardbox().filter(function (c) { return allWords.indexOf(c.word) !== -1; });
+      startStudySession(cards, 'flashcard', 'sequential', null, { returnTab: 'train', preview: false, breaks: breakPoints });
+      if (window.Achievements) window.Achievements.record('training_plan_started', { mode: modeId });
+    }
+    if (settings.trainPreview) showSessionPreview(allWords, go, fillNote);
+    else { go(); if (fillNote) trainShowToast(fillNote); }
   }
 
   function initTrainSettingsScreen() {
@@ -6394,6 +6775,76 @@
 
     document.getElementById('trainGeneratePlanBtn').addEventListener('click', trainGeneratePlan);
     document.getElementById('trainStartPlanBtn').addEventListener('click', trainStartPlan);
+    const trainPrevToggle = document.getElementById('trainPreviewToggle');
+    if (trainPrevToggle) {
+      trainPrevToggle.checked = !!settings.trainPreview;
+      trainPrevToggle.addEventListener('change', function () { settings.trainPreview = trainPrevToggle.checked; saveSettings(); });
+    }
+    const trainMsToggle = document.getElementById('trainMilestoneToggle');
+    if (trainMsToggle) {
+      trainMsToggle.checked = !!settings.trainMilestone;
+      trainMsToggle.addEventListener('change', function () { settings.trainMilestone = trainMsToggle.checked; saveSettings(); });
+    }
+    const badgeTrainToggle = document.getElementById('badgeTrainToggle');
+    if (badgeTrainToggle) {
+      badgeTrainToggle.checked = !!settings.badgeTrain;
+      badgeTrainToggle.addEventListener('change', function () { settings.badgeTrain = badgeTrainToggle.checked; saveSettings(); updateDueBadges(); });
+    }
+    const badgeCardboxToggle = document.getElementById('badgeCardboxToggle');
+    if (badgeCardboxToggle) {
+      badgeCardboxToggle.checked = !!settings.badgeCardbox;
+      badgeCardboxToggle.addEventListener('change', function () { settings.badgeCardbox = badgeCardboxToggle.checked; saveSettings(); updateDueBadges(); });
+    }
+    const wotdTrainToggle = document.getElementById('wotdTrainToggle');
+    if (wotdTrainToggle) {
+      wotdTrainToggle.checked = !!settings.wotdTrain;
+      wotdTrainToggle.addEventListener('change', function () { settings.wotdTrain = wotdTrainToggle.checked; saveSettings(); renderAllWotd(); });
+    }
+    const wotdCardboxToggle = document.getElementById('wotdCardboxToggle');
+    if (wotdCardboxToggle) {
+      wotdCardboxToggle.checked = !!settings.wotdCardbox;
+      wotdCardboxToggle.addEventListener('change', function () { settings.wotdCardbox = wotdCardboxToggle.checked; saveSettings(); renderAllWotd(); });
+    }
+    const trainFillToggle = document.getElementById('trainAutoFillToggle');
+    if (trainFillToggle) {
+      trainFillToggle.checked = !!settings.trainAutoFill;
+      trainFillToggle.addEventListener('change', function () { settings.trainAutoFill = trainFillToggle.checked; saveSettings(); });
+    }
+    const cardboxFillToggle = document.getElementById('cardboxAutoFillToggle');
+    if (cardboxFillToggle) {
+      cardboxFillToggle.checked = !!settings.cardboxAutoFill;
+      cardboxFillToggle.addEventListener('change', function () { settings.cardboxAutoFill = cardboxFillToggle.checked; saveSettings(); });
+    }
+    const trainPacingToggle = document.getElementById('trainPacingToggle');
+    if (trainPacingToggle) {
+      trainPacingToggle.checked = !!settings.trainPacing;
+      trainPacingToggle.addEventListener('change', function () { settings.trainPacing = trainPacingToggle.checked; saveSettings(); });
+    }
+    const cardboxBreakSel = document.getElementById('cardboxBreakEvery');
+    if (cardboxBreakSel) {
+      cardboxBreakSel.value = String(settings.cardboxBreakEvery || 0);
+      cardboxBreakSel.addEventListener('change', function () { settings.cardboxBreakEvery = parseInt(cardboxBreakSel.value, 10) || 0; saveSettings(); });
+    }
+    const trainMoreToggle = document.getElementById('trainMoreToggle');
+    if (trainMoreToggle) {
+      trainMoreToggle.checked = !!settings.trainMore;
+      trainMoreToggle.addEventListener('change', function () { settings.trainMore = trainMoreToggle.checked; saveSettings(); });
+    }
+    const cardboxMoreToggle = document.getElementById('cardboxMoreToggle');
+    if (cardboxMoreToggle) {
+      cardboxMoreToggle.checked = !!settings.cardboxMore;
+      cardboxMoreToggle.addEventListener('change', function () { settings.cardboxMore = cardboxMoreToggle.checked; saveSettings(); });
+    }
+    const cardboxMsToggle = document.getElementById('cardboxMilestoneToggle');
+    if (cardboxMsToggle) {
+      cardboxMsToggle.checked = !!settings.cardboxMilestone;
+      cardboxMsToggle.addEventListener('change', function () { settings.cardboxMilestone = cardboxMsToggle.checked; saveSettings(); });
+    }
+    const cardboxPrevToggle = document.getElementById('cardboxPreviewToggle');
+    if (cardboxPrevToggle) {
+      cardboxPrevToggle.checked = !!settings.cardboxPreview;
+      cardboxPrevToggle.addEventListener('change', function () { settings.cardboxPreview = cardboxPrevToggle.checked; saveSettings(); });
+    }
   }
 
   // ---------- spec section 17: Navigation quick links ----------
@@ -9948,7 +10399,7 @@
       // back to Minigame when the summary's เสร็จสิ้น is pressed. Words not
       // in Cardbox are reviewed as-is without being added to it.
       activateTab('cardbox');
-      startStudySession(cardsForWordsAny(words), 'anagram', 'alpha', null, { returnTab: 'minigame' });
+      startStudySession(cardsForWordsAny(words), 'anagram', 'alpha', null, { preview: false, returnTab: 'minigame' });
     });
   }
 
@@ -11064,6 +11515,10 @@
     safeInit(renderTrainHome);
     safeInit(initTrainPickForMe);
     safeInit(initTrainSettingsScreen);
+    safeInit(function () {
+      updateDueBadges();
+      setInterval(updateDueBadges, 60000); // cards become due as time passes
+    });
     safeInit(initTrainQuicklinks);
     safeInit(initDashTodayModeCard);
     trainCurrentPlan = trainLoadTodaysPlan();
