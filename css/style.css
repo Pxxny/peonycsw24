@@ -3120,3 +3120,64 @@ textarea:disabled { opacity: 0.6; }
   background: color-mix(in srgb, var(--brass) 12%, transparent);
   font-size: 0.8rem; font-weight: 600;
 }
+
+/* ---------- Session preview (teaser) overlay ---------- */
+.session-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11,13,20,0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+.session-preview-card {
+  background: linear-gradient(155deg, var(--board-2), var(--board-1) 75%);
+  border: 1px solid var(--rail);
+  border-radius: 16px;
+  padding: 1.2rem 1.1rem;
+  width: min(420px, 100%);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+}
+.session-preview-words {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 0.8rem 0 0.4rem;
+}
+.session-preview-word {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* ---------- Word of the Day ---------- */
+.wotd-card { margin-top: 1rem; text-align: center; }
+.wotd-hooks { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.9rem; margin-top: 0.4rem; font-size: 0.9rem; }
+.wotd-hook b { letter-spacing: 0.08em; }
+
+/* ---------- Due-review red badge ---------- */
+.due-badge {
+  display: inline-block;
+  min-width: 1.25rem;
+  padding: 0 0.4rem;
+  margin-left: 0.35rem;
+  border-radius: 999px;
+  background: #e5484d;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+}
+.due-badge[hidden] { display: none; }
+.toolbar-tab-btn[data-tab="cardbox"] { position: relative; }
+/* Desktop sidebar (row layout): badge sits at the right end of the button. */
+.toolbar-tab-btn .due-badge { margin-left: auto; }
+/* Mobile bottom bar (column layout): badge floats at the button's corner. */
+@media (max-width: 860px) {
+  .toolbar-tab-btn .due-badge { position: absolute; top: 2px; right: 2px; margin: 0; }
+}
